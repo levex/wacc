@@ -1,6 +1,7 @@
 module Main where
 
-import Types
+import Text.ParserCombinators.Parsec
+import Parser
 
 main :: IO ()
 main = return ()
