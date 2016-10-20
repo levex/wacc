@@ -17,6 +17,35 @@ primTypes
     , ("char",   TChar)
     , ("string", TString)]
 
+keywords
+  = [ "begin"
+    , "end"
+    , "is"
+    , "skip"
+    , "if"
+    , "then"
+    , "else"
+    , "fi"
+    , "while"
+    , "do"
+    , "done"
+    , "return"
+    , "newpair"
+    , "call"
+    , "fst"
+    , "snd"
+    , "pair"
+    , "null"
+    , "true"
+    , "false"]
+
+builtins
+  = [ ("read", Read)
+    , ("free", Free)
+    , ("exit", Exit)
+    , ("print", Print)
+    , ("println", PrintLn)]
+
 operations
   = [ [ prefix  "len" (UnApp Len)
       , prefix  "ord" (UnApp Ord)
@@ -102,6 +131,9 @@ character :: GenParser Char st Char
 character
   = nonEscape <|> escape
 
+isKeyword k
+  = any (elem k) [keywords, map fst builtins, map fst primTypes]
+
 identifierChar
   = alphaNum <|> char '_'
 
@@ -110,7 +142,11 @@ identifier = do
   whitespace
   c <- letter <|> char '_'
   cs <- many identifierChar
-  return $ (c:cs)
+  let ident = (c:cs)
+  if isKeyword ident then
+    fail "identifier is a keyword"
+  else
+    return ident
 
 pair :: GenParser Char st a -> GenParser Char st (a, a)
 pair p = try $ do
