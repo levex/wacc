@@ -29,19 +29,20 @@ data UnOp
   deriving (Eq, Show)
 
 data BinOp
-  = Mul
+  = Assign
+  | Add
+  | Sub
+  | Mul
   | Div
   | Mod
-  | Plus
-  | Minus
+  | And
+  | Or
   | Gt
   | Gte
   | Lt
   | Lte
   | Equ
   | NEqu
-  | And
-  | Or
   deriving (Eq, Show)
 
 data Expr

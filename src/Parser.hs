@@ -17,7 +17,34 @@ primTypes
     , ("char",   TChar)
     , ("string", TString)]
 
+operations
+  = [ [ prefix  "len" (UnApp Len)
+      , prefix  "ord" (UnApp Ord)
+      , prefix  "chr" (UnApp Chr)
+      , prefix  "-"   (UnApp Neg)
+      , prefix  "!"   (UnApp Not)]
+    , [ binary  "*"   (BinApp Mul) AssocLeft
+      , binary  "/"   (BinApp Div) AssocLeft
+      , binary  "%"   (BinApp Mod) AssocLeft]
+    , [ binary  "+"   (BinApp Add) AssocLeft
+      , binary  "-"   (BinApp Sub) AssocLeft]
+    , [ binary  "<"   (BinApp Lt) AssocLeft
+      , binary  ">"   (BinApp Gt) AssocLeft
+      , binary  "<="  (BinApp Lte) AssocLeft
+      , binary  ">="  (BinApp Gte) AssocLeft]
+    , [ binary  "=="  (BinApp Equ) AssocLeft
+      , binary  "!="  (BinApp NEqu) AssocLeft]
+    , [ binary  "&&"  (BinApp And) AssocLeft]
+    , [ binary  "||"  (BinApp Or) AssocLeft]
+    , [ binary  "="   (BinApp Assign) AssocRight]]
+
 -- Utility functions
+binary name fun assoc
+  = Infix (reserved name fun) assoc
+
+prefix name fun
+  = Prefix $ reserved name fun
+
 ignore :: GenParser Char st a -> GenParser Char st ()
 ignore p
   = p >> return ()
@@ -142,4 +169,11 @@ decl
 
 expr :: GenParser Char st Expr
 expr
+  = buildExpressionParser operations (wssurrounded term)
+  where
+    term
+      = parens expr <|> val
+
+val :: GenParser Char st Expr
+val
   = Lit <$> literal
