@@ -68,11 +68,14 @@ operations
     , [ binary  "="   (BinApp Assign) AssocRight]]
 
 -- Utility functions
+opMap name ret
+  = try (string name) >> return ret
+
 binary name fun assoc
-  = Infix (reserved name fun) assoc
+  = Infix (opMap name fun) assoc
 
 prefix name fun
-  = Prefix $ reserved name fun
+  = Prefix $ opMap name fun
 
 ignore :: GenParser Char st a -> GenParser Char st ()
 ignore p
@@ -103,7 +106,7 @@ comma
   = wschar ','
 
 reserved name ret
-  = try (string name) >> return ret
+  = try (keyword name) >> return ret
 
 parens
   = between (char '(') (char ')')
