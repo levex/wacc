@@ -218,11 +218,16 @@ expr
   = buildExpressionParser operations (wssurrounded term)
   where
     term
-      = parens expr <|> val <|> arrElement <|> pairElement <|> lVal
+      = parens expr <|> funCall <|> newPair <|> val
+        <|> arrElement <|> pairElement <|> ident
 
 val :: GenParser Char st Expr
 val
   = Lit <$> literal
+
+ident :: GenParser Char st Expr
+ident
+  = try $ Ident <$> identifier
 
 arrElement :: GenParser Char st Expr
 arrElement
@@ -232,6 +237,13 @@ pairElement :: GenParser Char st Expr
 pairElement
   = try $ PairElem <$> (reserved "fst" Fst <|> reserved "snd" Snd) <*> expr
 
-lVal :: GenParser Char st Expr
-lVal
-  = try $ Ident <$> identifier
+funCall :: GenParser Char st Expr
+funCall = try $ do
+  keyword "call"
+  FunCall <$> identifier <*> parens (expr `sepBy` comma)
+
+newPair :: GenParser Char st Expr
+newPair = try $ do
+  keyword "newpair"
+  (e1, e2) <- pair expr
+  return $ NewPair e1 e2
