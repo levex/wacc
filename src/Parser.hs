@@ -78,8 +78,8 @@ literal
       = INT . read <$> try (many1 digit)
 
     boolLit
-      = BOOL <$> try ((string "true" >> return True)
-                 <|> (string "false" >> return False))
+      = BOOL <$> try ((keyword "true" >> return True)
+                 <|> (keyword "false" >> return False))
 
     strLit
       = STR <$> try (between (char '"') (char '"') (many character))
@@ -88,7 +88,7 @@ literal
       = ARRAY <$> try (between (char '[') (char ']') (expr `sepBy` (char ',')))
 
     nullLit
-      = try (string "null" >> return NULL)
+      = try (keyword "null" >> return NULL)
 
 
 decltype :: GenParser Char st Type
