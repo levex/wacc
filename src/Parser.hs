@@ -247,3 +247,66 @@ newPair = try $ do
   keyword "newpair"
   (e1, e2) <- pair expr
   return $ NewPair e1 e2
+
+stmt :: GenParser Char st Statement
+stmt
+  = block <|> control <|> cond <|> loop <|> builtin <|> noop <|> expStmt
+
+stmtSeq :: GenParser Char st Statement
+stmtSeq
+  = try $ Block <$> stmt `sepBy` semicolon
+
+noop :: GenParser Char st Statement
+noop
+  = try $ keyword "skip" *> return Noop
+
+block :: GenParser Char st Statement
+block = try $ do
+  keyword "begin"
+  stmts <- stmt `sepBy` semicolon
+  keyword "end"
+  return $ Block stmts
+
+control :: GenParser Char st Statement
+control
+  = Ctrl <$> (ret <|> break <|> cont)
+  where
+    ret
+      = try $ Return <$> (keyword "return" *> expr)
+
+    break
+      = try $ keyword "break" >> return Break
+
+    cont
+      = try $ keyword "continue" >> return Continue
+
+cond :: GenParser Char st Statement
+cond = try $ do
+  keyword "if"
+  e <- expr
+  keyword "then"
+  trueBranch <- stmtSeq
+  falseBranch <- option Noop (try $ keyword "else" *> stmtSeq)
+  keyword "fi"
+  return $ Cond e trueBranch falseBranch
+
+loop :: GenParser Char st Statement
+loop = try $ do
+  keyword "while"
+  e <- expr
+  keyword "do"
+  body <- stmtSeq
+  keyword "done"
+  return $ Loop e body
+
+builtin :: GenParser Char st Statement
+builtin
+  = Builtin <$> builtinFunc <*> expr
+  where
+    builtinFunc
+      =  try $ (choice (map (uncurry reserved) builtins))
+
+expStmt :: GenParser Char st Statement
+expStmt
+  = try $ ExpStmt <$> expr
+
