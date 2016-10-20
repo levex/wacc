@@ -53,6 +53,7 @@ data Expr
   | UnApp UnOp Expr
   | BinApp BinOp Expr Expr
   | FunCall Identifier [Expr]
+  | NewPair Expr Expr
   deriving (Eq, Show)
 
 data Type
@@ -70,12 +71,11 @@ type Declaration
   = (Identifier, Type)
 
 data BuiltinFunc
-  = Read Expr
-  | Free Expr
-  | Exit Expr
-  | Print Expr
-  | PrintLn Expr
-  | NewPair Expr Expr
+  = Read
+  | Free
+  | Exit
+  | Print
+  | PrintLn
   deriving (Eq, Show)
 
 data Control
@@ -90,7 +90,7 @@ data Statement
   | Ctrl Control
   | Cond Expr Statement Statement
   | Loop Expr Statement
-  | Builtin BuiltinFunc
+  | Builtin BuiltinFunc Expr
   | ExpStmt Expr
   deriving (Eq, Show)
 
