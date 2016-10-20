@@ -76,6 +76,12 @@ reserved name ret
 parens
   = between (char '(') (char ')')
 
+bracketed
+  = between (char '[') (char ']')
+
+quoted
+  = between (char '"') (char '"')
+
 identifierChar
   = alphaNum <|> char '_'
 
@@ -118,10 +124,10 @@ literal
                  <|> (keyword "false" >> return False))
 
     strLit
-      = STR <$> try (between (char '"') (char '"') (many character))
+      = STR <$> try (quoted (many character))
 
     arrLit
-      = ARRAY <$> try (between (char '[') (char ']') (expr `sepBy` (char ',')))
+      = ARRAY <$> try (bracketed (expr `sepBy` (char ',')))
 
     nullLit
       = try (keyword "null" >> return NULL)
