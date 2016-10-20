@@ -1,10 +1,15 @@
 module Parser where
 
+import           Data.List
+import           Data.Maybe
 import           Text.ParserCombinators.Parsec hiding (label)
 import           Text.ParserCombinators.Parsec.Error
 import           Text.Parsec.Expr
 
 import Types
+
+escapedCharacters
+  = "\\\"\'\0\n\r\v\t\b\f"
 
 -- Utility functions
 ignore :: GenParser Char st a -> GenParser Char st ()
@@ -38,6 +43,23 @@ parens
 identifierChar
   = alphaNum <|> char '_'
 
+escape :: GenParser Char st Char
+escape = do
+    d <- char '\\'
+    c <- oneOf escapeCodes
+    let i = fromJust $ elemIndex c escapeCodes
+    return (escapedCharacters !! i)
+    where
+      escapeCodes = "\\\"\'0nrvtbf"
+
+nonEscape :: GenParser Char st Char
+nonEscape
+  = noneOf escapedCharacters
+
+character :: GenParser Char st Char
+character
+  = nonEscape <|> escape
+
 identifier :: GenParser Char st Identifier
 identifier = do
   whitespace
@@ -50,19 +72,20 @@ literal
   = charLit <|> intLit <|> boolLit <|> strLit <|> arrLit <|> nullLit
   where
     charLit
-      = CHAR <$> try (between (char '\'') (char '\'') anyChar)
+      = CHAR <$> try (between (char '\'') (char '\'') character)
 
     intLit
       = INT . read <$> try (many1 digit)
 
     boolLit
-      = undefined -- BOOL . read <$> try (string "true" <|> string "false")
+      = BOOL <$> try ((string "true" >> return True)
+                 <|> (string "false" >> return False))
 
     strLit
-      = undefined
+      = STR <$> try (between (char '"') (char '"') (many character))
 
     arrLit
-      = undefined
+      = ARRAY <$> try (between (char '[') (char ']') (expr `sepBy` (char ',')))
 
     nullLit
       = try (string "null" >> return NULL)
@@ -85,3 +108,7 @@ decl
       ident <- wssurrounded identifier
       args <- parens (varDecl `sepBy` (char ','))
       return $ (ident, TFun retT args)
+
+expr :: GenParser Char st Expr
+expr
+  = Lit <$> literal
