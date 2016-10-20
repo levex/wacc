@@ -178,8 +178,20 @@ expr
   = buildExpressionParser operations (wssurrounded term)
   where
     term
-      = parens expr <|> val
+      = parens expr <|> val <|> arrElement <|> pairElement <|> lVal
 
 val :: GenParser Char st Expr
 val
   = Lit <$> literal
+
+arrElement :: GenParser Char st Expr
+arrElement
+  = try $ ArrElem <$> identifier <*> many1 (bracketed expr)
+
+pairElement :: GenParser Char st Expr
+pairElement
+  = try $ PairElem <$> (reserved "fst" Fst <|> reserved "snd" Snd) <*> expr
+
+lVal :: GenParser Char st Expr
+lVal
+  = try $ Ident <$> identifier
