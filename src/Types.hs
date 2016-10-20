@@ -59,7 +59,7 @@ data Type
   | TInt
   | TBool
   | TString
-  | TArb String
+  | TArb
   | TArray Type
   | TPair Type Type
   | TFun Type [Declaration]

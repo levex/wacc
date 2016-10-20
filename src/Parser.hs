@@ -11,6 +11,12 @@ import Types
 escapedCharacters
   = "\\\"\'\0\n\r\v\t\b\f"
 
+primTypes
+  = [ ("int",    TInt)
+    , ("bool",   TBool)
+    , ("char",   TChar)
+    , ("string", TString)]
+
 -- Utility functions
 ignore :: GenParser Char st a -> GenParser Char st ()
 ignore p
@@ -36,6 +42,9 @@ keyword s
 
 semicolon
   = wschar ';'
+
+reserved name ret
+  = try (string name) >> return ret
 
 parens
   = between (char '(') (char ')')
@@ -92,7 +101,29 @@ literal
 
 
 decltype :: GenParser Char st Type
-decltype = undefined
+decltype
+  = arrType <|> pairType <|> primType
+  where
+    primType
+      = choice (map (uncurry reserved) primTypes)
+
+    arrType = try $ do
+      t <- pairType <|> primType
+      arrQualifiers <- many1 (reserved "[]" TArray)
+      return $ (foldr1 (flip (.)) arrQualifiers) t
+
+    pairType = try $ do
+      keyword "pair"
+      (t1, t2) <- option (TArb, TArb) pairArgs
+      return $ TPair t1 t2
+
+    pairArgs = try $ do
+      char '('
+      t1 <- wssurrounded decltype
+      char ','
+      t2 <- wssurrounded decltype
+      char ')'
+      return (t1, t2)
 
 decl :: GenParser Char st Declaration
 decl
