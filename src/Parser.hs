@@ -316,3 +316,19 @@ expStmt :: GenParser Char st Statement
 expStmt
   = try $ ExpStmt <$> expr
 
+definition :: GenParser Char st Definition
+definition
+  = try $ (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
+
+program :: GenParser Char st Program
+program = try $ do
+  keyword "begin"
+  funcs <- many definition
+  mainFunc <- stmtSeq
+  keyword "end"
+  eof
+  return $ (mainDecl, mainFunc):funcs
+
+mainDecl :: Declaration
+mainDecl
+  = ("main", TFun TInt [])
