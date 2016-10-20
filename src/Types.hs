@@ -87,6 +87,7 @@ data Control
 data Statement
   = Noop
   | Block [Statement]
+  | VarDef Declaration Expr
   | Ctrl Control
   | Cond Expr Statement Statement
   | Loop Expr Statement
@@ -96,3 +97,6 @@ data Statement
 
 type Definition
   = (Declaration, Statement)
+
+type Program
+  = [Definition]

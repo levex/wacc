@@ -201,20 +201,18 @@ decltype
       (t1, t2) <- option (TArb, TArb) (pair decltype)
       return $ TPair t1 t2
 
-decl :: GenParser Char st Declaration
-decl
-  = funDecl <|> varDecl
-  where
-    varDecl = try $ do
-      t <- wssurrounded decltype
-      ident <- wssurrounded identifier
-      return $ (ident, t)
+varDecl :: GenParser Char st Declaration
+varDecl = try $ do
+  t <- wssurrounded decltype
+  ident <- wssurrounded identifier
+  return $ (ident, t)
 
-    funDecl = try $ do
-      retT <- wssurrounded decltype
-      ident <- wssurrounded identifier
-      args <- parens (varDecl `sepBy` comma)
-      return $ (ident, TFun retT args)
+funDecl :: GenParser Char st Declaration
+funDecl = try $ do
+  retT <- wssurrounded decltype
+  ident <- wssurrounded identifier
+  args <- parens (varDecl `sepBy` comma)
+  return $ (ident, TFun retT args)
 
 expr :: GenParser Char st Expr
 expr
@@ -253,7 +251,8 @@ newPair = try $ do
 
 stmt :: GenParser Char st Statement
 stmt
-  = block <|> control <|> cond <|> loop <|> builtin <|> noop <|> expStmt
+  = block <|> varDef <|> control <|> cond
+    <|> loop <|> builtin <|> noop <|> expStmt
 
 stmtSeq :: GenParser Char st Statement
 stmtSeq
@@ -269,6 +268,10 @@ block = try $ do
   stmts <- stmt `sepBy` semicolon
   keyword "end"
   return $ Block stmts
+
+varDef :: GenParser Char st Statement
+varDef
+  = try $ VarDef <$> varDecl <*> (whitespace *> char '=' *> expr)
 
 control :: GenParser Char st Statement
 control
