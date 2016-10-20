@@ -70,6 +70,9 @@ keyword s
 semicolon
   = wschar ';'
 
+comma
+  = wschar ','
+
 reserved name ret
   = try (string name) >> return ret
 
@@ -81,9 +84,6 @@ bracketed
 
 quoted
   = between (char '"') (char '"')
-
-identifierChar
-  = alphaNum <|> char '_'
 
 escape :: GenParser Char st Char
 escape = do
@@ -102,12 +102,24 @@ character :: GenParser Char st Char
 character
   = nonEscape <|> escape
 
+identifierChar
+  = alphaNum <|> char '_'
+
 identifier :: GenParser Char st Identifier
 identifier = do
   whitespace
   c <- letter <|> char '_'
   cs <- many identifierChar
   return $ (c:cs)
+
+pair :: GenParser Char st a -> GenParser Char st (a, a)
+pair p = try $ do
+  wschar '('
+  p1 <- p
+  wschar ','
+  p2 <- p
+  wschar ')'
+  return $ (p1, p2)
 
 literal :: GenParser Char st Literal
 literal
@@ -127,7 +139,7 @@ literal
       = STR <$> try (quoted (many character))
 
     arrLit
-      = ARRAY <$> try (bracketed (expr `sepBy` (char ',')))
+      = ARRAY <$> try (bracketed (expr `sepBy` comma))
 
     nullLit
       = try (keyword "null" >> return NULL)
@@ -147,16 +159,8 @@ decltype
 
     pairType = try $ do
       keyword "pair"
-      (t1, t2) <- option (TArb, TArb) pairArgs
+      (t1, t2) <- option (TArb, TArb) (pair decltype)
       return $ TPair t1 t2
-
-    pairArgs = try $ do
-      char '('
-      t1 <- wssurrounded decltype
-      char ','
-      t2 <- wssurrounded decltype
-      char ')'
-      return (t1, t2)
 
 decl :: GenParser Char st Declaration
 decl
@@ -170,7 +174,7 @@ decl
     funDecl = try $ do
       retT <- wssurrounded decltype
       ident <- wssurrounded identifier
-      args <- parens (varDecl `sepBy` (char ','))
+      args <- parens (varDecl `sepBy` comma)
       return $ (ident, TFun retT args)
 
 expr :: GenParser Char st Expr
