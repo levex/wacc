@@ -1,5 +1,6 @@
 module Parser where
 
+import           Control.Monad
 import           Data.List
 import           Data.Maybe
 import           Text.ParserCombinators.Parsec hiding (label)
