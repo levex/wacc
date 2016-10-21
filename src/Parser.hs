@@ -71,15 +71,14 @@ operations
 opMap name ret
   = try (string name) >> return ret
 
-binary name fun assoc
-  = Infix (opMap name fun) assoc
+binary name fun
+  = Infix (opMap name fun)
 
 prefix name fun
   = Prefix $ opMap name fun
 
 ignore :: GenParser Char st a -> GenParser Char st ()
-ignore p
-  = p >> return ()
+ignore = void
 
 comment
   = try (string "#" >> manyTill anyChar (try newline))
@@ -145,7 +144,7 @@ identifier = do
   whitespace
   c <- letter <|> char '_'
   cs <- many identifierChar
-  let ident = (c:cs)
+  let ident = c : cs
   if isKeyword ident then
     fail "identifier is a keyword"
   else
@@ -158,7 +157,7 @@ pair p = try $ do
   wschar ','
   p2 <- p
   wschar ')'
-  return $ (p1, p2)
+  return (p1, p2)
 
 literal :: GenParser Char st Literal
 literal
@@ -194,7 +193,7 @@ decltype
     arrType = try $ do
       t <- pairType <|> primType
       arrQualifiers <- many1 (reserved "[]" TArray)
-      return $ (foldr1 (flip (.)) arrQualifiers) t
+      return $ foldr1 (flip (.)) arrQualifiers t
 
     pairType = try $ do
       keyword "pair"
@@ -205,14 +204,14 @@ varDecl :: GenParser Char st Declaration
 varDecl = try $ do
   t <- wssurrounded decltype
   ident <- wssurrounded identifier
-  return $ (ident, t)
+  return (ident, t)
 
 funDecl :: GenParser Char st Declaration
 funDecl = try $ do
   retT <- wssurrounded decltype
   ident <- wssurrounded identifier
   args <- parens (varDecl `sepBy` comma)
-  return $ (ident, TFun retT args)
+  return  (ident, TFun retT args)
 
 expr :: GenParser Char st Expr
 expr
@@ -310,7 +309,7 @@ builtin
   = Builtin <$> builtinFunc <*> expr
   where
     builtinFunc
-      =  try $ (choice (map (uncurry reserved) builtins))
+      =  try $ choice (map (uncurry reserved) builtins)
 
 expStmt :: GenParser Char st Statement
 expStmt
