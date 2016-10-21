@@ -184,8 +184,7 @@ literal
       = INT <$> try integer
 
     boolLit
-      = BOOL <$> try ((keyword "true" >> return True)
-                 <|> (keyword "false" >> return False))
+      = BOOL <$> try (reserved "true" True <|> reserved "false" False)
 
     strLit
       = STR <$> try (quoted (many character))
