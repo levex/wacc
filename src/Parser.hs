@@ -1,6 +1,7 @@
 module Parser where
 
 import           Control.Monad
+import           Data.Int
 import           Data.List
 import           Data.Maybe
 import           Text.ParserCombinators.Parsec hiding (label)
@@ -138,6 +139,14 @@ character :: GenParser Char st Char
 character
   = nonEscape <|> escape
 
+integer :: GenParser Char st Int32
+integer = do
+  s <- option id sign
+  n <- many1 digit
+  return . s . read $ n
+  where
+    sign = opMap "+" id <|> opMap "-" negate
+
 isKeyword k
   = any (elem k) [keywords, map fst builtins, map fst primTypes]
 
@@ -172,7 +181,7 @@ literal
       = CHAR <$> try (between (char '\'') (char '\'') character)
 
     intLit
-      = INT . read <$> try (many1 digit)
+      = INT <$> try integer
 
     boolLit
       = BOOL <$> try ((keyword "true" >> return True)
