@@ -14,4 +14,4 @@ main = do
       case runParser file contents of
         Left err -> putStrLn $ show err
         Right ast -> putStrLn $ show ast
-    main' _ = putStrLn "Usage: ./hcc <filename>"
+    main' _ = putStrLn "Usage: ./wacc <filename>"
