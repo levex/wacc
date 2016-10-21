@@ -71,7 +71,7 @@ operations
 
 -- Utility functions
 opMap name ret
-  = try (string name) >> return ret
+  = try (wsstring name) >> return ret
 
 binary name fun
   = Infix (opMap name fun)
@@ -236,7 +236,7 @@ expr
 
 val :: GenParser Char st Expr
 val
-  = Lit <$> literal
+  = try $ Lit <$> literal
 
 ident :: GenParser Char st Expr
 ident
