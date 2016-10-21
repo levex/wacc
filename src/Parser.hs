@@ -287,16 +287,16 @@ varDef
 
 control :: GenParser Char st Statement
 control
-  = Ctrl <$> (ret <|> break <|> cont)
+  = Ctrl <$> ret -- (ret <|> break <|> cont)
   where
     ret
       = try $ Return <$> (keyword "return" *> expr)
 
-    break
-      = try $ keyword "break" >> return Break
-
-    cont
-      = try $ keyword "continue" >> return Continue
+--    break
+--      = try $ keyword "break" >> return Break
+--
+--    cont
+--      = try $ keyword "continue" >> return Continue
 
 cond :: GenParser Char st Statement
 cond = try $ do
