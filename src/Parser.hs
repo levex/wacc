@@ -83,10 +83,13 @@ ignore
   = void
 
 comment
-  = try (string "#" >> manyTill anyChar (try newline))
+  = try $ char '#' >> manyTill anyChar newline
+
+spaces1
+  = space >> spaces
 
 whitespace
-  = (spaces <|> ignore comment) <|> whitespace
+  = skipMany (spaces1 <|> ignore comment)
 
 wssurrounded p
   = whitespace *> p <* whitespace
