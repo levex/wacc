@@ -1,6 +1,7 @@
 module Main where
 
 import           System.Environment
+import           System.Exit
 import           Parser
 
 main :: IO ()
@@ -12,6 +13,6 @@ main = do
     main' [file] = do
       contents <- readFile file
       case runParser file contents of
-        Left err -> putStrLn $ show err
-        Right ast -> putStrLn $ show ast
+        Left err -> (putStrLn $ show err) >> exitFailure
+        Right ast -> (putStrLn $ show ast) >> exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"
