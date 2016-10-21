@@ -61,8 +61,8 @@ operations
       , binary  ">"   (BinApp Gt) AssocLeft
       , binary  "<="  (BinApp Lte) AssocLeft
       , binary  ">="  (BinApp Gte) AssocLeft]
-    , [ binary  "=="  (BinApp Equ) AssocLeft
-      , binary  "!="  (BinApp NEqu) AssocLeft]
+    , [ binary  "=="  (BinApp Eq) AssocLeft
+      , binary  "!="  (BinApp NEq) AssocLeft]
     , [ binary  "&&"  (BinApp And) AssocLeft]
     , [ binary  "||"  (BinApp Or) AssocLeft]
     , [ binary  "="   (BinApp Assign) AssocRight]]

@@ -41,8 +41,8 @@ data BinOp
   | Gte
   | Lt
   | Lte
-  | Equ
-  | NEqu
+  | Eq
+  | NEq
   deriving (Eq, Show)
 
 data Expr
