@@ -58,10 +58,10 @@ echo ""
 echo "Total tests: ${TOTAL_TESTS}"
 echo "Tests successfully executed: ${TEST_SUCCESS}"
 echo "Failed tests: ${TEST_FAILURES}"
-echo "These are: "
-echo "-------------------------------------"
-for i in ${FAILED_TESTS}
-do
-  echo ${i}
-done
-echo "-------------------------------------"
+if [[ ${TEST_FAILURES} -ne 0 ]]
+then
+  echo "These are: "
+  echo "-------------------------------------"
+  for i in ${FAILED_TESTS}; do echo $i; done
+  echo "-------------------------------------"
+fi
