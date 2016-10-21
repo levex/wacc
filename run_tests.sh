@@ -3,6 +3,7 @@
 if [[ $# -lt 1 ]]
   then echo "Usage: $0 <path_to_wacc_examples_repo> [-q|-g]"
     echo "-g implies printing out the output of each wacc compilation"
+    echo "-q implies printing out the output of each wacc compilation"
   exit
 fi 
 
