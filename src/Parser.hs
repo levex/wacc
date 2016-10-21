@@ -79,7 +79,8 @@ prefix name fun
   = Prefix $ opMap name fun
 
 ignore :: GenParser Char st a -> GenParser Char st ()
-ignore = void
+ignore
+  = void
 
 comment
   = try (string "#" >> manyTill anyChar (try newline))
