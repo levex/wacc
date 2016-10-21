@@ -336,3 +336,7 @@ program = try $ do
 mainDecl :: Declaration
 mainDecl
   = ("main", TFun TInt [])
+
+runParser :: String -> String -> Either ParseError Program
+runParser fileName contents
+  = parse program fileName contents
