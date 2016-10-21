@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
 if [[ $# -lt 1 ]]
-  then echo "Usage: $0 <path_to_wacc_examples_repo> [-g]"
+  then echo "Usage: $0 <path_to_wacc_examples_repo> [-q|-g]"
     echo "-g implies printing out the output of each wacc compilation"
   exit
 fi 
@@ -25,23 +25,29 @@ for wacc in ${VALID_WACC}
 do
   if [[ $PRINT_ERRS == "-g" ]]
   then
-    echo "FAFAFAF"
     stack exec wacc-exe ${wacc}
   else
     stack exec wacc-exe ${wacc} >/dev/null 2>&1
   fi
+  EXIT_CODE=$?
   TOTAL_TESTS=$((TOTAL_TESTS + 1))
   TEST_NAME=`basename ${wacc/${TARGET_PATH}/}`
 
-  if (($? > 0))
+  if ((${EXIT_CODE} == 0))
   then
     TEST_SUCCESS=$((TEST_SUCCESS + 1))
-   echo "SUCCESS: ${TEST_NAME}"
+    if [[ $PRINT_ERRS != "-q" ]]
+    then
+        echo "SUCCESS: ${TEST_NAME}"
+    fi
   else
     TEST_FAILURES=$((TEST_FAILURES + 1))
-    echo "FAILURE: ${TEST_NAME}"
+    FAILED_TESTS+=" ${TEST_NAME}"
+    if [[ $PRINT_ERRS != "-q" ]]
+    then
+        echo "FAILURE: ${TEST_NAME}"
+    fi
   fi
-  FAILED_TESTS+=" ${TEST_NAME}"
 done
 
 echo "-------------------------------------"
