@@ -2,7 +2,8 @@ module Main where
 
 import           System.Environment
 import           System.Exit
-import           Parser
+
+import           WACC.Parser.Parser
 
 main :: IO ()
 main = do

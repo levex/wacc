@@ -1,4 +1,4 @@
-module Parser where
+module WACC.Parser.Parser where
 
 import           Control.Monad
 import           Data.Int
@@ -8,7 +8,7 @@ import           Text.ParserCombinators.Parsec hiding (label)
 import           Text.ParserCombinators.Parsec.Error
 import           Text.Parsec.Expr
 
-import Types
+import           WACC.Parser.Types
 
 escapedCharacters
   = "\\\"\'\0\n\r\v\t\b\f"
@@ -74,7 +74,7 @@ opMap name ret
   = try (wsstring name) >> return ret
 
 binary name fun
-  = Infix (opMap name fun)
+  = Infix $ opMap name fun
 
 prefix name fun
   = Prefix $ opMap name fun
@@ -346,5 +346,5 @@ mainDecl
   = ("main", TFun TInt [])
 
 runParser :: String -> String -> Either ParseError Program
-runParser fileName contents
-  = parse program fileName contents
+runParser
+  = parse program

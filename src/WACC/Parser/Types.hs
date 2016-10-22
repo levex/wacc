@@ -1,4 +1,4 @@
-module Types where
+module WACC.Parser.Types where
 
 import Data.Int
 
