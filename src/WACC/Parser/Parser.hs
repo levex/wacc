@@ -36,6 +36,7 @@ integer = do
   where
     sign = opMap "+" id <|> opMap "-" negate
 
+isKeyword :: String -> Bool
 isKeyword k
   = any (elem k) [keywords, map fst builtins, map fst primTypes]
 
