@@ -15,8 +15,9 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     WACC.Parser.Parser
+  exposed-modules:     WACC.Parser
   other-modules:       WACC.Parser.Types
+                     , WACC.Parser.Parser
                      , WACC.Parser.Primitives
   build-depends:       base >= 4.7 && < 5, parsec
   default-language:    Haskell2010

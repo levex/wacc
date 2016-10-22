@@ -3,7 +3,7 @@ module Main where
 import           System.Environment
 import           System.Exit
 
-import           WACC.Parser.Parser
+import           WACC.Parser
 
 main :: IO ()
 main = do

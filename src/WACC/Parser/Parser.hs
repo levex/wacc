@@ -218,6 +218,10 @@ definition :: GenParser Char st Definition
 definition
   = try $ (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
 
+mainDecl :: Declaration
+mainDecl
+  = ("main", TFun TInt [])
+
 program :: GenParser Char st Program
 program = try $ do
   keyword "begin"
@@ -226,11 +230,3 @@ program = try $ do
   keyword "end"
   eof
   return $ (mainDecl, mainFunc):funcs
-
-mainDecl :: Declaration
-mainDecl
-  = ("main", TFun TInt [])
-
-runParser :: String -> String -> Either ParseError Program
-runParser
-  = parse program
