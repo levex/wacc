@@ -191,7 +191,8 @@ cond = try $ do
   e <- expr
   keyword "then"
   trueBranch <- stmtSeq
-  falseBranch <- option Noop (try $ keyword "else" *> stmtSeq)
+  keyword "else"
+  falseBranch <- stmtSeq
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
@@ -227,6 +228,7 @@ program :: GenParser Char st Program
 program = try $ do
   keyword "begin"
   funcs <- many definition
+  notFollowedBy $ keyword "end"
   mainFunc <- stmtSeq
   keyword "end"
   eof
