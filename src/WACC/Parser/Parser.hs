@@ -11,7 +11,10 @@ import           Text.Parsec.Expr
 import           WACC.Parser.Types
 import           WACC.Parser.Primitives
 
-escape :: GenParser Char st Char
+-- our state is a symbol table
+type UState = [Symbol]
+
+escape :: GenParser Char UState Char
 escape = do
     d <- char '\\'
     c <- oneOf escapeCodes
@@ -20,15 +23,15 @@ escape = do
     where
       escapeCodes = "\\\"\'0nrvtbf"
 
-nonEscape :: GenParser Char st Char
+nonEscape :: GenParser Char UState Char
 nonEscape
   = noneOf escapedCharacters
 
-character :: GenParser Char st Char
+character :: GenParser Char UState Char
 character
   = nonEscape <|> escape
 
-integer :: GenParser Char st Int32
+integer :: GenParser Char UState Int32
 integer = do
   s <- option id sign
   n <- many1 digit
@@ -40,7 +43,7 @@ isKeyword :: String -> Bool
 isKeyword k
   = any (elem k) [keywords, map fst builtins, map fst primTypes]
 
-identifier :: GenParser Char st Identifier
+identifier :: GenParser Char UState Identifier
 identifier = do
   whitespace
   c <- letter <|> char '_'
@@ -51,7 +54,7 @@ identifier = do
   else
     return ident
 
-pair :: GenParser Char st a -> GenParser Char st (a, a)
+pair :: GenParser Char UState a -> GenParser Char UState (a, a)
 pair p = try $ do
   wschar '('
   p1 <- p
@@ -60,7 +63,7 @@ pair p = try $ do
   wschar ')'
   return (p1, p2)
 
-literal :: GenParser Char st Literal
+literal :: GenParser Char UState Literal
 literal
   = charLit <|> intLit <|> boolLit <|> strLit <|> arrLit <|> nullLit
   where
@@ -83,7 +86,7 @@ literal
       = try (keyword "null" >> return NULL)
 
 
-decltype :: GenParser Char st Type
+decltype :: GenParser Char UState Type
 decltype
   = arrType <|> pairType <|> primType
   where
@@ -100,20 +103,20 @@ decltype
       (t1, t2) <- option (TArb, TArb) (pair decltype)
       return $ TPair t1 t2
 
-varDecl :: GenParser Char st Declaration
+varDecl :: GenParser Char UState Declaration
 varDecl = try $ do
   t <- wssurrounded decltype
   ident <- wssurrounded identifier
   return (ident, t)
 
-funDecl :: GenParser Char st Declaration
+funDecl :: GenParser Char UState Declaration
 funDecl = try $ do
   retT <- wssurrounded decltype
   ident <- wssurrounded identifier
   args <- parens (varDecl `sepBy` comma)
   return  (ident, TFun retT args)
 
-expr :: GenParser Char st Expr
+expr :: GenParser Char UState Expr
 expr
   = buildExpressionParser operations (wssurrounded term)
   where
@@ -121,58 +124,58 @@ expr
       = parens expr <|> funCall <|> newPair <|> val
         <|> arrElement <|> pairElement <|> ident
 
-val :: GenParser Char st Expr
+val :: GenParser Char UState Expr
 val
   = try $ Lit <$> literal
 
-ident :: GenParser Char st Expr
+ident :: GenParser Char UState Expr
 ident
   = try $ Ident <$> identifier
 
-arrElement :: GenParser Char st Expr
+arrElement :: GenParser Char UState Expr
 arrElement
   = try $ ArrElem <$> identifier <*> many1 (bracketed expr)
 
-pairElement :: GenParser Char st Expr
+pairElement :: GenParser Char UState Expr
 pairElement
   = try $ PairElem <$> (reserved "fst" Fst <|> reserved "snd" Snd) <*> expr
 
-funCall :: GenParser Char st Expr
+funCall :: GenParser Char UState Expr
 funCall = try $ do
   keyword "call"
   FunCall <$> identifier <*> parens (expr `sepBy` comma)
 
-newPair :: GenParser Char st Expr
+newPair :: GenParser Char UState Expr
 newPair = try $ do
   keyword "newpair"
   (e1, e2) <- pair expr
   return $ NewPair e1 e2
 
-stmt :: GenParser Char st Statement
+stmt :: GenParser Char UState Statement
 stmt
   = block <|> varDef <|> control <|> cond
     <|> loop <|> builtin <|> noop <|> expStmt
 
-stmtSeq :: GenParser Char st Statement
+stmtSeq :: GenParser Char UState Statement
 stmtSeq
   = try $ Block <$> stmt `sepBy` semicolon
 
-noop :: GenParser Char st Statement
+noop :: GenParser Char UState Statement
 noop
   = try $ keyword "skip" *> return Noop
 
-block :: GenParser Char st Statement
+block :: GenParser Char UState Statement
 block = try $ do
   keyword "begin"
   stmts <- stmt `sepBy` semicolon
   keyword "end"
   return $ Block stmts
 
-varDef :: GenParser Char st Statement
+varDef :: GenParser Char UState Statement
 varDef
   = try $ VarDef <$> varDecl <*> (whitespace *> char '=' *> expr)
 
-control :: GenParser Char st Statement
+control :: GenParser Char UState Statement
 control
   = Ctrl <$> ret -- (ret <|> break <|> cont)
   where
@@ -185,7 +188,7 @@ control
 --    cont
 --      = try $ keyword "continue" >> return Continue
 
-cond :: GenParser Char st Statement
+cond :: GenParser Char UState Statement
 cond = try $ do
   keyword "if"
   e <- expr
@@ -196,7 +199,7 @@ cond = try $ do
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
-loop :: GenParser Char st Statement
+loop :: GenParser Char UState Statement
 loop = try $ do
   keyword "while"
   e <- expr
@@ -205,18 +208,18 @@ loop = try $ do
   keyword "done"
   return $ Loop e body
 
-builtin :: GenParser Char st Statement
+builtin :: GenParser Char UState Statement
 builtin
   = Builtin <$> builtinFunc <*> expr
   where
     builtinFunc
       =  try $ choice (map (uncurry reserved) builtins)
 
-expStmt :: GenParser Char st Statement
+expStmt :: GenParser Char UState Statement
 expStmt
   = try $ ExpStmt <$> expr
 
-definition :: GenParser Char st Definition
+definition :: GenParser Char UState Definition
 definition
   = try $ (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
 
@@ -224,7 +227,7 @@ mainDecl :: Declaration
 mainDecl
   = ("main", TFun TInt [])
 
-program :: GenParser Char st Program
+program :: GenParser Char UState Program
 program = try $ do
   keyword "begin"
   funcs <- many definition

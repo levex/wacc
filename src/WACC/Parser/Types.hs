@@ -11,6 +11,9 @@ data Literal
   | NULL
   deriving (Eq, Show)
 
+type Symbol
+  = (Identifier, Type)
+
 -- Can't start with a number
 type Identifier
   = String
