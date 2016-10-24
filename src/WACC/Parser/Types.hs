@@ -10,7 +10,16 @@ data Literal
   deriving (Eq, Show)
 
 type Symbol
+  = (SymbolData, ScopeID)
+
+type SymbolData
   = (Identifier, Type)
+
+type ScopeID
+  = Int
+
+-- our state is a symbol table and a scope ID
+type UState = ([Symbol], Int)
 
 -- Can't start with a number
 type Identifier
