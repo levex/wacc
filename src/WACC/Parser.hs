@@ -9,5 +9,5 @@ initialParserState :: UState
 initialParserState = []
 
 runWACCParser :: UState -> String -> Either ParseError Program
-runWACCParser u s
-  = runParser program u "<cmdline>" s
+runWACCParser u
+  = runParser program u "<cmdline>"
