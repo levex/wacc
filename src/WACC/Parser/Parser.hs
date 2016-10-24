@@ -133,8 +133,13 @@ val
   = try $ Lit <$> literal
 
 ident :: GenParser Char UState Expr
-ident
-  = try $ Ident <$> identifier
+ident = try $ do
+  i <- identifier
+  st <- getState
+  if (not $ isInScope st i) then
+    fail $ "Identifier " ++ i ++ " not defined"
+  else
+    return $ Ident i
 
 arrElement :: GenParser Char UState Expr
 arrElement
