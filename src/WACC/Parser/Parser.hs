@@ -108,6 +108,7 @@ varDecl :: GenParser Char UState Declaration
 varDecl = try $ do
   t <- wssurrounded decltype
   ident <- wssurrounded identifier
+  updateState $ addSymbol (ident, t)
   return (ident, t)
 
 funDecl :: GenParser Char UState Declaration
@@ -115,6 +116,8 @@ funDecl = try $ do
   retT <- wssurrounded decltype
   ident <- wssurrounded identifier
   args <- parens (varDecl `sepBy` comma)
+  updateState $ addSymbol (ident, retT)
+  updateState increaseScope
   return  (ident, TFun retT args)
 
 expr :: GenParser Char UState Expr
@@ -168,7 +171,9 @@ noop
 block :: GenParser Char UState Statement
 block = try $ do
   keyword "begin"
+  updateState increaseScope
   stmts <- stmt `sepBy` semicolon
+  updateState decreaseScope
   keyword "end"
   return $ Block stmts
 
@@ -194,9 +199,13 @@ cond = try $ do
   keyword "if"
   e <- expr
   keyword "then"
+  updateState increaseScope
   trueBranch <- stmtSeq
+  updateState decreaseScope
   keyword "else"
+  updateState increaseScope
   falseBranch <- stmtSeq
+  updateState decreaseScope
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
@@ -205,7 +214,9 @@ loop = try $ do
   keyword "while"
   e <- expr
   keyword "do"
+  updateState increaseScope
   body <- stmtSeq
+  updateState decreaseScope
   keyword "done"
   return $ Loop e body
 
@@ -222,7 +233,10 @@ expStmt
 
 definition :: GenParser Char UState Definition
 definition
-  = try $ (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
+  = try $ do
+      x <- (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
+      updateState decreaseScope
+      return x
 
 mainDecl :: Declaration
 mainDecl
