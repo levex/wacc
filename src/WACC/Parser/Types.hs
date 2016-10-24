@@ -1,10 +1,8 @@
 module WACC.Parser.Types where
 
-import Data.Int
-
 data Literal
   = CHAR Char
-  | INT Int32
+  | INT Integer
   | BOOL Bool
   | STR String
   | ARRAY [Expr]

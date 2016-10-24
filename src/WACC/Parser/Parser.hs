@@ -34,7 +34,7 @@ character :: GenParser Char UState Char
 character
   = nonEscape <|> escape
 
-integer :: GenParser Char UState Int32
+integer :: GenParser Char UState Integer
 integer = do
   s <- option id sign
   n <- many1 digit
