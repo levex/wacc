@@ -14,6 +14,9 @@ import           WACC.Parser.Primitives
 -- our state is a symbol table
 type UState = [Symbol]
 
+initialParserState :: UState
+initialParserState = []
+
 escape :: GenParser Char UState Char
 escape = do
     d <- char '\\'

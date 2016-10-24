@@ -13,7 +13,7 @@ main = do
   where
     main' [file] = do
       contents <- readFile file
-      case runWACCParser initialParserState contents of
+      case runWACCParser file contents of
         Left err -> (putStrLn $ show err) >> exitFailure
         Right ast -> (putStrLn $ show ast) >> exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"

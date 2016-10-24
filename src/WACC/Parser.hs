@@ -5,9 +5,6 @@ import           Text.ParserCombinators.Parsec.Error
 import           WACC.Parser.Parser
 import           WACC.Parser.Types
 
-initialParserState :: UState
-initialParserState = []
-
-runWACCParser :: UState -> String -> Either ParseError Program
-runWACCParser u
-  = runParser program u "<cmdline>"
+runWACCParser :: String -> String -> Either ParseError Program
+runWACCParser
+  = runParser program initialParserState
