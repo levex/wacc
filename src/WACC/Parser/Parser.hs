@@ -10,12 +10,10 @@ import           Text.Parsec.Expr
 
 import           WACC.Parser.Types
 import           WACC.Parser.Primitives
-
--- our state is a symbol table
-type UState = [Symbol]
+import           WACC.Parser.Semantic
 
 initialParserState :: UState
-initialParserState = []
+initialParserState = ([], 0)
 
 escape :: GenParser Char UState Char
 escape = do
