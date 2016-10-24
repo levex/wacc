@@ -38,3 +38,29 @@ getType (FunCall id _)
   = undefined -- FIXME: need symbol table
 getType (NewPair e1 e2)
   = TPair (getType e1) (getType e2) -- FIXME: pair<T1,T2>
+
+-- Scoping and symbol table
+checkScope :: Int -> Symbol -> Bool
+checkScope scopeId s
+  = (snd s) < scopeId
+
+decreaseScope :: UState -> UState
+decreaseScope (st, scopeID)
+  = (filter (checkScope scopeID) st, scopeID - 1)
+
+increaseScope :: UState -> UState
+increaseScope (st, scopeID)
+  = (st, scopeID + 1)
+
+addSymbol :: SymbolData -> UState -> UState
+addSymbol s (st, scopeID)
+  = ((s, scopeID) : st, scopeID)
+
+isInScope :: UState -> Identifier -> Bool
+isInScope ([], _) s
+  = False
+isInScope ((sd, _):xs, i) s
+  = if s == (fst sd) then
+      True
+    else
+      isInScope (xs, i) s
