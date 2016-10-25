@@ -13,7 +13,7 @@ import           Text.Parsec.Pos
 
 import           WACC.Parser.Types
 import           WACC.Parser.Primitives
-import           WACC.Parser.Semantic
+import           WACC.Semantics.Typing
 
 initialParserState :: LocationData
 initialParserState

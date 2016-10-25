@@ -1,11 +1,11 @@
-module WACC.Parser.Semantic where
+module WACC.Semantics.Typing where
 
 import Data.Maybe
 
 import WACC.Parser.Types
 import WACC.Parser.Primitives
 
--- Type stuff
+
 getLiteralType :: Literal -> Type
 getLiteralType (CHAR _) = TChar
 getLiteralType (INT _) = TInt
