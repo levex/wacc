@@ -15,6 +15,36 @@ import           WACC.Parser.Semantic
 initialParserState :: UState
 initialParserState = ([], 0)
 
+-- Scoping and symbol table
+checkScope :: Int -> Symbol -> Bool
+checkScope scopeId s
+  = (snd s) < scopeId
+
+decreaseScope :: UState -> UState
+decreaseScope (st, scopeID)
+  = (filter (checkScope scopeID) st, scopeID - 1)
+
+increaseScope :: UState -> UState
+increaseScope (st, scopeID)
+  = (st, scopeID + 1)
+
+addSymbol :: SymbolData -> UState -> UState
+addSymbol s (st, scopeID)
+  = ((s, scopeID) : st, scopeID)
+
+isInScope :: UState -> Identifier -> Bool
+isInScope (syms, _) id
+  = any (symbolMatches id) syms
+  where
+    symbolMatches :: Identifier -> Symbol -> Bool
+    symbolMatches id ((sid, _), _)
+      = id == sid
+
+scoped :: GenParser Char UState a -> GenParser Char UState a
+scoped p
+  = updateState increaseScope *> p <* updateState decreaseScope
+
+-- Parsing
 escape :: GenParser Char UState Char
 escape = do
     d <- char '\\'
@@ -117,7 +147,6 @@ funDecl = try $ do
   ident <- wssurrounded identifier
   args <- parens (varDecl `sepBy` comma)
   updateState $ addSymbol (ident, retT)
-  updateState increaseScope
   return  (ident, TFun retT args)
 
 expr :: GenParser Char UState Expr
@@ -176,9 +205,7 @@ noop
 block :: GenParser Char UState Statement
 block = try $ do
   keyword "begin"
-  updateState increaseScope
-  stmts <- stmt `sepBy` semicolon
-  updateState decreaseScope
+  stmts <- scoped $ stmt `sepBy` semicolon
   keyword "end"
   return $ Block stmts
 
@@ -204,13 +231,9 @@ cond = try $ do
   keyword "if"
   e <- expr
   keyword "then"
-  updateState increaseScope
-  trueBranch <- stmtSeq
-  updateState decreaseScope
+  trueBranch <- scoped stmtSeq
   keyword "else"
-  updateState increaseScope
-  falseBranch <- stmtSeq
-  updateState decreaseScope
+  falseBranch <- scoped stmtSeq
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
@@ -219,9 +242,7 @@ loop = try $ do
   keyword "while"
   e <- expr
   keyword "do"
-  updateState increaseScope
-  body <- stmtSeq
-  updateState decreaseScope
+  body <- scoped stmtSeq
   keyword "done"
   return $ Loop e body
 
@@ -240,7 +261,6 @@ definition :: GenParser Char UState Definition
 definition
   = try $ do
       x <- (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
-      updateState decreaseScope
       return x
 
 mainDecl :: Declaration
@@ -252,7 +272,7 @@ program = try $ do
   keyword "begin"
   funcs <- many definition
   notFollowedBy $ keyword "end"
-  mainFunc <- stmtSeq
+  mainFunc <- scoped stmtSeq
   keyword "end"
   eof
   return $ (mainDecl, mainFunc):funcs
