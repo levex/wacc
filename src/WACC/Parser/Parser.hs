@@ -19,30 +19,6 @@ initialParserState :: LocationData
 initialParserState
   = LocationData Map.empty 0
 
--- Scoping and symbol table
---checkScope :: Int -> Symbol -> Bool
---checkScope scopeId s
---  = (snd s) < scopeId
---
---decreaseScope :: LocationData -> LocationData
---decreaseScope (st, scopeID)
---  = (filter (checkScope scopeID) st, scopeID - 1)
---
---increaseScope :: LocationData -> LocationData
---increaseScope (st, scopeID)
---  = (st, scopeID + 1)
---
---addSymbol :: SymbolData -> LocationData -> LocationData
---addSymbol s (st, scopeID)
---  = ((s, scopeID) : st, scopeID)
---
---isInScope :: LocationData -> Identifier -> Bool
---isInScope (syms, _) id
---  = any (symbolMatches id) syms
---  where
---    symbolMatches :: Identifier -> Symbol -> Bool
---    symbolMatches id ((sid, _), _)
---      = id == sid
 
 getNextIdentifier :: GenParser Char LocationData StatementId
 getNextIdentifier = do
@@ -56,11 +32,6 @@ savePosition i = do
   pos <- getPosition
   let newLocs = Map.insert i (Location (sourceLine pos) (sourceColumn pos)) locs
   setState (LocationData newLocs c)
-
-scoped :: GenParser Char LocationData a -> GenParser Char LocationData a
-scoped p
---  = updateState increaseScope *> p <* updateState decreaseScope
-  = p
 
 -- Parsing
 escape :: GenParser Char LocationData Char
@@ -156,7 +127,6 @@ varDecl :: GenParser Char LocationData Declaration
 varDecl = try $ do
   t <- wssurrounded decltype
   ident <- wssurrounded identifier
---  updateState $ addSymbol (ident, t)
   return (ident, t)
 
 funDecl :: GenParser Char LocationData Declaration
@@ -164,7 +134,6 @@ funDecl = try $ do
   retT <- wssurrounded decltype
   ident <- wssurrounded identifier
   args <- parens (varDecl `sepBy` comma)
---  updateState $ addSymbol (ident, retT)
   return  (ident, TFun retT args)
 
 expr :: GenParser Char LocationData Expr
@@ -180,13 +149,7 @@ val
   = try $ Lit <$> literal
 
 ident :: GenParser Char LocationData Expr
-ident = try $ do
-  i <- identifier
---  st <- getState
---  if (not $ isInScope st i) then
---    fail $ "Identifier " ++ i ++ " not defined"
---  else
-  return $ Ident i
+ident = try $ Ident <$> identifier
 
 arrElement :: GenParser Char LocationData Expr
 arrElement
@@ -230,7 +193,7 @@ noop
 block :: GenParser Char LocationData Statement
 block = try $ do
   keyword "begin"
-  stmts <- scoped $ idStmt `sepBy` semicolon
+  stmts <- idStmt `sepBy` semicolon
   keyword "end"
   return $ Block stmts
 
@@ -256,9 +219,9 @@ cond = try $ do
   keyword "if"
   e <- expr
   keyword "then"
-  trueBranch <- scoped stmtSeq
+  trueBranch <- stmtSeq
   keyword "else"
-  falseBranch <- scoped stmtSeq
+  falseBranch <- stmtSeq
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
@@ -267,7 +230,7 @@ loop = try $ do
   keyword "while"
   e <- expr
   keyword "do"
-  body <- scoped stmtSeq
+  body <- stmtSeq
   keyword "done"
   return $ Loop e body
 
@@ -297,7 +260,7 @@ program = try $ do
   keyword "begin"
   funcs <- many definition
   notFollowedBy $ keyword "end"
-  mainFunc <- scoped stmtSeq
+  mainFunc <- stmtSeq
   keyword "end"
   eof
   st <- getState
