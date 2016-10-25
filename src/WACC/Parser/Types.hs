@@ -12,15 +12,6 @@ data Literal
   | NULL
   deriving (Eq, Show)
 
---type Symbol
---  = (SymbolData, ScopeID)
---
---type SymbolData
---  = (Identifier, Type)
---
---type ScopeID
---  = Int
-
 type StatementId
   = Int
 
