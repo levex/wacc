@@ -4,48 +4,66 @@ import           Control.Monad
 import           Data.Int
 import           Data.List
 import           Data.Maybe
+import qualified Data.Map as Map
+import           Data.Map (Map)
 import           Text.ParserCombinators.Parsec hiding (label)
 import           Text.ParserCombinators.Parsec.Error
 import           Text.Parsec.Expr
+import           Text.Parsec.Pos
 
 import           WACC.Parser.Types
 import           WACC.Parser.Primitives
 import           WACC.Parser.Semantic
 
-initialParserState :: UState
-initialParserState = ([], 0)
+initialParserState :: LocationData
+initialParserState
+  = LocationData Map.empty 0
 
 -- Scoping and symbol table
-checkScope :: Int -> Symbol -> Bool
-checkScope scopeId s
-  = (snd s) < scopeId
+--checkScope :: Int -> Symbol -> Bool
+--checkScope scopeId s
+--  = (snd s) < scopeId
+--
+--decreaseScope :: LocationData -> LocationData
+--decreaseScope (st, scopeID)
+--  = (filter (checkScope scopeID) st, scopeID - 1)
+--
+--increaseScope :: LocationData -> LocationData
+--increaseScope (st, scopeID)
+--  = (st, scopeID + 1)
+--
+--addSymbol :: SymbolData -> LocationData -> LocationData
+--addSymbol s (st, scopeID)
+--  = ((s, scopeID) : st, scopeID)
+--
+--isInScope :: LocationData -> Identifier -> Bool
+--isInScope (syms, _) id
+--  = any (symbolMatches id) syms
+--  where
+--    symbolMatches :: Identifier -> Symbol -> Bool
+--    symbolMatches id ((sid, _), _)
+--      = id == sid
 
-decreaseScope :: UState -> UState
-decreaseScope (st, scopeID)
-  = (filter (checkScope scopeID) st, scopeID - 1)
+getNextIdentifier :: GenParser Char LocationData StatementId
+getNextIdentifier = do
+  LocationData locs c <- getState
+  setState (LocationData locs (c+1))
+  return c
 
-increaseScope :: UState -> UState
-increaseScope (st, scopeID)
-  = (st, scopeID + 1)
+savePosition :: StatementId -> GenParser Char LocationData ()
+savePosition i = do
+  LocationData locs c <- getState
+  pos <- getPosition
+  let newLocs = Map.insert i (Location (sourceLine pos) (sourceColumn pos)) locs
+  setState (LocationData newLocs c)
 
-addSymbol :: SymbolData -> UState -> UState
-addSymbol s (st, scopeID)
-  = ((s, scopeID) : st, scopeID)
-
-isInScope :: UState -> Identifier -> Bool
-isInScope (syms, _) id
-  = any (symbolMatches id) syms
-  where
-    symbolMatches :: Identifier -> Symbol -> Bool
-    symbolMatches id ((sid, _), _)
-      = id == sid
-
-scoped :: GenParser Char UState a -> GenParser Char UState a
+scoped :: GenParser Char LocationData a -> GenParser Char LocationData a
 scoped p
-  = updateState increaseScope *> p <* updateState decreaseScope
+--  = updateState increaseScope *> p <* updateState decreaseScope
+  = p
 
 -- Parsing
-escape :: GenParser Char UState Char
+escape :: GenParser Char LocationData Char
 escape = do
     d <- char '\\'
     c <- oneOf escapeCodes
@@ -54,15 +72,15 @@ escape = do
     where
       escapeCodes = "\\\"\'0nrvtbf"
 
-nonEscape :: GenParser Char UState Char
+nonEscape :: GenParser Char LocationData Char
 nonEscape
   = noneOf escapedCharacters
 
-character :: GenParser Char UState Char
+character :: GenParser Char LocationData Char
 character
   = nonEscape <|> escape
 
-integer :: GenParser Char UState Integer
+integer :: GenParser Char LocationData Integer
 integer = do
   s <- option id sign
   n <- many1 digit
@@ -74,7 +92,7 @@ isKeyword :: String -> Bool
 isKeyword k
   = any (elem k) [keywords, map fst builtins, map fst primTypes]
 
-identifier :: GenParser Char UState Identifier
+identifier :: GenParser Char LocationData Identifier
 identifier = do
   whitespace
   c <- letter <|> char '_'
@@ -85,7 +103,7 @@ identifier = do
   else
     return ident
 
-pair :: GenParser Char UState a -> GenParser Char UState (a, a)
+pair :: GenParser Char LocationData a -> GenParser Char LocationData (a, a)
 pair p = try $ do
   wschar '('
   p1 <- p
@@ -94,7 +112,7 @@ pair p = try $ do
   wschar ')'
   return (p1, p2)
 
-literal :: GenParser Char UState Literal
+literal :: GenParser Char LocationData Literal
 literal
   = charLit <|> intLit <|> boolLit <|> strLit <|> arrLit <|> nullLit
   where
@@ -117,7 +135,7 @@ literal
       = try (keyword "null" >> return NULL)
 
 
-decltype :: GenParser Char UState Type
+decltype :: GenParser Char LocationData Type
 decltype
   = arrType <|> pairType <|> primType
   where
@@ -134,22 +152,22 @@ decltype
       (t1, t2) <- option (TArb, TArb) (pair decltype)
       return $ TPair t1 t2
 
-varDecl :: GenParser Char UState Declaration
+varDecl :: GenParser Char LocationData Declaration
 varDecl = try $ do
   t <- wssurrounded decltype
   ident <- wssurrounded identifier
-  updateState $ addSymbol (ident, t)
+--  updateState $ addSymbol (ident, t)
   return (ident, t)
 
-funDecl :: GenParser Char UState Declaration
+funDecl :: GenParser Char LocationData Declaration
 funDecl = try $ do
   retT <- wssurrounded decltype
   ident <- wssurrounded identifier
   args <- parens (varDecl `sepBy` comma)
-  updateState $ addSymbol (ident, retT)
+--  updateState $ addSymbol (ident, retT)
   return  (ident, TFun retT args)
 
-expr :: GenParser Char UState Expr
+expr :: GenParser Char LocationData Expr
 expr
   = buildExpressionParser operations (wssurrounded term)
   where
@@ -157,63 +175,70 @@ expr
       = parens expr <|> funCall <|> newPair <|> val
         <|> arrElement <|> pairElement <|> ident
 
-val :: GenParser Char UState Expr
+val :: GenParser Char LocationData Expr
 val
   = try $ Lit <$> literal
 
-ident :: GenParser Char UState Expr
+ident :: GenParser Char LocationData Expr
 ident = try $ do
   i <- identifier
-  st <- getState
-  if (not $ isInScope st i) then
-    fail $ "Identifier " ++ i ++ " not defined"
-  else
-    return $ Ident i
+--  st <- getState
+--  if (not $ isInScope st i) then
+--    fail $ "Identifier " ++ i ++ " not defined"
+--  else
+  return $ Ident i
 
-arrElement :: GenParser Char UState Expr
+arrElement :: GenParser Char LocationData Expr
 arrElement
   = try $ ArrElem <$> identifier <*> many1 (bracketed expr)
 
-pairElement :: GenParser Char UState Expr
+pairElement :: GenParser Char LocationData Expr
 pairElement
   = try $ PairElem <$> (reserved "fst" Fst <|> reserved "snd" Snd) <*> expr
 
-funCall :: GenParser Char UState Expr
+funCall :: GenParser Char LocationData Expr
 funCall = try $ do
   keyword "call"
   FunCall <$> identifier <*> parens (expr `sepBy` comma)
 
-newPair :: GenParser Char UState Expr
+newPair :: GenParser Char LocationData Expr
 newPair = try $ do
   keyword "newpair"
   (e1, e2) <- pair expr
   return $ NewPair e1 e2
 
-stmt :: GenParser Char UState Statement
+stmt :: GenParser Char LocationData Statement
 stmt
   = block <|> varDef <|> control <|> cond
     <|> loop <|> builtin <|> noop <|> expStmt
 
-stmtSeq :: GenParser Char UState Statement
-stmtSeq
-  = try $ Block <$> stmt `sepBy` semicolon
+idStmt :: GenParser Char LocationData IdentifiedStatement
+idStmt = do
+  i <- getNextIdentifier
+  savePosition i
+  s <- stmt
+  return $ IdentifiedStatement s i
 
-noop :: GenParser Char UState Statement
+stmtSeq :: GenParser Char LocationData Statement
+stmtSeq
+  = try $ Block <$> idStmt `sepBy` semicolon
+
+noop :: GenParser Char LocationData Statement
 noop
   = try $ keyword "skip" *> return Noop
 
-block :: GenParser Char UState Statement
+block :: GenParser Char LocationData Statement
 block = try $ do
   keyword "begin"
-  stmts <- scoped $ stmt `sepBy` semicolon
+  stmts <- scoped $ idStmt `sepBy` semicolon
   keyword "end"
   return $ Block stmts
 
-varDef :: GenParser Char UState Statement
+varDef :: GenParser Char LocationData Statement
 varDef
   = try $ VarDef <$> varDecl <*> (whitespace *> char '=' *> expr)
 
-control :: GenParser Char UState Statement
+control :: GenParser Char LocationData Statement
 control
   = Ctrl <$> ret -- (ret <|> break <|> cont)
   where
@@ -226,7 +251,7 @@ control
 --    cont
 --      = try $ keyword "continue" >> return Continue
 
-cond :: GenParser Char UState Statement
+cond :: GenParser Char LocationData Statement
 cond = try $ do
   keyword "if"
   e <- expr
@@ -237,7 +262,7 @@ cond = try $ do
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
-loop :: GenParser Char UState Statement
+loop :: GenParser Char LocationData Statement
 loop = try $ do
   keyword "while"
   e <- expr
@@ -246,18 +271,18 @@ loop = try $ do
   keyword "done"
   return $ Loop e body
 
-builtin :: GenParser Char UState Statement
+builtin :: GenParser Char LocationData Statement
 builtin
   = Builtin <$> builtinFunc <*> expr
   where
     builtinFunc
       =  try $ choice (map (uncurry reserved) builtins)
 
-expStmt :: GenParser Char UState Statement
+expStmt :: GenParser Char LocationData Statement
 expStmt
   = try $ ExpStmt <$> expr
 
-definition :: GenParser Char UState Definition
+definition :: GenParser Char LocationData Definition
 definition
   = try $ do
       x <- (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
@@ -267,7 +292,7 @@ mainDecl :: Declaration
 mainDecl
   = ("main", TFun TInt [])
 
-program :: GenParser Char UState Program
+program :: GenParser Char LocationData AnnotatedProgram
 program = try $ do
   keyword "begin"
   funcs <- many definition
@@ -275,4 +300,5 @@ program = try $ do
   mainFunc <- scoped stmtSeq
   keyword "end"
   eof
-  return $ (mainDecl, mainFunc):funcs
+  st <- getState
+  return $ ((mainDecl, mainFunc):funcs, st)

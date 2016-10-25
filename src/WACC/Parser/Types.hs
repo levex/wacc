@@ -1,5 +1,8 @@
 module WACC.Parser.Types where
 
+import qualified Data.Map as Map
+import           Data.Map (Map)
+
 data Literal
   = CHAR Char
   | INT Integer
@@ -9,17 +12,26 @@ data Literal
   | NULL
   deriving (Eq, Show)
 
-type Symbol
-  = (SymbolData, ScopeID)
+--type Symbol
+--  = (SymbolData, ScopeID)
+--
+--type SymbolData
+--  = (Identifier, Type)
+--
+--type ScopeID
+--  = Int
 
-type SymbolData
-  = (Identifier, Type)
-
-type ScopeID
+type StatementId
   = Int
 
--- our state is a symbol table and a scope ID
-type UState = ([Symbol], Int)
+data Location
+  = Location { row :: Int, column :: Int }
+  deriving (Eq, Show)
+
+data LocationData
+  = LocationData { locations :: Map.Map StatementId Location,
+                   count :: StatementId }
+  deriving (Eq, Show)
 
 -- Can't start with a number
 type Identifier
@@ -96,7 +108,7 @@ data Control
 
 data Statement
   = Noop
-  | Block [Statement]
+  | Block [IdentifiedStatement]
   | VarDef Declaration Expr
   | Ctrl Control
   | Cond Expr Statement Statement
@@ -105,8 +117,15 @@ data Statement
   | ExpStmt Expr
   deriving (Eq, Show)
 
+data IdentifiedStatement
+  = IdentifiedStatement Statement Int
+  deriving (Eq, Show)
+
 type Definition
   = (Declaration, Statement)
 
 type Program
   = [Definition]
+
+type AnnotatedProgram
+  = (Program, LocationData)
