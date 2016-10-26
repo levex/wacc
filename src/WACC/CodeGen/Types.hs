@@ -1,6 +1,18 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module WACC.CodeGen.Types where
 
+import Control.Monad.State
+import Control.Monad.Writer
+
 type Code = [Instruction]
+
+data CodeGenState = CodeGenState
+
+newtype CodeGenerator a = CodeGenerator
+  { runCodeGen :: StateT CodeGenState (Writer [Instruction]) a }
+      deriving (Functor, Applicative, Monad,
+                MonadState CodeGenState,
+                MonadWriter [Instruction])
 
 data Condition
   = CAl -- always
