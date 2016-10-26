@@ -39,9 +39,14 @@ registers
   = flip take $ iterate (+ 1) 0
 
 data Instruction
-  = Add Condition Register Register 
-  | Sub Condition Register Register 
-  | Mul Condition Register Register 
-  | Div Condition Register Register 
+  = Add Register Register
+  | Sub Register Register
+  | Mul Register Register
+  | Div Register Register
+  | Move Register Register
+  | Push Register
+  | Pop Register
   | Branch Register
   deriving (Eq, Show)
+
+type CondInstr = (Condition, Instruction)
