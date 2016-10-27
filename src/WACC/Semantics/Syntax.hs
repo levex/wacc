@@ -110,11 +110,17 @@ checkType (TArray t)
 checkType (TPtr (TArray _))
   = invalid SyntaxError "cannot have a pointer to an array"
 
+checkType (TPtr TArb)
+  = valid
+
 checkType (TPtr t)
   = checkType t
 
 checkType (TFun retT decls)
   = checkType retT >> mapM_ (checkType . snd) decls
+
+checkType TArb
+  = invalid SyntaxError "invalid void type"
 
 checkType _
   = valid
