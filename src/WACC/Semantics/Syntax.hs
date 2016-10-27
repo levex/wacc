@@ -8,14 +8,7 @@ import           Control.Monad.State
 import           Control.Monad.Except
 import           WACC.Parser.Types
 import           WACC.Semantics.Types
-
-valid :: SemanticChecker ()
-valid
-  = return ()
-
-invalid :: String -> SemanticChecker ()
-invalid s
-  = throwError $ CheckerError SyntaxError (Location 0 0) s
+import           WACC.Semantics.Primitives
 
 checkLit :: Literal -> SemanticChecker ()
 checkLit (INT i)
