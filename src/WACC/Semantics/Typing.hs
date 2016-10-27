@@ -60,9 +60,9 @@ getType (PairElem e id)
     pairElem Fst f _ = f
     pairElem Snd _ s = s
 getType (UnApp op _)
-  = snd . (maybe undefined id) . lookup op $ unOpTypes
+  = snd . fromMaybe undefined . lookup op $ unOpTypes
 getType (BinApp op _ _)
-  = (\(_,_,x) -> x) . (maybe undefined id) . lookup op $ binAppTypes
+  = (\(_,_,x) -> x) . fromMaybe undefined . lookup op $ binAppTypes
 getType (FunCall id _)
   = undefined -- FIXME: need symbol table
 getType (NewPair e1 e2)

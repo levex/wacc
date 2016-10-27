@@ -128,5 +128,5 @@ checkDef (_, block)
   = checkStmt block
 
 syntaxCheck :: Program -> SemanticChecker ()
-syntaxCheck program
-  = mapM_ checkDef program
+syntaxCheck
+  = mapM_ checkDef
