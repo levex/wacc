@@ -221,8 +221,7 @@ cond = try $ do
   e <- expr
   keyword "then"
   trueBranch <- stmtSeq
-  keyword "else"
-  falseBranch <- stmtSeq
+  falseBranch <- option Noop (keyword "else" *> stmtSeq)
   keyword "fi"
   return $ Cond e trueBranch falseBranch
 
