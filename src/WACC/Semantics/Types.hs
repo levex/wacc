@@ -1,15 +1,27 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module WACC.Semantics.Types where
 
-import          WACC.Parser.Types
+import           Control.Monad.Except
+import           Control.Monad.State
+import           WACC.Parser.Types
 
-type Row = Int
-type Column = Int
+data CheckerState = CheckerState
+  { locationData :: LocationData }
+
+data CheckerError
+  = SyntaxError
+  | SemanticError
+  | TypeError
+  deriving (Eq, Show)
+
+newtype SemanticChecker a = SemanticChecker
+  { runSemanticChecker :: ExceptT CheckerError (State CheckerState) a }
+      deriving (Functor, Applicative, Monad,
+                MonadState CheckerState,
+                MonadError CheckerError)
 
 data SymbolTable
   = Symbol Identifier Type
   | SymbolTable [SymbolTable]
   deriving (Eq, Show)
 
-data SemanticError = SemanticError Position String
-
-data Position = Position Row Column

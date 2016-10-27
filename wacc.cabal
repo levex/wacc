@@ -16,11 +16,13 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     WACC.Parser
+                     , WACC.Semantics
                      , WACC.CodeGen
   other-modules:       WACC.Parser.Types
                      , WACC.Parser.Parser
                      , WACC.Parser.Primitives
                      , WACC.CodeGen.Types
+                     , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics
                      , WACC.Semantics.Types
                      , WACC.Semantics.Typing

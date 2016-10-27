@@ -39,6 +39,6 @@ flatten (SymbolTable st)
 flatten s
   = [s]
 
-semanticChecker :: AnnotatedProgram -> Program
-semanticChecker ap
-  = []
+semanticCheck :: Program -> SemanticChecker ()
+semanticCheck p
+  = return ()

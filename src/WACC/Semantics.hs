@@ -1,9 +1,17 @@
 module WACC.Semantics where
 
-import      WACC.Parser.Types
-import      WACC.Semantics.Types
+import           Control.Monad.Except
+import           Control.Monad.State
+import           WACC.Parser.Types
+import           WACC.Semantics.Types
+import           WACC.Semantics.Syntax
+import           WACC.Semantics.Semantics
 
-runSemanticCheck :: AnnotatedProgram
-                 -> Either SemanticError Program
-runSemanticCheck
-  = undefined
+checkProgram :: AnnotatedProgram -> Either CheckerError Program
+checkProgram (p, ld)
+  = (evalState . runExceptT . runSemanticChecker) (runCheck p) (CheckerState ld)
+  where
+    runCheck p = do
+      syntaxCheck p
+      semanticCheck p
+      return p
