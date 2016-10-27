@@ -139,6 +139,9 @@ minimizeDef :: Definition -> Optimizer Definition
 minimizeDef (FunDef d stmt)
   = FunDef <$> return d <*> minimizeStmt stmt
 
+minimizeDef def
+  = return def
+
 minimizeExpressions :: Program -> Optimizer Program
 minimizeExpressions
   = mapM minimizeDef

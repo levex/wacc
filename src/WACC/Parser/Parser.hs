@@ -253,10 +253,14 @@ expStmt
 
 definition :: GenParser Char LocationData Definition
 definition
-  = funDef
+  = funDef <|> structDef
   where
     funDef
       = try $ FunDef <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
+
+    structDef
+      = try $ TypeDef <$> (keyword "struct" *> identifier <* keyword "is")
+                      <*> (varDecl `sepBy` semicolon <* keyword "end")
 
 mainDecl :: Declaration
 mainDecl

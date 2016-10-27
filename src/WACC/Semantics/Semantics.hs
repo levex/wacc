@@ -32,23 +32,19 @@ checkCodePathsReturn :: Definition -> SemanticChecker ()
 checkCodePathsReturn (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   unless (all (any isReturnOrExit) codePaths)
---    $ invalid SemanticError "not all code paths return a value"
-    $ invalid SyntaxError "not all code paths return a value"
--- FIXME: uncomment later when structs are merged in
---checkCodePathsReturn _
---  = valid
+    $ invalid SemanticError "not all code paths return a value"
+checkCodePathsReturn _
+  = valid
 
 
 checkUnreachableCode :: Definition -> SemanticChecker ()
 checkUnreachableCode (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   when ((all (not . isReturnOrExit . last) codePaths)
-        || all ((> 1) . length . filter isReturnOrExit) codePaths)
---    $ invalid SemanticError "unreachable code after return statement"
-    $ invalid SyntaxError "unreachable code after return statement"
--- FIXME: uncomment later when structs are merged in
---checkUnreachableCode _
---  = valid
+        || (all ((> 1) . length . filter isReturnOrExit) codePaths))
+    $ invalid SemanticError "unreachable code after return statement"
+checkUnreachableCode _
+  = valid
 
 
 checkMainDoesNotReturn :: Definition -> SemanticChecker ()
@@ -176,9 +172,22 @@ checkStmt (ExpStmt e)
 checkStmt (IdentifiedStatement stmt i)
   = checkStmt stmt `catchError` rethrowWithLocation i
 
+storeDecl :: Declaration -> SemanticChecker ()
+storeDecl (ident, t)
+  = addSymbol (Symbol ident t)
 
-semanticCheck :: Program -> SemanticChecker Program
-semanticCheck p@(mainF:funcs) = do
+getDecl :: Definition -> Declaration
+getDecl (FunDef d _)
+  = d
+getDecl (TypeDef i _)
+  = (i, TArb)
+
+storeFuncs :: [Definition] -> SemanticChecker ()
+storeFuncs
+  = mapM_ (storeDecl . getDecl)
+
+semanticCheck :: Program -> SemanticChecker ()
+semanticCheck (mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
   mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF

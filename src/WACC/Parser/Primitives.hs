@@ -18,6 +18,7 @@ primTypes
 keywords
   = [ "begin"
     , "end"
+    , "struct"
     , "is"
     , "skip"
     , "if"

@@ -114,6 +114,7 @@ data Statement
 
 data Definition
   = FunDef Declaration Statement
+  | TypeDef Identifier [Declaration]
   deriving (Eq, Show)
 
 type Program
