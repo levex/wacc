@@ -204,16 +204,16 @@ varDef
 
 control :: GenParser Char LocationData Statement
 control
-  = Ctrl <$> ret -- (ret <|> break <|> cont)
+  = Ctrl <$> (ret <|> break <|> cont)
   where
     ret
       = try $ Return <$> (keyword "return" *> expr)
 
---    break
---      = try $ keyword "break" >> return Break
---
---    cont
---      = try $ keyword "continue" >> return Continue
+    break
+      = try $ keyword "break" >> return Break
+
+    cont
+      = try $ keyword "continue" >> return Continue
 
 cond :: GenParser Char LocationData Statement
 cond = try $ do
