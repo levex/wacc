@@ -4,6 +4,8 @@ import Data.Maybe
 
 import WACC.Parser.Types
 import WACC.Parser.Primitives
+import WACC.Semantics.Semantics
+import WACC.Semantics.Types
 
 unOpTypes
   = [ (Not, (TBool, TBool))
@@ -33,37 +35,42 @@ binAppTypes
     , (NEq, (TInt, TInt, TBool))
     ]
 
+getLiteralType :: Literal -> SymbolTable -> Maybe Type
+getLiteralType (CHAR _) _ = Just TChar
+getLiteralType (INT _) _  = Just TInt
+getLiteralType (BOOL _) _ = Just TBool
+getLiteralType (STR _) _  = Just TString
+getLiteralType (ARRAY (e : _)) st
+  = case getType e st of
+      (Just t) -> Just (TArray t)
+      _        -> Nothing
 
-getLiteralType :: Literal -> Type
-getLiteralType (CHAR _) = TChar
-getLiteralType (INT _) = TInt
-getLiteralType (BOOL _) = TBool
-getLiteralType (STR _) = TString
-getLiteralType (ARRAY (e : _)) = TArray (getType e)
+deconstructArrayType :: Maybe Type -> Maybe Type
+deconstructArrayType (Just (TArray t)) = Just t
+deconstructArrayType t                 = Nothing
 
-deconstructArrayType :: Type -> Type
-deconstructArrayType (TArray t) = t
-
--- FIXME: instead of maybe throwing undefined, return an error
-getType :: Expr -> Type
-getType (Lit lit)
-  = getLiteralType lit
-getType (Ident id)
-  = undefined -- FIXME: need symbol table
-getType (ArrElem id _)
-  = deconstructArrayType $ getType (Ident id)
-getType (PairElem e id)
-  = case getType (Ident id) of
-      (TPair f s) -> pairElem e f s
-      _ -> undefined -- FIXME: type error
+getType :: Expr -> SymbolTable -> Maybe Type
+getType (Lit lit) st
+  = getLiteralType lit st
+getType (Ident id) st
+  = getTypeForId id st
+getType (ArrElem id _) st
+  = deconstructArrayType $ getType (Ident id) st
+getType (PairElem e id) st
+  = case getType (Ident id) st of
+      (Just (TPair f s)) -> Just (pairElem e f s)
+      _                  -> Nothing
   where
     pairElem Fst f _ = f
     pairElem Snd _ s = s
-getType (UnApp op _)
-  = snd . fromMaybe undefined . lookup op $ unOpTypes
-getType (BinApp op _ _)
-  = (\(_,_,x) -> x) . fromMaybe undefined . lookup op $ binAppTypes
-getType (FunCall id _)
-  = undefined -- FIXME: need symbol table
-getType (NewPair e1 e2)
-  = TPair (getType e1) (getType e2) -- FIXME: pair<T1,T2>
+getType (UnApp op _) _
+  = (maybe Nothing (\(_, x) -> (Just x))) . lookup op $ unOpTypes
+getType (BinApp op _ _) _
+  = (maybe Nothing (\(_,_,x) -> (Just x))) . lookup op $ binAppTypes
+getType (FunCall id _) st
+  = getTypeForId id st
+getType (NewPair e1 e2) st
+  = Just (TPair t1 t2) -- FIXME: pair<T1,T2>
+  where
+    (Just t1) = getType e1 st
+    (Just t2) = getType e2 st
