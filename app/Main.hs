@@ -4,6 +4,7 @@ import           System.Environment
 import           System.Exit
 
 import           WACC.Parser
+import           WACC.Semantics
 
 main :: IO ()
 main = do
@@ -15,5 +16,7 @@ main = do
       contents <- readFile file
       case runWACCParser file contents of
         Left err -> (putStrLn $ show err) >> exitFailure
-        Right ast -> (putStrLn $ show ast) >> exitSuccess
+        Right p  -> case checkProgram p of
+          Left err -> (putStrLn $ show err) >> exitFailure
+          Right p  -> (putStrLn $ show p) >> exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"
