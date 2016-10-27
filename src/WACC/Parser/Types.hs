@@ -40,6 +40,7 @@ data UnOp
   | Len
   | Ord
   | Chr
+  | Deref
   deriving (Eq, Show)
 
 data BinOp
@@ -78,6 +79,7 @@ data Type
   | TArb
   | TArray Type
   | TPair Type Type
+  | TPtr Type
   | TFun Type [Declaration]
   deriving (Eq, Show)
 

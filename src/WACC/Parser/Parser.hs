@@ -115,8 +115,14 @@ decltype
 
     arrType = try $ do
       t <- pairType <|> primType
-      arrQualifiers <- many1 (reserved "[]" TArray)
-      return $ foldr1 (flip (.)) arrQualifiers t
+      qualifiers <- many1 (arrQualifier <|> ptrQualifier)
+      return $ foldr1 (flip (.)) qualifiers t
+
+    arrQualifier
+      = reserved "[]" TArray
+
+    ptrQualifier
+      = reserved "*" TPtr
 
     pairType = try $ do
       keyword "pair"

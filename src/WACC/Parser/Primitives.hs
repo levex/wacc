@@ -12,7 +12,8 @@ primTypes
   = [ ("int",    TInt)
     , ("bool",   TBool)
     , ("char",   TChar)
-    , ("string", TString)]
+    , ("string", TString)
+    , ("void",   TArb)]
 
 keywords
   = [ "begin"
@@ -48,7 +49,8 @@ operations
       , prefix  "ord " (UnApp Ord)
       , prefix  "chr " (UnApp Chr)
       , prefix  "-"   (UnApp Neg)
-      , prefix  "!"   (UnApp Not)]
+      , prefix  "!"   (UnApp Not)
+      , prefix  "*"   (UnApp Deref)]
     , [ binary  "*"   (BinApp Mul)    AssocLeft
       , binary  "/"   (BinApp Div)    AssocLeft
       , binary  "%"   (BinApp Mod)    AssocLeft]
