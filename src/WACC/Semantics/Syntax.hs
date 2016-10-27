@@ -107,6 +107,12 @@ checkType (TPair t1 t2)
 checkType (TArray t)
   = checkType t
 
+checkType (TPtr (TArray _))
+  = invalid SyntaxError "cannot have a pointer to an array"
+
+checkType (TPtr t)
+  = checkType t
+
 checkType (TFun retT decls)
   = checkType retT >> mapM_ (checkType . snd) decls
 
