@@ -1,7 +1,10 @@
 module WACC.Semantics.Syntax where
 
 import           Data.Int
+import qualified Data.Map as Map
+import           Data.Maybe
 import           Control.Monad
+import           Control.Monad.State
 import           Control.Monad.Except
 import           WACC.Parser.Types
 import           WACC.Semantics.Types
@@ -10,10 +13,14 @@ valid :: SemanticChecker ()
 valid
   = return ()
 
+invalid :: SemanticChecker ()
+invalid
+  = throwError $ CheckerError SyntaxError (Location 0 0)
+
 checkLit :: Literal -> SemanticChecker ()
 checkLit (INT i)
   | inRange i = valid
-  | otherwise = throwError SyntaxError
+  | otherwise = invalid
   where
     inRange i
       = i >= fromIntegral (minBound :: Int32)
@@ -25,7 +32,7 @@ checkLit _
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit l)
   = case l of
-      ARRAY _ -> throwError SyntaxError
+      ARRAY _ -> invalid
       _       -> checkLit l
 
 checkExpr (Ident _)
@@ -44,7 +51,7 @@ checkExpr (BinApp _ e1 e2)
   = checkExpr e1 >> checkExpr e2
 
 checkExpr _
-  = throwError SyntaxError
+  = invalid
 
 checkLhs :: Expr -> SemanticChecker ()
 checkLhs (Ident _)
@@ -57,7 +64,7 @@ checkLhs (PairElem _ _)
   = valid
 
 checkLhs _
-  = throwError SyntaxError
+  = invalid
 
 checkRhs :: Expr -> SemanticChecker ()
 checkRhs (Lit (ARRAY _))
@@ -104,11 +111,17 @@ checkStmt (ExpStmt (BinApp Assign lhs rhs))
   = checkLhs lhs >> checkRhs rhs
 
 checkStmt s
-  = throwError SyntaxError
+  = invalid
 
 checkIdStmt :: IdentifiedStatement -> SemanticChecker ()
-checkIdStmt (IdentifiedStatement s _)
-  = checkStmt s
+checkIdStmt (IdentifiedStatement s i)
+  = checkStmt s `catchError` rethrowWithLocation
+  where
+    rethrowWithLocation :: CheckerError -> SemanticChecker ()
+    rethrowWithLocation (CheckerError e _) = do
+      ld <- gets locationData
+      let loc = fromJust $ Map.lookup i (locations ld)
+      throwError $ CheckerError e loc
 
 checkDef :: Definition -> SemanticChecker ()
 checkDef (_, block)

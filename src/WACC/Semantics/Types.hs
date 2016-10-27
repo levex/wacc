@@ -8,10 +8,14 @@ import           WACC.Parser.Types
 data CheckerState = CheckerState
   { locationData :: LocationData }
 
-data CheckerError
+data ErrorType
   = SyntaxError
   | SemanticError
   | TypeError
+  deriving (Eq, Show)
+
+data CheckerError
+  = CheckerError ErrorType Location
   deriving (Eq, Show)
 
 newtype SemanticChecker a = SemanticChecker
