@@ -2,42 +2,41 @@ module WACC.Semantics.Semantics where
 
 import      WACC.Semantics.Types
 import      WACC.Parser.Types
+import      Control.Monad
+import      Data.Maybe
 
-decreaseScope :: [SymbolTable] -> [SymbolTable]
-decreaseScope []
-  = []
-decreaseScope (SymbolTable (Symbol _ _ : st) : stt)
-  = stt
-decreaseScope (SymbolTable [] : stt)
-  = stt
-decreaseScope (SymbolTable st : stt)
-  = SymbolTable (decreaseScope st) : stt
+addSymbol :: Symbol -> SymbolTable -> SymbolTable
+addSymbol s (SymbolTable ss [])
+  = (SymbolTable (s:ss) [])
+addSymbol s (SymbolTable ss [c])
+  = (SymbolTable ss [addSymbol s c])
+
+decreaseScope :: SymbolTable -> SymbolTable
+decreaseScope (SymbolTable s [(SymbolTable ss [])])
+  = SymbolTable s []
+decreaseScope (SymbolTable s [c])
+  = (SymbolTable s [decreaseScope c])
 decreaseScope st
-  = st
+  = SymbolTable [] []
 
-increaseScope :: [SymbolTable] -> [SymbolTable]
-increaseScope []
-  = [SymbolTable []]
-increaseScope (Symbol i t : stt)
-  = [SymbolTable [], Symbol i t] ++ stt
-increaseScope (SymbolTable st : stt)
-  = SymbolTable (increaseScope st) : stt
+increaseScope :: SymbolTable -> SymbolTable
+increaseScope (SymbolTable s [])
+  = (SymbolTable s [(SymbolTable [] [])])
+increaseScope (SymbolTable s [c])
+  = (SymbolTable s [increaseScope c])
 
-addSymbol :: SymbolTable -> [SymbolTable] -> [SymbolTable]
-addSymbol s (SymbolTable st : stt)
-  = SymbolTable (addSymbol s st) : stt
-addSymbol s st
-  = s : st
+isDefined :: Symbol -> SymbolTable -> Bool
+isDefined (Symbol i t) st
+  = (Just t) == (getTypeForId i st)
 
-isDefined :: SymbolTable -> [SymbolTable] -> Bool
-isDefined s st
-  = s `elem` concatMap flatten st
-
-flatten :: SymbolTable -> [SymbolTable]
-flatten (SymbolTable st)
-  = concatMap flatten st
-flatten s
-  = [s]
+getTypeForId :: Identifier -> SymbolTable -> Maybe Type
+getTypeForId i (SymbolTable s [])
+  = lookup i (map (\(Symbol i t) -> (i, t)) s)
+getTypeForId i (SymbolTable s [ch])
+  | res /= Nothing = res
+  | otherwise      = getTypeForId i (SymbolTable s [])
+  where
+    res = getTypeForId i ch
 
 semanticCheck :: Program -> SemanticChecker ()
 semanticCheck p
