@@ -52,14 +52,15 @@ getType (Ident id)
   = undefined -- FIXME: need symbol table
 getType (ArrElem id _)
   = deconstructArrayType $ getType (Ident id)
-getType (PairElem Fst (NewPair e _))
-  = getType e
-getType (PairElem Snd (NewPair _ e))
-  = getType e
-getType (PairElem _ _)
-  = undefined -- FIXME: Type Error
+getType (PairElem e id)
+  = case getType (Ident id) of
+      (TPair f s) -> pairElem e f s
+      _ -> undefined -- FIXME: type error
+  where
+    pairElem Fst f _ = f
+    pairElem Snd _ s = s
 getType (UnApp op _)
-  = snd . (maybe undefined id) . lookup op $ unOpTypes 
+  = snd . (maybe undefined id) . lookup op $ unOpTypes
 getType (BinApp op _ _)
   = (\(_,_,x) -> x) . (maybe undefined id) . lookup op $ binAppTypes
 getType (FunCall id _)
