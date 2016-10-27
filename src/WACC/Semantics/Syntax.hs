@@ -86,6 +86,40 @@ checkRhs (NewPair e1 e2)
 checkRhs e
   = checkExpr e
 
+checkType :: Type -> SemanticChecker ()
+checkType (TPair (TPair TArb TArb) (TPair TArb TArb))
+  = valid
+
+checkType (TPair (TPair _ _) (TPair _ _))
+  = invalid "nested pairs cannot have types"
+
+checkType (TPair (TPair TArb TArb) t)
+  = checkType t
+
+checkType (TPair (TPair _ _) _)
+  = invalid "nested pairs cannot have types"
+
+checkType (TPair t (TPair TArb TArb))
+  = checkType t
+
+checkType (TPair _ (TPair _ _))
+  = invalid "nested pairs cannot have types"
+
+checkType (TPair TArb TArb)
+  = invalid "outer pair must define type of elements"
+
+checkType (TPair t1 t2)
+  = checkType t1 >> checkType t2
+
+checkType (TArray t)
+  = checkType t
+
+checkType (TFun retT decls)
+  = checkType retT >> mapM_ (checkType . snd) decls
+
+checkType _
+  = valid
+
 checkStmt :: Statement -> SemanticChecker ()
 checkStmt Noop
   = valid
@@ -93,8 +127,8 @@ checkStmt Noop
 checkStmt (Block idStmts)
   = mapM_ checkIdStmt idStmts
 
-checkStmt (VarDef _ e)
-  = checkRhs e
+checkStmt (VarDef (_, t) e)
+  = checkType t >> checkRhs e
 
 checkStmt (Ctrl (Return e))
   = checkExpr e
