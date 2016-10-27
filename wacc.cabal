@@ -27,6 +27,7 @@ library
                      , WACC.Semantics.Semantics
                      , WACC.Semantics.Types
                      , WACC.Semantics.Typing
+                     , WACC.Semantics.Primitives
   build-depends:       base >= 4.7 && < 5, containers, parsec, mtl
   default-language:    Haskell2010
 
