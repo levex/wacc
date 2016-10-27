@@ -16,4 +16,4 @@ checkProgram (p, ld)
       semanticCheck p
       return p
 
-    initialState = (CheckerState ld (SymbolTable []))
+    initialState = (CheckerState ld (SymbolTable [] []))
