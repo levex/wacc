@@ -163,7 +163,7 @@ pairElement
 funCall :: GenParser Char LocationData Expr
 funCall = try $ do
   keyword "call"
-  FunCall <$> identifier <*> parens (expr `sepBy` comma)
+  FunCall <$> identifier <*> (whitespace *> parens (expr `sepBy` comma))
 
 newPair :: GenParser Char LocationData Expr
 newPair = try $ do
