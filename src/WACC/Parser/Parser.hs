@@ -108,7 +108,7 @@ literal
 
 decltype :: GenParser Char LocationData Type
 decltype
-  = arrType <|> pairType <|> primType
+  = structType <|> arrType <|> pairType <|> primType
   where
     primType
       = choice (map (uncurry reserved) primTypes)
@@ -128,6 +128,9 @@ decltype
       keyword "pair"
       (t1, t2) <- option (TArb, TArb) (pair decltype)
       return $ TPair t1 t2
+
+    structType
+      = try $ TStruct <$> (keyword "struct" *> identifier)
 
 varDecl :: GenParser Char LocationData Declaration
 varDecl = try $ do

@@ -87,6 +87,7 @@ data Type
   | TArray Type
   | TPair Type Type
   | TPtr Type
+  | TStruct Identifier
   | TFun Type [Declaration]
   deriving (Eq, Show)
 

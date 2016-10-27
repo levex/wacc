@@ -180,7 +180,7 @@ getDecl :: Definition -> Declaration
 getDecl (FunDef d _)
   = d
 getDecl (TypeDef i _)
-  = (i, TArb)
+  = (i, TStruct i)
 
 storeFuncs :: [Definition] -> SemanticChecker ()
 storeFuncs
