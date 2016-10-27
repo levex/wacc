@@ -21,6 +21,7 @@ library
   other-modules:       WACC.Parser.Types
                      , WACC.Parser.Parser
                      , WACC.Parser.Primitives
+                     , WACC.CodeGen.EmitARM
                      , WACC.CodeGen.Types
                      , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics

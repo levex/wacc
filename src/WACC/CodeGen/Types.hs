@@ -9,10 +9,10 @@ type Code = [Instruction]
 data CodeGenState = CodeGenState
 
 newtype CodeGenerator a = CodeGenerator
-  { runCodeGen :: StateT CodeGenState (Writer [Instruction]) a }
+  { runCodeGen :: StateT CodeGenState (Writer [String]) a }
       deriving (Functor, Applicative, Monad,
                 MonadState CodeGenState,
-                MonadWriter [Instruction])
+                MonadWriter [String])
 
 data Condition
   = CAl -- always
@@ -44,8 +44,8 @@ data Instruction
   | Mul Register Register
   | Div Register Register
   | Move Register Register
-  | Push Register
-  | Pop Register
+  | Push [Register]
+  | Pop [Register]
   | Branch Register
   deriving (Eq, Show)
 
