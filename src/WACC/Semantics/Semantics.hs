@@ -1,8 +1,11 @@
 module WACC.Semantics.Semantics where
 
 import      WACC.Semantics.Types
+import      WACC.Semantics.Primitives
 import      WACC.Parser.Types
 import      Control.Monad
+import      Control.Monad.State
+import      Control.Monad.Except
 import      Data.Maybe
 
 addSymbol :: Symbol -> SymbolTable -> SymbolTable
@@ -25,9 +28,12 @@ increaseScope (SymbolTable s [])
 increaseScope (SymbolTable s [c])
   = (SymbolTable s [increaseScope c])
 
-isDefined :: Symbol -> SymbolTable -> Bool
-isDefined (Symbol i t) st
-  = (Just t) == (getTypeForId i st)
+identLookup :: Identifier -> SemanticChecker Type
+identLookup i = do
+  st <- gets symbolTable
+  case getTypeForId i st of
+    (Just t) -> return t
+    Nothing  -> semanticInvalid "undefined identifier"
 
 getTypeForId :: Identifier -> SymbolTable -> Maybe Type
 getTypeForId i (SymbolTable s [])
