@@ -41,6 +41,7 @@ data UnOp
   | Ord
   | Chr
   | Deref
+  | BwNot
   deriving (Eq, Show)
 
 data BinOp
@@ -59,6 +60,11 @@ data BinOp
   | Eq
   | NEq
   | Member
+  | BwAnd
+  | BwOr
+  | BwXor
+  | BwShiftL
+  | BwShiftR
   deriving (Eq, Show)
 
 data Expr

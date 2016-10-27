@@ -51,19 +51,25 @@ operations
       , prefix  "chr " (UnApp Chr)
       , prefix  "-"   (UnApp Neg)
       , prefix  "!"   (UnApp Not)
-      , prefix  "*"   (UnApp Deref)]
+      , prefix  "*"   (UnApp Deref)
+      , prefix  "~"   (UnApp BwNot)]
     , [ binary  "."   (BinApp Member) AssocLeft]
     , [ binary  "*"   (BinApp Mul)    AssocLeft
       , binary  "/"   (BinApp Div)    AssocLeft
       , binary  "%"   (BinApp Mod)    AssocLeft]
     , [ binary  "+"   (BinApp Add)    AssocLeft
       , binary  "-"   (BinApp Sub)    AssocLeft]
+    , [ binary  "<<"  (BinApp BwShiftL) AssocLeft
+      , binary  ">>"  (BinApp BwShiftR) AssocLeft]
     , [ binary  "<="  (BinApp Lte)    AssocLeft
       , binary  ">="  (BinApp Gte)    AssocLeft
       , binary  "<"   (BinApp Lt)     AssocLeft
       , binary  ">"   (BinApp Gt)     AssocLeft]
     , [ binary  "=="  (BinApp Eq)     AssocLeft
       , binary  "!="  (BinApp NEq)    AssocLeft]
+    , [ binary  "&"   (BinApp BwAnd)  AssocLeft]
+    , [ binary  "^"   (BinApp BwXor)  AssocLeft]
+    , [ binary  "|"   (BinApp BwOr)   AssocLeft]
     , [ binary  "&&"  (BinApp And)    AssocLeft]
     , [ binary  "||"  (BinApp Or)     AssocLeft]
     , [ binary  "="   (BinApp Assign) AssocRight]]
