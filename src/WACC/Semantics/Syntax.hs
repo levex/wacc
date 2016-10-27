@@ -13,14 +13,14 @@ valid :: SemanticChecker ()
 valid
   = return ()
 
-invalid :: SemanticChecker ()
-invalid
-  = throwError $ CheckerError SyntaxError (Location 0 0)
+invalid :: String -> SemanticChecker ()
+invalid s
+  = throwError $ CheckerError SyntaxError (Location 0 0) s
 
 checkLit :: Literal -> SemanticChecker ()
 checkLit (INT i)
   | inRange i = valid
-  | otherwise = invalid
+  | otherwise = invalid "integer out of range"
   where
     inRange i
       = i >= fromIntegral (minBound :: Int32)
@@ -32,7 +32,7 @@ checkLit _
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit l)
   = case l of
-      ARRAY _ -> invalid
+      ARRAY _ -> invalid "array literals cannot occur in expression"
       _       -> checkLit l
 
 checkExpr (Ident _)
@@ -50,8 +50,11 @@ checkExpr (UnApp _ e)
 checkExpr (BinApp _ e1 e2)
   = checkExpr e1 >> checkExpr e2
 
-checkExpr _
-  = invalid
+checkExpr (PairElem _ _)
+  = invalid "pair elements cannot occur in expressions"
+
+checkExpr (FunCall _ _)
+  = invalid "function calls cannot occur in expressions"
 
 checkLhs :: Expr -> SemanticChecker ()
 checkLhs (Ident _)
@@ -64,7 +67,8 @@ checkLhs (PairElem _ _)
   = valid
 
 checkLhs _
-  = invalid
+  = invalid $ "lhs of an assignment must be an identifier,"
+    ++ " array element or pair element"
 
 checkRhs :: Expr -> SemanticChecker ()
 checkRhs (Lit (ARRAY _))
@@ -92,8 +96,8 @@ checkStmt (Block idStmts)
 checkStmt (VarDef _ e)
   = checkRhs e
 
-checkStmt (Ctrl _)
-  = valid
+checkStmt (Ctrl (Return e))
+  = checkExpr e
 
 checkStmt (Cond e trueBranch falseBranch)
   = checkExpr e >> checkStmt trueBranch >> checkStmt falseBranch
@@ -111,17 +115,17 @@ checkStmt (ExpStmt (BinApp Assign lhs rhs))
   = checkLhs lhs >> checkRhs rhs
 
 checkStmt s
-  = invalid
+  = invalid "invalid statement"
 
 checkIdStmt :: IdentifiedStatement -> SemanticChecker ()
 checkIdStmt (IdentifiedStatement s i)
   = checkStmt s `catchError` rethrowWithLocation
   where
     rethrowWithLocation :: CheckerError -> SemanticChecker ()
-    rethrowWithLocation (CheckerError e _) = do
+    rethrowWithLocation (CheckerError e _ s) = do
       ld <- gets locationData
       let loc = fromJust $ Map.lookup i (locations ld)
-      throwError $ CheckerError e loc
+      throwError $ CheckerError e loc s
 
 checkDef :: Definition -> SemanticChecker ()
 checkDef (_, block)

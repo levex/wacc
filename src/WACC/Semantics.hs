@@ -9,9 +9,11 @@ import           WACC.Semantics.Semantics
 
 checkProgram :: AnnotatedProgram -> Either CheckerError Program
 checkProgram (p, ld)
-  = (evalState . runExceptT . runSemanticChecker) (runCheck p) (CheckerState ld)
+  = (evalState . runExceptT . runSemanticChecker) (runCheck p) initialState
   where
     runCheck p = do
       syntaxCheck p
       semanticCheck p
       return p
+
+    initialState = (CheckerState ld (SymbolTable []))
