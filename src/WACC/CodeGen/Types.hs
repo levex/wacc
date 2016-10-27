@@ -14,6 +14,9 @@ newtype CodeGenerator a = CodeGenerator
                 MonadState CodeGenState,
                 MonadWriter [String])
 
+runCodeGenT :: CodeGenerator a -> (a, [String])
+runCodeGenT f = runWriter (evalStateT (runCodeGen f) CodeGenState)
+
 data Condition
   = CAl -- always
   | CEq -- equal
