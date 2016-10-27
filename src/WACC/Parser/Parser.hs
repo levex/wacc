@@ -157,7 +157,8 @@ arrElement
 
 pairElement :: GenParser Char LocationData Expr
 pairElement
-  = try $ PairElem <$> (reserved "fst" Fst <|> reserved "snd" Snd) <*> expr
+  = try $ PairElem <$> (reserved "fst" Fst <|> reserved "snd" Snd)
+                   <*> identifier
 
 funCall :: GenParser Char LocationData Expr
 funCall = try $ do

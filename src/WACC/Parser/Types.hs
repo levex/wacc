@@ -62,7 +62,7 @@ data Expr
   = Lit Literal
   | Ident Identifier
   | ArrElem Identifier [Expr]
-  | PairElem PairElement Expr
+  | PairElem PairElement Identifier
   | UnApp UnOp Expr
   | BinApp BinOp Expr Expr
   | FunCall Identifier [Expr]
