@@ -58,6 +58,7 @@ data BinOp
   | Lte
   | Eq
   | NEq
+  | Member
   deriving (Eq, Show)
 
 data Expr

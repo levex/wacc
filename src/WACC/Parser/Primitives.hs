@@ -52,6 +52,7 @@ operations
       , prefix  "-"   (UnApp Neg)
       , prefix  "!"   (UnApp Not)
       , prefix  "*"   (UnApp Deref)]
+    , [ binary  "."   (BinApp Member) AssocLeft]
     , [ binary  "*"   (BinApp Mul)    AssocLeft
       , binary  "/"   (BinApp Div)    AssocLeft
       , binary  "%"   (BinApp Mod)    AssocLeft]
