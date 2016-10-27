@@ -39,8 +39,8 @@ newtype SemanticChecker a = SemanticChecker
                 MonadState CheckerState,
                 MonadError CheckerError)
 
-data SymbolTable
-  = Symbol Identifier Type
-  | SymbolTable [SymbolTable]
-  deriving (Eq, Show)
-
+data Symbol = Symbol {symbolIdent :: Identifier,
+                      symbolType  :: Type}
+            deriving (Eq, Show)
+data SymbolTable = SymbolTable [Symbol] [SymbolTable]
+                 deriving (Eq, Show)
