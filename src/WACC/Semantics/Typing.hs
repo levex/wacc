@@ -5,6 +5,34 @@ import Data.Maybe
 import WACC.Parser.Types
 import WACC.Parser.Primitives
 
+unOpTypes
+  = [ (Not, (TBool, TBool))
+    , (Neg, (TInt, TInt))
+    , (Len, (TArray TArb, TInt))
+    , (Ord, (TChar, TInt))
+    , (Chr, (TInt, TChar))
+    ]
+
+-- FIXME: investigate whether Add/Sub/Mul/Div/Mod/And/Or take TChar's too.
+-- FIXME: Eq and NEq should work for other types
+-- FIXME: Assign is one weird hack, also is return type good?
+binAppTypes
+  = [ (Assign, (TArb, TArb, TBool))
+    , (Add, (TInt, TInt, TInt))
+    , (Sub, (TInt, TInt, TInt))
+    , (Mul, (TInt, TInt, TInt))
+    , (Div, (TInt, TInt, TInt))
+    , (Mod, (TInt, TInt, TInt))
+    , (And, (TInt, TInt, TInt))
+    , (Or, (TInt, TInt, TInt))
+    , (Gt, (TInt, TInt, TBool))
+    , (Gte, (TInt, TInt, TBool))
+    , (Lt, (TInt, TInt, TBool))
+    , (Lte, (TInt, TInt, TBool))
+    , (Eq, (TInt, TInt, TBool))
+    , (NEq, (TInt, TInt, TBool))
+    ]
+
 
 getLiteralType :: Literal -> Type
 getLiteralType (CHAR _) = TChar
