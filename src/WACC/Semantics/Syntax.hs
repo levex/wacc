@@ -1,5 +1,6 @@
 module WACC.Semantics.Syntax where
 
+import           Data.Int
 import           Control.Monad
 import           Control.Monad.Except
 import           WACC.Parser.Types
@@ -9,17 +10,32 @@ valid :: SemanticChecker ()
 valid
   = return ()
 
+checkLit :: Literal -> SemanticChecker ()
+checkLit (INT i)
+  | inRange i = valid
+  | otherwise = throwError SyntaxError
+  where
+    inRange i
+      = i >= fromIntegral (minBound :: Int32)
+        && i <= fromIntegral (maxBound :: Int32)
+
+checkLit _
+  = valid
+
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit l)
   = case l of
       ARRAY _ -> throwError SyntaxError
-      _       -> valid
+      _       -> checkLit l
 
 checkExpr (Ident _)
   = valid
 
 checkExpr (ArrElem _ exprs)
   = mapM_ checkExpr exprs
+
+checkExpr (UnApp Neg (Lit (INT i)))
+  = checkLit (INT (-i))
 
 checkExpr (UnApp _ e)
   = checkExpr e
