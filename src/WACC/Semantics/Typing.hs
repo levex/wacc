@@ -65,13 +65,16 @@ getType (PairElem e id) = do
     pairElem Fst f _ = f
     pairElem Snd _ s = s
 getType (UnApp op _)
-  = maybe undefOp (return.fst) . lookup op $ unOpTypes
+  = maybe undefOp (return.snd) . lookup op $ unOpTypes
 getType (BinApp op _ _)
   = maybe undefOp tripleFirst . lookup op $ binAppTypes
   where
-    tripleFirst (x,_,_) = return x
-getType (FunCall id _)
-  = identLookup id
+    tripleFirst (_,_,x) = return x
+getType (FunCall id _) =
+  identLookup id >>= getRetType
+  where
+    getRetType (TFun rT _) = return rT
+    getRetType _ = invalid SemanticError "identifier is not a function"
 getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
   = TPair <$> getType e1 <*> getType e2
 
