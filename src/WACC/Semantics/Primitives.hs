@@ -35,3 +35,8 @@ isReturn (Ctrl (Return _))
 
 isReturn _
   = False
+
+-- Error messages -- TODO move to separate file
+undefOp :: SemanticChecker a
+undefOp
+  = invalid SemanticError "undefined operation"
