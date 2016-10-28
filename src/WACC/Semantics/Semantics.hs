@@ -44,6 +44,40 @@ getTypeForId i (SymbolTable s [ch])
   where
     res = getTypeForId i ch
 
+genCodePaths :: Statement -> SemanticChecker [[Statement]]
+genCodePaths stmts
+  = return $ genCodePath stmts [[]]
+  where
+    genCodePath :: Statement -> [[Statement]] -> [[Statement]]
+    genCodePath (Block stmts) cps
+      = foldr (\(IdentifiedStatement s _) c -> genCodePath s c) cps stmts
+
+    genCodePath (Cond _ trueBranch falseBranch) cps
+      = (genCodePath trueBranch cps) ++ (genCodePath falseBranch cps)
+
+    genCodePath (Loop _ body) cps
+      = (genCodePath body cps) ++ cps
+
+    genCodePath stmt cps
+      = map ((:) stmt) cps
+
+codePathReturns :: [Statement] -> Bool
+codePathReturns
+  = any isReturn
+  where
+    isReturn (Ctrl (Return _))
+      = True
+
+    isReturn _
+      = False
+
+checkCodePathsReturn :: Definition -> SemanticChecker ()
+checkCodePathsReturn ((ident, _), stmts) = do
+  codePaths <- genCodePaths stmts
+  case all codePathReturns codePaths of
+    True  -> valid
+    False -> invalid SemanticError "not all code paths return a value"
+
 semanticCheck :: Program -> SemanticChecker ()
-semanticCheck p
-  = return ()
+semanticCheck (mainF:funcs)
+  = mapM_ checkCodePathsReturn funcs
