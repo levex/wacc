@@ -49,6 +49,14 @@ checkMainDoesNotReturn (_, stmts) = do
   unless (not (any (any isReturn) codePaths))
     $ invalid SemanticError "cannot return a value from the global scope"
 
+storeDecl :: Declaration -> SemanticChecker ()
+storeDecl (ident, t)
+  = addSymbol (Symbol ident t)
+
+storeFuncs :: [Definition] -> SemanticChecker ()
+storeFuncs defs
+  = mapM_ storeDecl $ map fst defs
+
 semanticCheck :: Program -> SemanticChecker ()
 semanticCheck (mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
