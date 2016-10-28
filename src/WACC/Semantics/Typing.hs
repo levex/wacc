@@ -117,6 +117,9 @@ increaseScope = do
     increaseScope' (SymbolTable s [c])
       = SymbolTable s [increaseScope' c]
 
+scoped :: SemanticChecker () -> SemanticChecker ()
+scoped stmt
+  = increaseScope *> stmt <* decreaseScope
 
 identExists :: Identifier -> SemanticChecker ()
 identExists i = do
