@@ -47,7 +47,7 @@ deconstructArrayType :: Type -> SemanticChecker Type
 deconstructArrayType (TArray t)
   = return t
 deconstructArrayType t
-  = semanticInvalid $ "Expected TArray, Found: " ++ (show t)
+  = invalid SemanticError $ "Expected TArray, Found: " ++ (show t)
 
 getType :: Expr -> SemanticChecker Type
 getType (Lit lit)
@@ -63,9 +63,9 @@ getType (PairElem e id) = do
     pairElem Fst f _ = f
     pairElem Snd _ s = s
 getType (UnApp op _)
-  = (maybe (semanticInvalid "undefined operation") (return.fst)) . lookup op $ unOpTypes
+  = (maybe (invalid SemanticError "undefined operation") (return.fst)) . lookup op $ unOpTypes
 getType (BinApp op _ _)
-  = (maybe (semanticInvalid "undefined operation") tripleFirst) . lookup op $ binAppTypes
+  = (maybe (invalid SemanticError "undefined operation") tripleFirst) . lookup op $ binAppTypes
   where
     tripleFirst (x,_,_) = return x
 getType (FunCall id _)

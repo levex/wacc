@@ -9,10 +9,6 @@ valid :: SemanticChecker ()
 valid
   = return ()
 
-invalid :: String -> SemanticChecker ()
-invalid s
-  = throwError $ CheckerError SyntaxError (Location 0 0) s
-
-semanticInvalid :: String -> SemanticChecker Type
-semanticInvalid s
-  = throwError $ CheckerError SemanticError (Location 0 0) s
+invalid :: ErrorType -> String -> SemanticChecker a
+invalid e s
+  = throwError $ CheckerError e (Location 0 0) s

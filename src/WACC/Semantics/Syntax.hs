@@ -13,7 +13,7 @@ import           WACC.Semantics.Primitives
 checkLit :: Literal -> SemanticChecker ()
 checkLit (INT i)
   | inRange i = valid
-  | otherwise = invalid "integer out of range"
+  | otherwise = invalid SyntaxError "integer out of range"
   where
     inRange i
       = i >= fromIntegral (minBound :: Int32)
@@ -25,7 +25,7 @@ checkLit _
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit l)
   = case l of
-      ARRAY _ -> invalid "array literals cannot occur in expression"
+      ARRAY _ -> invalid SyntaxError "array literals cannot occur in expression"
       _       -> checkLit l
 
 checkExpr (Ident _)
@@ -44,10 +44,10 @@ checkExpr (BinApp _ e1 e2)
   = checkExpr e1 >> checkExpr e2
 
 checkExpr (PairElem _ _)
-  = invalid "pair elements cannot occur in expressions"
+  = invalid SyntaxError "pair elements cannot occur in expressions"
 
 checkExpr (FunCall _ _)
-  = invalid "function calls cannot occur in expressions"
+  = invalid SyntaxError "function calls cannot occur in expressions"
 
 checkLhs :: Expr -> SemanticChecker ()
 checkLhs (Ident _)
@@ -60,7 +60,7 @@ checkLhs (PairElem _ _)
   = valid
 
 checkLhs _
-  = invalid $ "lhs of an assignment must be an identifier,"
+  = invalid SyntaxError $ "lhs of an assignment must be an identifier,"
     ++ " array element or pair element"
 
 checkRhs :: Expr -> SemanticChecker ()
@@ -84,22 +84,22 @@ checkType (TPair (TPair TArb TArb) (TPair TArb TArb))
   = valid
 
 checkType (TPair (TPair _ _) (TPair _ _))
-  = invalid "nested pairs cannot have types"
+  = invalid SyntaxError "nested pairs cannot have types"
 
 checkType (TPair (TPair TArb TArb) t)
   = checkType t
 
 checkType (TPair (TPair _ _) _)
-  = invalid "nested pairs cannot have types"
+  = invalid SyntaxError "nested pairs cannot have types"
 
 checkType (TPair t (TPair TArb TArb))
   = checkType t
 
 checkType (TPair _ (TPair _ _))
-  = invalid "nested pairs cannot have types"
+  = invalid SyntaxError "nested pairs cannot have types"
 
 checkType (TPair TArb TArb)
-  = invalid "outer pair must define type of elements"
+  = invalid SyntaxError "outer pair must define type of elements"
 
 checkType (TPair t1 t2)
   = checkType t1 >> checkType t2
@@ -142,7 +142,7 @@ checkStmt (ExpStmt (BinApp Assign lhs rhs))
   = checkLhs lhs >> checkRhs rhs
 
 checkStmt s
-  = invalid "invalid statement"
+  = invalid SyntaxError "invalid statement"
 
 checkIdStmt :: IdentifiedStatement -> SemanticChecker ()
 checkIdStmt (IdentifiedStatement s i)

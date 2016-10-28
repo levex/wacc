@@ -33,7 +33,7 @@ identLookup i = do
   st <- gets symbolTable
   case getTypeForId i st of
     (Just t) -> return t
-    Nothing  -> semanticInvalid "undefined identifier"
+    Nothing  -> invalid SemanticError "undefined identifier"
 
 getTypeForId :: Identifier -> SymbolTable -> Maybe Type
 getTypeForId i (SymbolTable s [])
