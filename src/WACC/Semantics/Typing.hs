@@ -41,11 +41,13 @@ getLiteralType (CHAR _)        = return TChar
 getLiteralType (INT _)         = return TInt
 getLiteralType (BOOL _)        = return TBool
 getLiteralType (STR _)         = return TString
-getLiteralType (ARRAY (e : _)) = getType e
+getLiteralType (ARRAY (e : _)) = TArray <$> getType e
 
 deconstructArrayType :: Type -> SemanticChecker Type
 deconstructArrayType (TArray t)
   = return t
+deconstructArrayType (TString)
+  = return TChar
 deconstructArrayType t
   = invalid SemanticError $ "Expected TArray, Found: " ++ show t
 
@@ -141,3 +143,11 @@ getTypeForId i (SymbolTable s [ch])
   | otherwise  = getTypeForId i (SymbolTable s [])
   where
     res = getTypeForId i ch
+
+equalTypes :: String -> Type -> Type -> SemanticChecker ()
+equalTypes _ (TString) (TArray TChar) = valid
+equalTypes _ (TArray TChar) (TString) = valid
+equalTypes errMsg t1 t2
+  | t1 == TArb || t2 == TArb = valid
+  | t1 == t2                 = valid
+  | otherwise                = invalid SemanticError errMsg
