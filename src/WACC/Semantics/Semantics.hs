@@ -49,6 +49,63 @@ checkMainDoesNotReturn (_, stmts) = do
   unless (not (any (any isReturn) codePaths))
     $ invalid SemanticError "cannot return a value from the global scope"
 
+equalTypes :: String -> Type -> Type -> SemanticChecker ()
+equalTypes errMsg t1 t2
+  | t1 == t2  = return ()
+  | otherwise = invalid SemanticError errMsg
+
+checkExpr :: Expr -> SemanticChecker ()
+checkExpr (Lit lit)
+  = valid
+checkExpr (Ident ident)
+  = identExists ident
+checkExpr (ArrElem ident [])
+  = invalid SemanticError "invalid array index"
+checkExpr (ArrElem ident idx) = do
+  mapM_ checkExpr idx
+  types <- mapM getType idx
+  mapM_ (equalTypes "array index must be an integer" TInt) types
+checkExpr (PairElem pairElem ident) = do
+  tp <- identLookup ident
+  unless (isPair tp) $ invalid SemanticError "pairElem requires a Pair"
+  where
+    isPair (TPair _ _) = True
+    isPair p           = False
+checkExpr (UnApp unop expr) = do
+  checkExpr expr
+  t1 <- unopType
+  t2 <- getType expr
+  equalTypes "undefined operation" t1 t2
+  where
+    unopType = (maybe undefOp $ return.snd)
+             . lookup unop $ unOpTypes
+checkExpr (BinApp binop e1 e2) = do
+  checkExpr e1
+  checkExpr e2
+  te1 <- getType e1
+  te2 <- getType e2
+  (t1, t2) <- opTypes
+  equalTypes "undefined operation" t1 te1
+  equalTypes "undefined operation" t2 te2
+  where
+    opTypes = (maybe undefOp tp) . lookup binop $ binAppTypes
+    tp = (\(_,t1,t2) -> return (t1,t2))
+checkExpr (FunCall ident args) = do
+  mapM_ checkExpr args
+  t <- identLookup ident
+  case t of
+    (TFun _ params) -> checkArgs params args
+    _               -> invalid SemanticError "invalid arguments"
+  where
+    checkArgs :: [Declaration] -> [Expr] -> SemanticChecker ()
+    checkArgs params args = do
+      types <- mapM getType args
+      case (map snd params) == types of
+        True  -> valid
+        False -> invalid SemanticError "invalid arguments"
+checkExpr (NewPair e1 e2)
+  = checkExpr e1 >> checkExpr e2
+
 storeDecl :: Declaration -> SemanticChecker ()
 storeDecl (ident, t)
   = addSymbol (Symbol ident t)
@@ -62,3 +119,4 @@ semanticCheck (mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
   mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF
+  storeFuncs funcs
