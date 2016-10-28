@@ -63,12 +63,67 @@ getType (PairElem e id) = do
     pairElem Fst f _ = f
     pairElem Snd _ s = s
 getType (UnApp op _)
-  = (maybe (invalid SemanticError "undefined operation") (return.fst)) . lookup op $ unOpTypes
+  = (maybe undefOp (return.fst)) . lookup op $ unOpTypes
 getType (BinApp op _ _)
-  = (maybe (invalid SemanticError "undefined operation") tripleFirst) . lookup op $ binAppTypes
+  = (maybe undefOp tripleFirst) . lookup op $ binAppTypes
   where
     tripleFirst (x,_,_) = return x
 getType (FunCall id _)
   = identLookup id
 getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
   = TPair <$> getType e1 <*> getType e2
+
+addSymbol :: Symbol -> SemanticChecker ()
+addSymbol s = do
+  st <- gets symbolTable
+  addToScope s st
+ where
+    notDefined (Symbol i _) symbs
+      = all (\(Symbol ident _) -> i /= ident) symbs
+    addToScope :: Symbol -> SymbolTable -> SemanticChecker ()
+    addToScope s (SymbolTable ss []) = do
+      locs <- gets locationData
+      case notDefined s ss of
+        True  -> put $ CheckerState locs (SymbolTable (s:ss) [])
+        False -> invalid SemanticError "identifier already defined"
+    addToScope s (SymbolTable ss [c]) = do
+      locs <- gets locationData
+      put $ CheckerState locs c
+      addSymbol s
+      newSt <- gets symbolTable
+      put $ CheckerState locs newSt
+
+decreaseScope :: SymbolTable -> SymbolTable
+decreaseScope (SymbolTable s [(SymbolTable ss [])])
+  = SymbolTable s []
+decreaseScope (SymbolTable s [c])
+  = (SymbolTable s [decreaseScope c])
+decreaseScope st
+  = SymbolTable [] []
+
+increaseScope :: SymbolTable -> SymbolTable
+increaseScope (SymbolTable s [])
+  = (SymbolTable s [(SymbolTable [] [])])
+increaseScope (SymbolTable s [c])
+  = (SymbolTable s [increaseScope c])
+
+identExists :: Identifier -> SemanticChecker ()
+identExists i = do
+  _ <- identLookup i
+  return ()
+
+identLookup :: Identifier -> SemanticChecker Type
+identLookup i = do
+  st <- gets symbolTable
+  case getTypeForId i st of
+    (Just t) -> return t
+    Nothing  -> invalid SemanticError "undefined identifier"
+
+getTypeForId :: Identifier -> SymbolTable -> Maybe Type
+getTypeForId i (SymbolTable s [])
+  = lookup i (map (\(Symbol i t) -> (i, t)) s)
+getTypeForId i (SymbolTable s [ch])
+  | res /= Nothing = res
+  | otherwise      = getTypeForId i (SymbolTable s [])
+  where
+    res = getTypeForId i ch

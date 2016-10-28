@@ -7,57 +7,8 @@ import           Control.Monad.State
 import           Control.Monad.Except
 import           WACC.Semantics.Types
 import           WACC.Semantics.Primitives
+import           WACC.Semantics.Typing
 import           WACC.Parser.Types
-
-addSymbol :: Symbol -> SemanticChecker ()
-addSymbol s = do
-  st <- gets symbolTable
-  addToScope s st
- where
-    notDefined (Symbol i _) symbs
-      = all (\(Symbol ident _) -> i /= ident) symbs
-    addToScope :: Symbol -> SymbolTable -> SemanticChecker ()
-    addToScope s (SymbolTable ss []) = do
-      locs <- gets locationData
-      case notDefined s ss of
-        True  -> put $ CheckerState locs (SymbolTable (s:ss) [])
-        False -> invalid SemanticError "identifier already defined"
-    addToScope s (SymbolTable ss [c]) = do
-      locs <- gets locationData
-      put $ CheckerState locs c
-      addSymbol s
-      newSt <- gets symbolTable
-      put $ CheckerState locs newSt
-
-decreaseScope :: SymbolTable -> SymbolTable
-decreaseScope (SymbolTable s [(SymbolTable ss [])])
-  = SymbolTable s []
-decreaseScope (SymbolTable s [c])
-  = (SymbolTable s [decreaseScope c])
-decreaseScope st
-  = SymbolTable [] []
-
-increaseScope :: SymbolTable -> SymbolTable
-increaseScope (SymbolTable s [])
-  = (SymbolTable s [(SymbolTable [] [])])
-increaseScope (SymbolTable s [c])
-  = (SymbolTable s [increaseScope c])
-
-identLookup :: Identifier -> SemanticChecker Type
-identLookup i = do
-  st <- gets symbolTable
-  case getTypeForId i st of
-    (Just t) -> return t
-    Nothing  -> invalid SemanticError "undefined identifier"
-
-getTypeForId :: Identifier -> SymbolTable -> Maybe Type
-getTypeForId i (SymbolTable s [])
-  = lookup i (map (\(Symbol i t) -> (i, t)) s)
-getTypeForId i (SymbolTable s [ch])
-  | res /= Nothing = res
-  | otherwise      = getTypeForId i (SymbolTable s [])
-  where
-    res = getTypeForId i ch
 
 genCodePaths :: Statement -> SemanticChecker [[Statement]]
 genCodePaths stmts
