@@ -1,5 +1,6 @@
 module WACC.Semantics.Semantics where
 
+import           Data.Foldable
 import           Data.Maybe
 import           Control.Monad
 import           Control.Monad.State
@@ -46,20 +47,20 @@ getTypeForId i (SymbolTable s [ch])
 
 genCodePaths :: Statement -> SemanticChecker [[Statement]]
 genCodePaths stmts
-  = return $ genCodePath stmts [[]]
+  = genCodePath stmts [[]]
   where
-    genCodePath :: Statement -> [[Statement]] -> [[Statement]]
+    genCodePath :: Statement -> [[Statement]] -> SemanticChecker [[Statement]]
     genCodePath (Block stmts) cps
-      = foldr (\(IdentifiedStatement s _) c -> genCodePath s c) cps stmts
+      = foldrM (\(IdentifiedStatement s _) c -> genCodePath s c) cps stmts
 
     genCodePath (Cond _ trueBranch falseBranch) cps
-      = (genCodePath trueBranch cps) ++ (genCodePath falseBranch cps)
+      = liftM2 (++) (genCodePath trueBranch cps) (genCodePath falseBranch cps)
 
     genCodePath (Loop _ body) cps
-      = (genCodePath body cps) ++ cps
+      = liftM2 (++) (genCodePath body cps) (return cps)
 
     genCodePath stmt cps
-      = map ((:) stmt) cps
+      = mapM (return . ((:) stmt)) cps
 
 codePathReturns :: [Statement] -> Bool
 codePathReturns
