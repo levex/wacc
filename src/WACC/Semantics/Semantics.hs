@@ -9,11 +9,22 @@ import           WACC.Semantics.Types
 import           WACC.Semantics.Primitives
 import           WACC.Parser.Types
 
-addSymbol :: Symbol -> SymbolTable -> SymbolTable
-addSymbol s (SymbolTable ss [])
-  = (SymbolTable (s:ss) [])
-addSymbol s (SymbolTable ss [c])
-  = (SymbolTable ss [addSymbol s c])
+addSymbol :: Symbol -> SemanticChecker ()
+addSymbol s = do
+  st <- gets symbolTable
+  addToScope s st
+ where
+    notDefined (Symbol i _) symbs
+      = all (\(Symbol ident _) -> i /= ident) symbs
+    addToScope :: Symbol -> SymbolTable -> SemanticChecker ()
+    addToScope s (SymbolTable ss [])
+      | notDefined s ss = put $ state { symbolTable = SymbolTable (s:ss) [] }
+      | otherwise       = invalid SemanticError "identifier already defined"
+    addToScope s (SymbolTable ss [c]) = do
+      put $ state { symbolTable = c }
+      addSymbol s
+      newState <- get
+      put $ newSt { symbolTable = SymbolTable ss [(symbolTable newState)] }
 
 decreaseScope :: SymbolTable -> SymbolTable
 decreaseScope (SymbolTable s [(SymbolTable ss [])])
@@ -83,6 +94,8 @@ checkCodePathsReturn ((ident, _), stmts) = do
   codePaths <- genCodePaths stmts
   unless (all codePathReturns codePaths)
     $ invalid SemanticError "not all code paths return a value"
+
+
 
 semanticCheck :: Program -> SemanticChecker ()
 semanticCheck (mainF:funcs)
