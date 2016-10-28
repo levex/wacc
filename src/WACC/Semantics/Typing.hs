@@ -32,8 +32,8 @@ binAppTypes
     , (Gte, (TInt, TInt, TBool))
     , (Lt, (TInt, TInt, TBool))
     , (Lte, (TInt, TInt, TBool))
-    , (Eq, (TInt, TInt, TBool))
-    , (NEq, (TInt, TInt, TBool))
+    , (Eq, (TArb, TArb, TBool))
+    , (NEq, (TArb, TArb, TBool))
     ]
 
 getLiteralType :: Literal -> SemanticChecker Type
