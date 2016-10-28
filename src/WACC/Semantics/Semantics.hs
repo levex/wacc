@@ -53,6 +53,9 @@ genCodePaths stmts
     genCodePath (Block stmts) cps
       = foldrM (\(IdentifiedStatement s _) c -> genCodePath s c) cps stmts
 
+    -- TODO: further optimizations and checks can be made for Conds and Loops
+    -- by minimizing constant expressions (e.g. we can check if an `if` branch
+    -- will ever be entered)
     genCodePath (Cond _ trueBranch falseBranch) cps
       = liftM2 (++) (genCodePath trueBranch cps) (genCodePath falseBranch cps)
 
