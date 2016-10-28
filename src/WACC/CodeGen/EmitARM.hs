@@ -45,11 +45,17 @@ conditions = [ (CAl, "")
 
 -- FIXME: this needs moving
 armFunctionEnter :: [Instruction]
-armFunctionEnter = [Push $ 14 : [4..11]] -- lr and r4-r11
+armFunctionEnter = [
+                    Push $ 14 : [4..11],   -- save registers
+                    Move 4 0,  -- push arguments to scratch
+                    Move 5 1,
+                    Move 6 2,
+                    Move 7 3
+                    ] -- lr and r4-r11
 
 -- FIXME: this needs moving
 armFunctionExit :: [Instruction]
-armFunctionExit = [Pop $ 14 : [4..11]] -- lr and r4-r11
+armFunctionExit = [Pop $ 15 : [4..11]] -- pc and r4-r11
 
 nameForReg :: Register -> String
 nameForReg = fromJust . flip lookup regNames
