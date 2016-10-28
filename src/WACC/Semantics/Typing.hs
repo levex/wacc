@@ -88,15 +88,16 @@ addSymbol s = do
     addToScope :: Symbol -> SymbolTable -> SemanticChecker ()
     addToScope s (SymbolTable ss []) = do
       locs <- gets locationData
-      if notDefined s ss
-        then put $ CheckerState locs (SymbolTable (s:ss) [])
-        else invalid SemanticError "identifier already defined"
+      if notDefined s ss then
+        put $ CheckerState locs (SymbolTable (s:ss) [])
+      else
+        invalid SemanticError "identifier already defined"
     addToScope s (SymbolTable ss [c]) = do
       locs <- gets locationData
       put $ CheckerState locs c
       addSymbol s
       newSt <- gets symbolTable
-      put $ CheckerState locs newSt
+      put $ CheckerState locs (SymbolTable ss [newSt])
 
 decreaseScope :: SemanticChecker ()
 decreaseScope = do
@@ -136,7 +137,7 @@ identLookup i = do
   st <- gets symbolTable
   case getTypeForId i st of
     (Just t) -> return t
-    Nothing  -> invalid SemanticError "undefined identifier"
+    Nothing  -> invalid SemanticError $ "undefined identifier " ++ show(i)
 
 getTypeForId :: Identifier -> SymbolTable -> Maybe Type
 getTypeForId i (SymbolTable s [])
