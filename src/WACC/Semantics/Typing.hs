@@ -2,11 +2,11 @@ module WACC.Semantics.Typing where
 
 import Data.Maybe
 
-import WACC.Parser.Types
-import WACC.Parser.Primitives
-import WACC.Semantics.Semantics
-import WACC.Semantics.Types
-import WACC.Semantics.Primitives
+import           Control.Monad.State
+import           WACC.Parser.Types
+import           WACC.Parser.Primitives
+import           WACC.Semantics.Types
+import           WACC.Semantics.Primitives
 
 unOpTypes
   = [ (Not, (TBool, TBool))
