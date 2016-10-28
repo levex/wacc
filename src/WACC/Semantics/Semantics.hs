@@ -68,6 +68,9 @@ codePathReturns
     isReturn (Ctrl (Return _))
       = True
 
+    isReturn (Builtin Exit _)
+      = True
+
     isReturn _
       = False
 
