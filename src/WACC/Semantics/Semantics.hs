@@ -1,12 +1,12 @@
 module WACC.Semantics.Semantics where
 
-import      WACC.Semantics.Types
-import      WACC.Semantics.Primitives
-import      WACC.Parser.Types
-import      Control.Monad
-import      Control.Monad.State
-import      Control.Monad.Except
-import      Data.Maybe
+import           Data.Maybe
+import           Control.Monad
+import           Control.Monad.State
+import           Control.Monad.Except
+import           WACC.Semantics.Types
+import           WACC.Semantics.Primitives
+import           WACC.Parser.Types
 
 addSymbol :: Symbol -> SymbolTable -> SymbolTable
 addSymbol s (SymbolTable ss [])

@@ -146,13 +146,7 @@ checkStmt s
 
 checkIdStmt :: IdentifiedStatement -> SemanticChecker ()
 checkIdStmt (IdentifiedStatement s i)
-  = checkStmt s `catchError` rethrowWithLocation
-  where
-    rethrowWithLocation :: CheckerError -> SemanticChecker ()
-    rethrowWithLocation (CheckerError e _ s) = do
-      ld <- gets locationData
-      let loc = fromJust $ Map.lookup i (locations ld)
-      throwError $ CheckerError e loc s
+  = checkStmt s `catchError` rethrowWithLocation i
 
 checkDef :: Definition -> SemanticChecker ()
 checkDef (_, block)
