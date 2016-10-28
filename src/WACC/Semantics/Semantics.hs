@@ -17,14 +17,17 @@ addSymbol s = do
     notDefined (Symbol i _) symbs
       = all (\(Symbol ident _) -> i /= ident) symbs
     addToScope :: Symbol -> SymbolTable -> SemanticChecker ()
-    addToScope s (SymbolTable ss [])
-      | notDefined s ss = put $ state { symbolTable = SymbolTable (s:ss) [] }
-      | otherwise       = invalid SemanticError "identifier already defined"
+    addToScope s (SymbolTable ss []) = do
+      locs <- gets locationData
+      case notDefined s ss of
+        True  -> put $ CheckerState locs (SymbolTable (s:ss) [])
+        False -> invalid SemanticError "identifier already defined"
     addToScope s (SymbolTable ss [c]) = do
-      put $ state { symbolTable = c }
+      locs <- gets locationData
+      put $ CheckerState locs c
       addSymbol s
-      newState <- get
-      put $ newSt { symbolTable = SymbolTable ss [(symbolTable newState)] }
+      newSt <- gets symbolTable
+      put $ CheckerState locs newSt
 
 decreaseScope :: SymbolTable -> SymbolTable
 decreaseScope (SymbolTable s [(SymbolTable ss [])])
