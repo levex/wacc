@@ -99,17 +99,14 @@ data Control
 
 data Statement
   = Noop
-  | Block [IdentifiedStatement]
+  | Block [Statement]
   | VarDef Declaration Expr
   | Ctrl Control
   | Cond Expr Statement Statement
   | Loop Expr Statement
   | Builtin BuiltinFunc Expr
   | ExpStmt Expr
-  deriving (Eq, Show)
-
-data IdentifiedStatement
-  = IdentifiedStatement Statement Int
+  | IdentifiedStatement Statement Int
   deriving (Eq, Show)
 
 type Definition

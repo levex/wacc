@@ -118,7 +118,7 @@ checkStmt Noop
   = valid
 
 checkStmt (Block idStmts)
-  = mapM_ checkIdStmt idStmts
+  = mapM_ checkStmt idStmts
 
 checkStmt (VarDef (_, t) e)
   = checkType t >> checkRhs e
@@ -141,12 +141,11 @@ checkStmt (Builtin _ e)
 checkStmt (ExpStmt (BinApp Assign lhs rhs))
   = checkLhs lhs >> checkRhs rhs
 
+checkStmt (IdentifiedStatement s i)
+  = checkStmt s `catchError` rethrowWithLocation i
+
 checkStmt s
   = invalid SyntaxError "invalid statement"
-
-checkIdStmt :: IdentifiedStatement -> SemanticChecker ()
-checkIdStmt (IdentifiedStatement s i)
-  = checkStmt s `catchError` rethrowWithLocation i
 
 checkDef :: Definition -> SemanticChecker ()
 checkDef (_, block)

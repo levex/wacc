@@ -176,7 +176,7 @@ stmt
   = block <|> varDef <|> control <|> cond
     <|> loop <|> builtin <|> noop <|> expStmt
 
-idStmt :: GenParser Char LocationData IdentifiedStatement
+idStmt :: GenParser Char LocationData Statement
 idStmt = do
   i <- getNextIdentifier
   savePosition i
