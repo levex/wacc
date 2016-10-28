@@ -78,9 +78,8 @@ codePathReturns
 checkCodePathsReturn :: Definition -> SemanticChecker ()
 checkCodePathsReturn ((ident, _), stmts) = do
   codePaths <- genCodePaths stmts
-  case all codePathReturns codePaths of
-    True  -> valid
-    False -> invalid SemanticError "not all code paths return a value"
+  unless (all codePathReturns codePaths)
+    $ invalid SemanticError "not all code paths return a value"
 
 semanticCheck :: Program -> SemanticChecker ()
 semanticCheck (mainF:funcs)
