@@ -58,7 +58,7 @@ genCond :: Condition -> String -> String
 genCond = flip (++) . fromJust . flip lookup conditions
 
 emitBranchInstr :: CondInstr -> CodeGenerator ()
-emitBranchInstr (cond, Branch reg) = tell ["bl " ++ nameForReg reg ]
+emitBranchInstr (cond, Branch reg) = tell ["bl ", nameForReg reg, "\n"]
 
 emitStackInstr :: CondInstr -> CodeGenerator ()
 emitStackInstr (cond, Push [])
@@ -66,27 +66,34 @@ emitStackInstr (cond, Push [])
 emitStackInstr (cond, Pop [])
   = return ()
 emitStackInstr (cond, Push regs)
-  = tell ["stmdb sp!, {", intercalate ", " (map nameForReg regs) ++ "}"]
+  = tell ["stmdb sp!, {", intercalate ", " (map nameForReg regs) ++ "}"
+          , "\n"]
 emitStackInstr (cond, Pop regs)
-  = tell ["ldmia sp!, {", intercalate ", " (map nameForReg regs) ++ "}"]
+  = tell ["ldmia sp!, {", intercalate ", " (map nameForReg regs) ++ "}"
+          , "\n"]
 
 emitArithmeticInstr :: CondInstr -> CodeGenerator ()
 emitArithmeticInstr (cond, Add d a b)
-  = tell [genCond cond "add ", intercalate ", " (map nameForReg [d, a, b])]
+  = tell [genCond cond "add ", intercalate ", " (map nameForReg [d, a, b])
+          , "\n"]
 emitArithmeticInstr (cond, Sub d a b)
-  = tell [genCond cond "sub ", intercalate ", " (map nameForReg [d, a, b])]
+  = tell [genCond cond "sub ", intercalate ", " (map nameForReg [d, a, b])
+          , "\n"]
 emitArithmeticInstr (cond, Mul d a b)
-  = tell [genCond cond "mul ", intercalate ", " (map nameForReg [d, a, b])]
+  = tell [genCond cond "mul ", intercalate ", " (map nameForReg [d, a, b])
+          , "\n"]
 emitArithmeticInstr (cond, Div d a b)
-  = tell [genCond cond "udiv ", intercalate ", " (map nameForReg [d, a, b])]
+  = tell [genCond cond "udiv ", intercalate ", " (map nameForReg [d, a, b])
+          , "\n"]
 
-emitLMInstr :: CondInstr -> CodeGenerator ()
-emitLMInstr (cond, LoadMemoryImmediate rt rn off)
+emitLMIInstr :: CondInstr -> CodeGenerator ()
+emitLMIInstr (cond, LoadMemoryImmediate rt rn off)
   = tell [genCond cond "ldr", " ", nameForReg rt, ", [", nameForReg rn,
-          ", #", show off]
+          ", #", show off, "]\n"]
 
--- LoadMemoryRegister Register Register Bool Register -- Rt, Rn (+/-) Rm
 emitLMRInstr :: CondInstr -> CodeGenerator ()
+emitLMRInstr (cond, LoadMemoryRegister rt rn _ (-1))
+  = tell [genCond cond "ldr", " ", nameForReg rt, ", [", nameForReg rn, "]\n"]
 emitLMRInstr (cond, LoadMemoryRegister rt rn plus rm)
   = tell [genCond cond "ldr", " ", nameForReg rt, ", [", nameForReg rn,
-          if plus then " + " else " - ", nameForReg rm]
+          if plus then " + " else " - ", nameForReg rm, "]\n"]
