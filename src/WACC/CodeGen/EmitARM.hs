@@ -26,8 +26,28 @@ regNames = [ (0, "r0")
            , (14, "lr")
            , (15, "pc")]
 
+conditions :: [(Condition, String)]
+conditions = [ (CAl, "")
+            ,  (CEq, "eq")
+            ,  (CNe, "ne")
+            ,  (CCs, "cs")
+            ,  (CCc, "cc")
+            ,  (CMi, "mi")
+            ,  (CPl, "pl")
+            ,  (CVs, "vs")
+            ,  (CVc, "vc")
+            ,  (CHi, "hi")
+            ,  (CLs, "ls")
+            ,  (CGe, "ge")
+            ,  (CLt, "lt")
+            ,  (CGt, "gt")
+            ,  (CLe, "le") ]
+
 nameForReg :: Register -> String
 nameForReg = fromJust . flip lookup regNames
+
+genCond :: Condition -> String -> String
+genCond = flip (++) . fromJust . flip lookup conditions
 
 emitBranchInstr :: CondInstr -> CodeGenerator ()
 emitBranchInstr (cond, Branch reg) = tell ["bl " ++ nameForReg reg ]
