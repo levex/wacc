@@ -85,6 +85,13 @@ checkCodePathsReturn ((ident, _), stmts) = do
   unless (all (any isReturnOrExit) codePaths)
     $ invalid SemanticError "not all code paths return a value"
 
+checkUnreachableCode :: Definition -> SemanticChecker ()
+checkUnreachableCode ((ident, _), stmts) = do
+  codePaths <- genCodePaths stmts
+  when ((all (not . isReturnOrExit . last) codePaths)
+        || (all ((> 1) . length . filter isReturnOrExit) codePaths))
+    $ invalid SemanticError "unreachable code after return statement"
+
 checkMainDoesNotReturn :: Definition -> SemanticChecker ()
 checkMainDoesNotReturn (_, stmts) = do
   codePaths <- genCodePaths stmts
@@ -94,4 +101,5 @@ checkMainDoesNotReturn (_, stmts) = do
 semanticCheck :: Program -> SemanticChecker ()
 semanticCheck (mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
+  mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF
