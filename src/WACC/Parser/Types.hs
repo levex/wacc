@@ -9,7 +9,7 @@ data Literal
   | BOOL Bool
   | STR String
   | ARRAY [Expr]
-  | NULL
+  | NULL -- FIXME add TPtr
   deriving (Eq, Show)
 
 type StatementId
