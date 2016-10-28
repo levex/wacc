@@ -103,3 +103,8 @@ emitLMRInstr (cond, LoadMemoryRegister rt rn _ (-1))
 emitLMRInstr (cond, LoadMemoryRegister rt rn plus rm)
   = tell [genCond cond "ldr", " ", nameForReg rt, ", [", nameForReg rn,
           if plus then " + " else " - ", nameForReg rm, "]\n"]
+
+
+emitMoveInstr :: CondInstr -> CodeGenerator ()
+emitMoveInstr (cond, Move rt rs)
+  = tell [genCond cond "mov", " ", nameForReg rt, ", ", nameForReg rs, "\n"]
