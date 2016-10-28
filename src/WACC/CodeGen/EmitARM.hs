@@ -64,7 +64,7 @@ emitStackInstr (cond, Pop regs)
 
 emitArithmeticInstr :: CondInstr -> CodeGenerator ()
 emitArithmeticInstr (cond, Add d a b)
-  = tell [genCond cond "add", intercalate ", " (map nameForReg [d, a, b])]
+  = tell [genCond cond "add ", intercalate ", " (map nameForReg [d, a, b])]
 emitArithmeticInstr (cond, Sub d a b)
   = tell [genCond cond "sub ", intercalate ", " (map nameForReg [d, a, b])]
 emitArithmeticInstr (cond, Mul d a b)
