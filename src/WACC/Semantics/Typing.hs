@@ -71,7 +71,4 @@ getType (BinApp op _ _)
 getType (FunCall id _)
   = identLookup id
 getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
-  = do
-      t1 <- getType e1
-      t2 <- getType e2
-      return (TPair t1 t2)
+  = TPair <$> getType e1 <*> getType e2
