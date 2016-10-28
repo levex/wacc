@@ -76,27 +76,19 @@ genCodePaths stmts
     genCodePath stmt cps
       = mapM (return . ((:) stmt)) cps
 
-codePathReturns :: [Statement] -> Bool
-codePathReturns
-  = any isReturn
-  where
-    isReturn (Ctrl (Return _))
-      = True
-
-    isReturn (Builtin Exit _)
-      = True
-
-    isReturn _
-      = False
-
 checkCodePathsReturn :: Definition -> SemanticChecker ()
 checkCodePathsReturn ((ident, _), stmts) = do
   codePaths <- genCodePaths stmts
-  unless (all codePathReturns codePaths)
+  unless (all (any isReturnOrExit) codePaths)
     $ invalid SemanticError "not all code paths return a value"
 
-
+checkMainDoesNotReturn :: Definition -> SemanticChecker ()
+checkMainDoesNotReturn (_, stmts) = do
+  codePaths <- genCodePaths stmts
+  unless (not (any (any isReturn) codePaths))
+    $ invalid SemanticError "cannot return a value from the global scope"
 
 semanticCheck :: Program -> SemanticChecker ()
-semanticCheck (mainF:funcs)
-  = mapM_ checkCodePathsReturn funcs
+semanticCheck (mainF:funcs) = do
+  mapM_ checkCodePathsReturn funcs
+  checkMainDoesNotReturn mainF

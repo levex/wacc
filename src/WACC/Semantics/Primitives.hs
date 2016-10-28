@@ -21,3 +21,17 @@ rethrowWithLocation i (CheckerError e _ s) = do
   ld <- gets locationData
   let loc = fromJust $ Map.lookup i (locations ld)
   throwError $ CheckerError e loc s
+
+isReturnOrExit :: Statement -> Bool
+isReturnOrExit (Builtin Exit _)
+  = True
+
+isReturnOrExit s
+  = isReturn s
+
+isReturn :: Statement -> Bool
+isReturn (Ctrl (Return _))
+  = True
+
+isReturn _
+  = False
