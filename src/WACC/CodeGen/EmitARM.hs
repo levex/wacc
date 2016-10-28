@@ -43,6 +43,14 @@ conditions = [ (CAl, "")
             ,  (CGt, "gt")
             ,  (CLe, "le") ]
 
+-- FIXME: this needs moving
+armFunctionEnter :: [Instruction]
+armFunctionEnter = [Push $ 14 : [4..11]] -- lr and r4-r11
+
+-- FIXME: this needs moving
+armFunctionExit :: [Instruction]
+armFunctionExit = [Pop $ 14 : [4..11]] -- lr and r4-r11
+
 nameForReg :: Register -> String
 nameForReg = fromJust . flip lookup regNames
 
