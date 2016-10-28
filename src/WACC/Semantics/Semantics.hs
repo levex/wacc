@@ -42,16 +42,19 @@ checkUnreachableCode ((ident, _), stmts) = do
         || (all ((> 1) . length . filter isReturnOrExit) codePaths))
     $ invalid SemanticError "unreachable code after return statement"
 
+
 checkMainDoesNotReturn :: Definition -> SemanticChecker ()
 checkMainDoesNotReturn (_, stmts) = do
   codePaths <- genCodePaths stmts
   unless (not (any (any isReturn) codePaths))
     $ invalid SemanticError "cannot return a value from the global scope"
 
-equalTypes :: String -> Type -> Type -> SemanticChecker ()
-equalTypes errMsg t1 t2
-  | t1 == t2  = return ()
-  | otherwise = invalid SemanticError errMsg
+
+checkDef :: Definition -> SemanticChecker ()
+checkDef ((ident, (TFun rT paramT)), stmt) = do
+  mapM_ storeDecl paramT
+  checkStmt stmt
+
 
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit lit)
