@@ -5,7 +5,7 @@ import Data.Maybe
 import Control.Monad.Writer
 
 import WACC.CodeGen.Types
-import WACC.Parser.Types
+import WACC.Parser.Types hiding (Add, Sub, Mul, Div)
 import WACC.Semantics.Types
 
 regNames :: [(Register, String)]
@@ -58,6 +58,27 @@ emitStackInstr (cond, Push [])
 emitStackInstr (cond, Pop [])
   = return ()
 emitStackInstr (cond, Push regs)
-  = tell ["stmdb sp!, {" ++ intercalate ", " (map nameForReg regs) ++ "}"]
+  = tell ["stmdb sp!, {", intercalate ", " (map nameForReg regs) ++ "}"]
 emitStackInstr (cond, Pop regs)
-  = tell ["ldmia sp!, {" ++ intercalate ", " (map nameForReg regs) ++ "}"]
+  = tell ["ldmia sp!, {", intercalate ", " (map nameForReg regs) ++ "}"]
+
+emitArithmeticInstr :: CondInstr -> CodeGenerator ()
+emitArithmeticInstr (cond, Add d a b)
+  = tell [genCond cond "add", intercalate ", " (map nameForReg [d, a, b])]
+emitArithmeticInstr (cond, Sub d a b)
+  = tell [genCond cond "sub ", intercalate ", " (map nameForReg [d, a, b])]
+emitArithmeticInstr (cond, Mul d a b)
+  = tell [genCond cond "mul ", intercalate ", " (map nameForReg [d, a, b])]
+emitArithmeticInstr (cond, Div d a b)
+  = tell [genCond cond "udiv ", intercalate ", " (map nameForReg [d, a, b])]
+
+emitLMInstr :: CondInstr -> CodeGenerator ()
+emitLMInstr (cond, LoadMemoryImmediate rt rn off)
+  = tell [genCond cond "ldr", " ", nameForReg rt, ", [", nameForReg rn,
+          ", #", show off]
+
+-- LoadMemoryRegister Register Register Bool Register -- Rt, Rn (+/-) Rm
+emitLMRInstr :: CondInstr -> CodeGenerator ()
+emitLMRInstr (cond, LoadMemoryRegister rt rn plus rm)
+  = tell [genCond cond "ldr", " ", nameForReg rt, ", [", nameForReg rn,
+          if plus then " + " else " - ", nameForReg rm]

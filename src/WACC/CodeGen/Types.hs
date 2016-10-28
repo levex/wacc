@@ -42,10 +42,12 @@ registers
   = flip take $ iterate (+ 1) 0
 
 data Instruction
-  = Add Register Register
-  | Sub Register Register
-  | Mul Register Register
-  | Div Register Register
+  = Add Register Register Register
+  | Sub Register Register Register
+  | Mul Register Register Register
+  | Div Register Register Register
+  | LoadMemoryImmediate Register Register Int -- Rt, Rn, #offset
+  | LoadMemoryRegister Register Register Bool Register -- Rt, Rn (+/-) Rm
   | Move Register Register
   | Push [Register]
   | Pop [Register]
