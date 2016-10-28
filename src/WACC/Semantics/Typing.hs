@@ -93,19 +93,30 @@ addSymbol s = do
       newSt <- gets symbolTable
       put $ CheckerState locs newSt
 
-decreaseScope :: SymbolTable -> SymbolTable
-decreaseScope (SymbolTable s [SymbolTable ss []])
-  = SymbolTable s []
-decreaseScope (SymbolTable s [c])
-  = SymbolTable s [decreaseScope c]
-decreaseScope st
-  = SymbolTable [] []
+decreaseScope :: SemanticChecker ()
+decreaseScope = do
+  st <- gets symbolTable
+  locs <- gets locationData
+  put (CheckerState locs (decreaseScope' st))
+  where
+    decreaseScope' (SymbolTable s [SymbolTable ss []])
+      = SymbolTable s []
+    decreaseScope' (SymbolTable s [c])
+      = SymbolTable s [decreaseScope' c]
+    decreaseScope' st
+      = SymbolTable [] []
 
-increaseScope :: SymbolTable -> SymbolTable
-increaseScope (SymbolTable s [])
-  = SymbolTable s [SymbolTable [] []]
-increaseScope (SymbolTable s [c])
-  = SymbolTable s [increaseScope c]
+increaseScope :: SemanticChecker ()
+increaseScope = do
+  st <- gets symbolTable
+  locs <- gets locationData
+  put (CheckerState locs (increaseScope' st))
+  where
+    increaseScope' (SymbolTable s [])
+      = SymbolTable s [SymbolTable [] []]
+    increaseScope' (SymbolTable s [c])
+      = SymbolTable s [increaseScope' c]
+
 
 identExists :: Identifier -> SemanticChecker ()
 identExists i = do
