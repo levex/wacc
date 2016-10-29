@@ -36,7 +36,6 @@ isReturn (Ctrl (Return _))
 isReturn _
   = False
 
--- Error messages -- TODO move to separate file
-undefOp :: SemanticChecker a
-undefOp
-  = invalid SemanticError "undefined operation"
+sameLength :: [a] -> [b] -> Bool
+sameLength a b
+  = length a == length b
