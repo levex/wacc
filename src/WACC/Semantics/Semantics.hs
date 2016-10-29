@@ -99,14 +99,14 @@ checkExpr (FunCall ident args) = do
   t <- identLookup ident
   case t of
     (TFun _ params) -> checkArgs params args
-    _               -> invalid SemanticError "invalid argument"
+    _               -> invalid SemanticError $ "function " ++ show (ident) ++ " doesn't exist"
   where
     checkArgs :: [Declaration] -> [Expr] -> SemanticChecker ()
     checkArgs params args = do
       types <- mapM getType args
-      case (map snd params) == types of
-        True  -> valid
-        False -> invalid SemanticError "invalid argument"
+      case sameLength (map snd params) types of
+        True  -> zipWithM_ (equalTypes "invalid argument") (map snd params) types
+        False -> invalid SemanticError "invalid number of arguments"
 checkExpr (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
 
