@@ -144,10 +144,14 @@ checkStmt (Builtin func ex) = do
   checkExpr ex
   checkBuiltinArg func ex
   where
-    checkBuiltinArg Read (Ident _) = valid
-    checkBuiltinArg Read (ArrElem _ _) = valid
-    checkBuiltinArg Read (PairElem _ _) = valid
-    checkBuiltinArg Read e = invalid SemanticError "invalid argument"
+    checkBuiltinArg Read e = do
+      checkLhs e
+      t <- getType e
+      isIntChar t
+      where
+        isIntChar (TInt)  = valid
+        isIntChar (TChar) = valid
+        isIntChar _       = invalid SemanticError "type error"
     checkBuiltinArg Free e = do
       t <- getType e
       case t of
