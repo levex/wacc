@@ -42,6 +42,7 @@ getLiteralType (INT _)         = return TInt
 getLiteralType (BOOL _)        = return TBool
 getLiteralType (STR _)         = return TString
 getLiteralType (ARRAY (e : _)) = TArray <$> getType e
+getLiteralType (ARRAY [])      = return (TArray TArb)
 
 deconstructArrayType :: Type -> SemanticChecker Type
 deconstructArrayType (TArray t)
@@ -149,6 +150,10 @@ getTypeForId i (SymbolTable s [ch])
     res = getTypeForId i ch
 
 equalTypes :: String -> Type -> Type -> SemanticChecker ()
+equalTypes s (TArray t1) (TArray t2) = do
+  t1 <- deconstructArrayType (TArray t1)
+  t2 <- deconstructArrayType (TArray t2)
+  equalTypes s t1 t2
 equalTypes _ (TString) (TArray TChar) = valid
 equalTypes _ (TArray TChar) (TString) = valid
 equalTypes errMsg t1 t2
