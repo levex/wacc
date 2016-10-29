@@ -52,8 +52,11 @@ checkMainDoesNotReturn (_, stmts) = do
 
 checkDef :: Definition -> SemanticChecker ()
 checkDef ((ident, (TFun rT paramT)), stmt) = do
+  increaseScope
   mapM_ storeDecl paramT
+  storeDecl ("%RETURN%", rT)
   checkStmt stmt
+  decreaseScope
 
 
 checkExpr :: Expr -> SemanticChecker ()
@@ -117,14 +120,17 @@ checkStmt (Block idStmts)
 checkStmt (VarDef decl expr) = do
   checkExpr expr
   t <- getType expr
-  equalTypes "type Mismatch" (snd decl) t
+  equalTypes ("type Mismatch " ++ show(snd decl) ++ " vs " ++ show(t)) (snd decl) t
   storeDecl decl
 checkStmt (Ctrl Break)
   = valid
 checkStmt (Ctrl Continue)
   = valid
-checkStmt (Ctrl (Return e))
-  = checkExpr e
+checkStmt (Ctrl (Return e)) = do
+  checkExpr e
+  rT <- identLookup "%RETURN%"
+  t <- getType e
+  equalTypes "return type must be the same as the function type" rT t
 checkStmt (Cond e s1 s2)
   = checkExpr e >> scoped (checkStmt s1) >> scoped (checkStmt s2)
 checkStmt (Loop cond stmt) = do
