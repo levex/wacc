@@ -176,4 +176,4 @@ semanticCheck (mainF:funcs) = do
   mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF
   storeFuncs funcs
-  checkDef (mainF)
+  mapM_ checkDef (mainF:funcs)
