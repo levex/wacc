@@ -130,8 +130,11 @@ checkStmt (Ctrl (Return e)) = do
   rT <- identLookup "%RETURN%"
   t <- getType e
   equalTypes "return type must be the same as the function type" rT t
-checkStmt (Cond e s1 s2)
-  = checkExpr e >> scoped (checkStmt s1) >> scoped (checkStmt s2)
+checkStmt (Cond e s1 s2) = do
+  checkExpr e
+  t <- getType e
+  equalTypes "type error: condition must be of type bool" TBool t
+  scoped (checkStmt s1) >> scoped (checkStmt s2)
 checkStmt (Loop cond stmt) = do
   checkExpr cond
   t <- getType cond
