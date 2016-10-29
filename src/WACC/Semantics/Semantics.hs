@@ -59,6 +59,17 @@ checkDef ((ident, (TFun rT paramT)), stmt) = do
   decreaseScope
 
 
+checkLhs :: Expr -> SemanticChecker ()
+checkLhs (Ident _)
+  = valid
+checkLhs (ArrElem _ exprs)
+  = mapM_ checkExpr exprs
+checkLhs (PairElem _ _)
+  = valid
+checkLhs _
+  = invalid SyntaxError "type error"
+
+
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit lit)
   = valid
@@ -72,10 +83,7 @@ checkExpr (ArrElem ident idx) = do
   mapM_ (equalTypes "array index must be an integer" TInt) types
 checkExpr (PairElem pairElem ident) = do
   tp <- identLookup ident
-  unless (isPair tp) $ invalid SemanticError "pairElem requires a Pair"
-  where
-    isPair (TPair _ _) = True
-    isPair p           = False
+  equalTypes "type error: pairElem requires a Pair" tp (TPair TArb TArb)
 checkExpr (UnApp unop expr) = do
   checkExpr expr
   a <- getType expr
@@ -107,7 +115,7 @@ checkStmt :: Statement -> SemanticChecker ()
 checkStmt (Noop)
   = valid
 checkStmt (Block idStmts)
-  = scoped $ mapM_ checkIdStmt idStmts
+  = scoped $ mapM_ checkStmt idStmts
 checkStmt (VarDef decl expr) = do
   checkExpr expr
   t <- getType expr
@@ -145,15 +153,12 @@ checkStmt (Builtin func ex) = do
         _           -> invalid SemanticError "invalid argument"
     checkBuiltinArg Exit e = do
       t <- getType e
-      unless (isInt t) $ invalid SemanticError "invalid argument"
-      where
-        isInt (TInt) = True
-        isInt _      = False
+      equalTypes "invalid argument" TInt t
     checkBuiltinArg Print e = valid
     checkBuiltinArg PrintLn e = valid
 checkStmt (ExpStmt e)
   = checkExpr e
-checkIdStmt (IdentifiedStatement stmt i)
+checkStmt (IdentifiedStatement stmt i)
   = checkStmt stmt `catchError` rethrowWithLocation i
 
 
