@@ -78,23 +78,14 @@ checkExpr (PairElem pairElem ident) = do
     isPair p           = False
 checkExpr (UnApp unop expr) = do
   checkExpr expr
-  t1 <- unopType
-  t2 <- getType expr
-  equalTypes ("undefined unary operation, " ++ show(t1) ++ " " ++ show(t2)) t1 t2
-  where
-    unopType = (maybe undefOp $ return.fst)
-             . lookup unop $ unOpTypes
+  a <- getType expr
+  checkUnopArgs unop a
 checkExpr (BinApp binop e1 e2) = do
   checkExpr e1
   checkExpr e2
-  te1 <- getType e1
-  te2 <- getType e2
-  (t1, t2) <- opTypes
-  equalTypes ("undefined binary operation" ++ show(binop) ++ show(t1) ++ " " ++ show(te1)) t1 te1
-  equalTypes ("undefined binary operatioN" ++ show(binop) ++ show(t2) ++ " " ++ show(te2)) t2 te2
-  where
-    opTypes = (maybe undefOp tp) . lookup binop $ binAppTypes
-    tp = (\(t1,t2,_) -> return (t1,t2))
+  a1 <- getType e1
+  a2 <- getType e2
+  checkBinopArgs binop a1 a2
 checkExpr (FunCall ident args) = do
   mapM_ checkExpr args
   t <- identLookup ident

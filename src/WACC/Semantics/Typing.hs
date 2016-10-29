@@ -8,33 +8,61 @@ import           WACC.Parser.Primitives
 import           WACC.Semantics.Types
 import           WACC.Semantics.Primitives
 
-unOpTypes
-  = [ (Not, (TBool, TBool))
-    , (Neg, (TInt, TInt))
-    , (Len, (TArray TArb, TInt))
-    , (Ord, (TChar, TInt))
-    , (Chr, (TInt, TChar))
-    ]
-
 -- FIXME: investigate whether Add/Sub/Mul/Div/Mod/And/Or take TChar's too.
--- FIXME: Eq and NEq should work for other types
 -- FIXME: Assign is one weird hack, also is return type good?
-binAppTypes
-  = [ (Assign, (TArb, TArb, TBool))
-    , (Add, (TInt, TInt, TInt))
-    , (Sub, (TInt, TInt, TInt))
-    , (Mul, (TInt, TInt, TInt))
-    , (Div, (TInt, TInt, TInt))
-    , (Mod, (TInt, TInt, TInt))
-    , (And, (TBool, TBool, TBool))
-    , (Or, (TBool, TBool, TBool))
-    , (Gt, (TInt, TInt, TBool))
-    , (Gte, (TInt, TInt, TBool))
-    , (Lt, (TInt, TInt, TBool))
-    , (Lte, (TInt, TInt, TBool))
-    , (Eq, (TArb, TArb, TBool))
-    , (NEq, (TArb, TArb, TBool))
-    ]
+unopType :: UnOp -> Type
+unopType Not = TBool
+unopType Neg = TInt
+unopType Len = TInt
+unopType Ord = TInt
+unopType Chr = TChar
+
+binopType :: BinOp -> Type
+binopType Assign = TBool
+binopType Add    = TInt
+binopType Sub    = TInt
+binopType Mul    = TInt
+binopType Div    = TInt
+binopType Mod    = TInt
+binopType And    = TBool
+binopType Or     = TBool
+binopType Gt     = TBool
+binopType Gte    = TBool
+binopType Lt     = TBool
+binopType Lte    = TBool
+binopType Eq     = TBool
+binopType NEq    = TBool
+
+checkUnopArgs :: UnOp -> Type -> SemanticChecker ()
+checkUnopArgs Not TBool         = valid
+checkUnopArgs Neg TInt          = valid
+checkUnopArgs Len (TArray TArb) = valid
+checkUnopArgs Ord TChar         = valid
+checkUnopArgs Chr TInt          = valid
+
+checkBinopArgs :: BinOp -> Type -> Type -> SemanticChecker ()
+checkBinopArgs (Assign) t1 t2  = equalTypes "type error" t1 t2
+checkBinopArgs Add TInt TInt   = valid
+checkBinopArgs Sub TInt TInt   = valid
+checkBinopArgs Mul TInt TInt   = valid
+checkBinopArgs Div TInt TInt   = valid
+checkBinopArgs Mod TInt TInt   = valid
+checkBinopArgs And TBool TBool = valid
+checkBinopArgs Or TBool TBool  = valid
+checkBinopArgs Gt TInt TInt    = valid
+checkBinopArgs Gt TChar TChar  = valid
+checkBinopArgs Gt _ _          = invalid SemanticError "type error"
+checkBinopArgs Gte TInt TInt   = valid
+checkBinopArgs Gte TChar TChar = valid
+checkBinopArgs Gte _ _         = invalid SemanticError "type error"
+checkBinopArgs Lt TInt TInt    = valid
+checkBinopArgs Lt TChar TChar  = valid
+checkBinopArgs Lt _ _          = invalid SemanticError "type error"
+checkBinopArgs Lte TInt TInt   = valid
+checkBinopArgs Lte TChar TChar = valid
+checkBinopArgs Lte _ _         = invalid SemanticError "type error"
+checkBinopArgs Eq t1 t2        = equalTypes "type error" t1 t2
+checkBinopArgs NEq t1 t2       = equalTypes "type error" t1 t2
 
 getLiteralType :: Literal -> SemanticChecker Type
 getLiteralType (CHAR _)        = return TChar
@@ -66,11 +94,9 @@ getType (PairElem e id) = do
     pairElem Fst f _ = f
     pairElem Snd _ s = s
 getType (UnApp op _)
-  = maybe undefOp (return.snd) . lookup op $ unOpTypes
+  = return $ unopType op
 getType (BinApp op _ _)
-  = maybe undefOp tripleFirst . lookup op $ binAppTypes
-  where
-    tripleFirst (_,_,x) = return x
+  = return $ binopType op
 getType (FunCall id _) =
   identLookup id >>= getRetType
   where
