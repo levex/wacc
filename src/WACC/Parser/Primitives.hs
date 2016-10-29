@@ -44,9 +44,9 @@ builtins
     , ("println", PrintLn)]
 
 operations
-  = [ [ prefix  "len" (UnApp Len)
-      , prefix  "ord" (UnApp Ord)
-      , prefix  "chr" (UnApp Chr)
+  = [ [ prefix  "len " (UnApp Len)
+      , prefix  "ord " (UnApp Ord)
+      , prefix  "chr " (UnApp Chr)
       , prefix  "-"   (UnApp Neg)
       , prefix  "!"   (UnApp Not)]
     , [ binary  "*"   (BinApp Mul)    AssocLeft
