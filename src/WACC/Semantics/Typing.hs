@@ -36,9 +36,10 @@ binopType NEq    = TBool
 checkUnopArgs :: UnOp -> Type -> SemanticChecker ()
 checkUnopArgs Not TBool         = valid
 checkUnopArgs Neg TInt          = valid
-checkUnopArgs Len (TArray TArb) = valid
+checkUnopArgs Len (TArray _)    = valid
 checkUnopArgs Ord TChar         = valid
 checkUnopArgs Chr TInt          = valid
+checkUnopArgs _ _               = invalid SemanticError "type error"
 
 checkBinopArgs :: BinOp -> Type -> Type -> SemanticChecker ()
 checkBinopArgs (Assign) t1 t2  = equalTypes "type error" t1 t2
