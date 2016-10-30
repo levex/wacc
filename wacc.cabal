@@ -22,11 +22,12 @@ library
   other-modules:       WACC.Parser.Types
                      , WACC.Parser.Parser
                      , WACC.Parser.Primitives
-                     , WACC.CodeGen.EmitARM
                      , WACC.CodeGen.Types
+                     , WACC.CodeGen.EmitARM
+                     , WACC.CodeGen.InstructionGen
+                     , WACC.Semantics.Types
                      , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics
-                     , WACC.Semantics.Types
                      , WACC.Semantics.Typing
                      , WACC.Semantics.Primitives
                      , WACC.Optimizations.Types
