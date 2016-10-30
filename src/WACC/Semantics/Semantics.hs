@@ -25,7 +25,7 @@ genCodePaths stmts
     genCodePath (Loop _ body) cps
       = liftM2 (++) (genCodePath body cps) (return cps)
     genCodePath stmt cps
-      = mapM (return . ((:) stmt)) cps
+      = mapM (return . (:) stmt) cps
 
 
 checkCodePathsReturn :: Definition -> SemanticChecker ()
@@ -42,7 +42,7 @@ checkUnreachableCode :: Definition -> SemanticChecker ()
 checkUnreachableCode (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   when ((all (not . isReturnOrExit . last) codePaths)
-        || (all ((> 1) . length . filter isReturnOrExit) codePaths))
+        || all ((> 1) . length . filter isReturnOrExit) codePaths)
     $ invalid SemanticError "unreachable code after return statement"
 -- FIXME: uncomment later when structs are merged in
 --checkUnreachableCode _
@@ -57,7 +57,7 @@ checkMainDoesNotReturn (FunDef _ stmts) = do
 
 
 checkDef :: Definition -> SemanticChecker ()
-checkDef (FunDef (ident, (TFun rT paramT)) stmt) = do
+checkDef (FunDef (ident, TFun rT paramT) stmt) = do
   increaseScope
   mapM_ storeDecl paramT
   storeDecl ("%RETURN%", rT)
@@ -107,27 +107,27 @@ checkExpr (FunCall ident args) = do
   t <- identLookup ident
   case t of
     (TFun _ params) -> checkArgs params args
-    _               -> invalid SemanticError $ "function " ++ show (ident) ++ " doesn't exist"
+    _               -> invalid SemanticError $ "function " ++ show ident ++ " doesn't exist"
   where
     checkArgs :: [Declaration] -> [Expr] -> SemanticChecker ()
     checkArgs params args = do
       types <- mapM getType args
-      case sameLength (map snd params) types of
-        True  -> zipWithM_ (equalTypes "invalid argument") (map snd params) types
-        False -> invalid SemanticError "invalid number of arguments"
+      if sameLength (map snd params) types
+        then zipWithM_ (equalTypes "invalid argument") (map snd params) types
+        else invalid SemanticError "invalid number of arguments"
 checkExpr (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
 
 
 checkStmt :: Statement -> SemanticChecker ()
-checkStmt (Noop)
+checkStmt Noop
   = valid
 checkStmt (Block idStmts)
   = scoped $ mapM_ checkStmt idStmts
 checkStmt (VarDef decl expr) = do
   checkExpr expr
   t <- getType expr
-  equalTypes ("type Mismatch " ++ show(snd decl) ++ " vs " ++ show(t)) (snd decl) t
+  equalTypes ("type Mismatch " ++ show (snd decl) ++ " vs " ++ show t) (snd decl) t
   storeDecl decl
 checkStmt (Ctrl Break)
   = valid
@@ -157,8 +157,8 @@ checkStmt (Builtin func ex) = do
       t <- getType e
       isIntChar t
       where
-        isIntChar (TInt)  = valid
-        isIntChar (TChar) = valid
+        isIntChar TInt  = valid
+        isIntChar TChar = valid
         isIntChar _       = invalid SemanticError "type error"
     checkBuiltinArg Free e = do
       t <- getType e
@@ -186,8 +186,8 @@ getDecl (FunDef d _)
   = d
 
 storeFuncs :: [Definition] -> SemanticChecker ()
-storeFuncs defs
-  = mapM_ storeDecl $ map getDecl defs
+storeFuncs
+  = mapM_ (storeDecl . getDecl)
 
 
 semanticCheck :: Program -> SemanticChecker ()
