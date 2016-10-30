@@ -14,8 +14,8 @@ newtype CodeGenerator a = CodeGenerator
                 MonadState CodeGenState,
                 MonadWriter [String])
 
-runCodeGenT :: CodeGenerator a -> (a, [String])
-runCodeGenT f = runWriter (evalStateT (runCodeGen f) CodeGenState)
+runCodeGenT :: CodeGenerator a -> String
+runCodeGenT = concat . snd . runWriter . flip evalStateT CodeGenState . runCodeGen
 
 data Condition
   = CAl -- always
