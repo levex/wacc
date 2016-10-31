@@ -17,3 +17,11 @@ checkProgram (p, ld)
       return p
 
     initialState = (CheckerState ld (SymbolTable [] []))
+
+getExitCode :: CheckerError -> Int -> Int -> Int -> Int
+getExitCode (CheckerError SyntaxError _ _) ec _ _
+  = ec
+getExitCode (CheckerError SemanticError _ _) _ ec _
+  = ec
+getExitCode (CheckerError TypeError _ _) _ _ ec
+  = ec
