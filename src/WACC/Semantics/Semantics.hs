@@ -181,6 +181,7 @@ storeDecl :: Declaration -> SemanticChecker ()
 storeDecl (ident, t)
   = addSymbol (Symbol ident t)
 
+getDecl :: Definition -> Declaration
 getDecl (FunDef d _)
   = d
 
