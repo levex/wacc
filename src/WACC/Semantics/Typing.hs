@@ -64,6 +64,7 @@ checkBinopArgs Lte TChar TChar = valid
 checkBinopArgs Lte _ _         = invalid SemanticError "type error"
 checkBinopArgs Eq t1 t2        = equalTypes "type error" t1 t2
 checkBinopArgs NEq t1 t2       = equalTypes "type error" t1 t2
+checkBinopArgs _ _ _           = invalid SemanticError "type error"
 
 getLiteralType :: Literal -> SemanticChecker Type
 getLiteralType (CHAR _)        = return TChar

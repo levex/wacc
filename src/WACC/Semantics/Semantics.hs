@@ -32,7 +32,8 @@ checkCodePathsReturn :: Definition -> SemanticChecker ()
 checkCodePathsReturn (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   unless (all (any isReturnOrExit) codePaths)
-    $ invalid SemanticError "not all code paths return a value"
+--    $ invalid SemanticError "not all code paths return a value"
+    $ invalid SyntaxError "not all code paths return a value"
 -- FIXME: uncomment later when structs are merged in
 --checkCodePathsReturn _
 --  = valid
@@ -43,7 +44,8 @@ checkUnreachableCode (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   when ((all (not . isReturnOrExit . last) codePaths)
         || all ((> 1) . length . filter isReturnOrExit) codePaths)
-    $ invalid SemanticError "unreachable code after return statement"
+--    $ invalid SemanticError "unreachable code after return statement"
+    $ invalid SyntaxError "unreachable code after return statement"
 -- FIXME: uncomment later when structs are merged in
 --checkUnreachableCode _
 --  = valid
@@ -53,7 +55,8 @@ checkMainDoesNotReturn :: Definition -> SemanticChecker ()
 checkMainDoesNotReturn (FunDef _ stmts) = do
   codePaths <- genCodePaths stmts
   unless (not (any (any isReturn) codePaths))
-    $ invalid SemanticError "cannot return a value from the global scope"
+--    $ invalid SemanticError "cannot return a value from the global scope"
+    $ invalid SyntaxError "cannot return a value from the global scope"
 
 
 checkDef :: Definition -> SemanticChecker ()
