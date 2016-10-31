@@ -55,8 +55,7 @@ checkMainDoesNotReturn :: Definition -> SemanticChecker ()
 checkMainDoesNotReturn (FunDef _ stmts) = do
   codePaths <- genCodePaths stmts
   unless (not (any (any isReturn) codePaths))
---    $ invalid SemanticError "cannot return a value from the global scope"
-    $ invalid SyntaxError "cannot return a value from the global scope"
+    $ invalid SemanticError "cannot return a value from the global scope"
 
 
 checkDef :: Definition -> SemanticChecker ()
