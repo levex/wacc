@@ -88,9 +88,9 @@ emitArithmeticInstr (cond, Sub d a b)
 emitArithmeticInstr (cond, Mul d a b)
   = tell [genCond cond "mul ", intercalate ", " (map nameForReg [d, a, b])
           , "\n"]
-emitArithmeticInstr (cond, Div d a b)
-  = tell [genCond cond "udiv ", intercalate ", " (map nameForReg [d, a, b])
-          , "\n"]
+-- emitArithmeticInstr (cond, Div d a b)
+--   = tell [genCond cond "udiv ", intercalate ", " (map nameForReg [d, a, b])
+--           , "\n"]
 
 emitLMIInstr :: CondInstr -> CodeGenerator ()
 emitLMIInstr (cond, LoadMemoryImmediate rt rn off)
