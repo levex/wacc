@@ -1,9 +1,16 @@
 module WACC.CodeGen where
 
-import WACC.Parser.Types
-import WACC.CodeGen.Types
-import WACC.CodeGen.InstructionGen
+import           Control.Monad.State
+import           Control.Monad.Writer
+import           WACC.Parser.Types
+import           WACC.CodeGen.Types
+import           WACC.CodeGen.Strings
+import           WACC.CodeGen.InstructionGen
+import           WACC.CodeGen.EmitARM
 
-generateCode :: Program -> Code
-generateCode
-  = generateProgram
+generateCode :: Program -> String
+generateCode p
+  = (concat . execWriter . flip evalStateT CodeGenState . runCodeGen) $ do
+      emitLiterals p
+      instructions <- generateInstructions p
+      generateAssembly instructions

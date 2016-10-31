@@ -1,12 +1,13 @@
 module WACC.CodeGen.InstructionGen where
 
+import           Control.Monad
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
-generateFunction :: Definition -> Code
+generateFunction :: Definition -> CodeGenerator Code
 generateFunction (FunDef (ident, _) stmt)
   = undefined
 
-generateProgram :: Program -> Code
-generateProgram
-  = concatMap generateFunction
+generateInstructions :: Program -> CodeGenerator Code
+generateInstructions
+  = undefined
