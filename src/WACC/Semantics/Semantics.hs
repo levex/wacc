@@ -29,34 +29,42 @@ genCodePaths stmts
 
 
 checkCodePathsReturn :: Definition -> SemanticChecker ()
-checkCodePathsReturn ((ident, _), stmts) = do
+checkCodePathsReturn (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   unless (all (any isReturnOrExit) codePaths)
     $ invalid SemanticError "not all code paths return a value"
+-- FIXME: uncomment later when structs are merged in
+--checkCodePathsReturn _
+--  = valid
 
 
 checkUnreachableCode :: Definition -> SemanticChecker ()
-checkUnreachableCode ((ident, _), stmts) = do
+checkUnreachableCode (FunDef (ident, _) stmts) = do
   codePaths <- genCodePaths stmts
   when ((all (not . isReturnOrExit . last) codePaths)
         || (all ((> 1) . length . filter isReturnOrExit) codePaths))
     $ invalid SemanticError "unreachable code after return statement"
+-- FIXME: uncomment later when structs are merged in
+--checkUnreachableCode _
+--  = valid
 
 
 checkMainDoesNotReturn :: Definition -> SemanticChecker ()
-checkMainDoesNotReturn (_, stmts) = do
+checkMainDoesNotReturn (FunDef _ stmts) = do
   codePaths <- genCodePaths stmts
   unless (not (any (any isReturn) codePaths))
     $ invalid SemanticError "cannot return a value from the global scope"
 
 
 checkDef :: Definition -> SemanticChecker ()
-checkDef ((ident, (TFun rT paramT)), stmt) = do
+checkDef (FunDef (ident, (TFun rT paramT)) stmt) = do
   increaseScope
   mapM_ storeDecl paramT
   storeDecl ("%RETURN%", rT)
   checkStmt stmt
   decreaseScope
+checkDef _
+  = valid
 
 
 checkLhs :: Expr -> SemanticChecker ()
@@ -173,10 +181,12 @@ storeDecl :: Declaration -> SemanticChecker ()
 storeDecl (ident, t)
   = addSymbol (Symbol ident t)
 
+getDecl (FunDef d _)
+  = d
 
 storeFuncs :: [Definition] -> SemanticChecker ()
 storeFuncs defs
-  = mapM_ storeDecl $ map fst defs
+  = mapM_ storeDecl $ map getDecl defs
 
 
 semanticCheck :: Program -> SemanticChecker ()

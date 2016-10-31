@@ -109,8 +109,9 @@ data Statement
   | IdentifiedStatement Statement Int
   deriving (Eq, Show)
 
-type Definition
-  = (Declaration, Statement)
+data Definition
+  = FunDef Declaration Statement
+  deriving (Eq, Show)
 
 type Program
   = [Definition]

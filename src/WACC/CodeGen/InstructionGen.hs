@@ -4,7 +4,7 @@ import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
 generateFunction :: Definition -> Code
-generateFunction ((ident, _), stmt)
+generateFunction (FunDef (ident, _) stmt)
   = undefined
 
 generateProgram :: Program -> Code

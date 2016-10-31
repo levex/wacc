@@ -148,8 +148,8 @@ checkStmt s
   = invalid SyntaxError "invalid statement"
 
 checkDef :: Definition -> SemanticChecker ()
-checkDef (_, block)
-  = checkStmt block
+checkDef (FunDef (_, t) block)
+  = checkType t >> checkStmt block
 
 syntaxCheck :: Program -> SemanticChecker ()
 syntaxCheck

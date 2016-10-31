@@ -248,9 +248,10 @@ expStmt
 
 definition :: GenParser Char LocationData Definition
 definition
-  = try $ do
-      x <- (,) <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
-      return x
+  = funDef
+  where
+    funDef
+      = try $ FunDef <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
 
 mainDecl :: Declaration
 mainDecl
@@ -259,10 +260,10 @@ mainDecl
 program :: GenParser Char LocationData AnnotatedProgram
 program = try $ do
   keyword "begin"
-  funcs <- many definition
+  defs <- many definition
   notFollowedBy $ keyword "end"
   mainFunc <- stmtSeq
   keyword "end"
   eof
   st <- getState
-  return $ ((mainDecl, mainFunc):funcs, st)
+  return $ ((FunDef mainDecl mainFunc):defs, st)

@@ -42,7 +42,11 @@ minimizeStmt (ExpStmt e)
 minimizeStmt s
   = return s
 
+minimizeDef :: Definition -> Optimizer Definition
+minimizeDef (FunDef d stmt)
+  = FunDef <$> return d <*> minimizeStmt stmt
+
 minimizeExpressions :: Program -> Optimizer Program
-minimizeExpressions p
-  = mapM (\(d, stmt) -> (,) <$> return d <*> minimizeStmt stmt) p
+minimizeExpressions
+  = mapM minimizeDef
 
