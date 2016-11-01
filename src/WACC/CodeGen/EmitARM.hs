@@ -91,6 +91,10 @@ emitInstruction (BranchLink op1)
   = case op1 of
       Label lab -> tell ["bl ", lab, "\n"]
       Reg rt    -> tell ["blx ", nameForReg rt, "\n"]
+emitInstruction (Compare rt op1)
+  = case op1 of
+      Reg rn -> tell ["cmp ", nameForReg rt, ", ", nameForReg rn, "\n"]
+      Imm i  -> tell ["cmp ", nameForReg rt, ", #", show i, "\n"]
 emitInstruction (PureAsm ss)
   = tell ss
 
