@@ -95,6 +95,13 @@ emitInstruction (Compare rt op1)
   = case op1 of
       Reg rn -> tell ["cmp ", nameForReg rt, ", ", nameForReg rn, "\n"]
       Imm i  -> tell ["cmp ", nameForReg rt, ", #", show i, "\n"]
+emitInstruction (Store rt rn plus op2)
+  = case op2 of
+      Reg rm -> tell ["str ", nameForReg rt, ", [", nameForReg rn,
+                  if plus then " + " else " - ", nameForReg rm, "]\n"]
+      Imm 0  -> tell ["str ", nameForReg rt, ", [", nameForReg rn, "]\n"]
+      Imm i  -> tell ["str ", nameForReg rt, ", [", nameForReg rn, ", #",
+                  show i, "]\n"];
 emitInstruction (PureAsm ss)
   = tell ss
 
