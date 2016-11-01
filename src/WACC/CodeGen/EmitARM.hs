@@ -83,6 +83,14 @@ emitInstruction (Push rs)
   = tell ["push {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
 emitInstruction (Pop rs)
   = tell ["pop {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
+emitInstruction (Branch op1)
+  = case op1 of
+      Label lab -> tell ["b ", lab, "\n"]
+      Reg rt    -> tell ["bx ", nameForReg rt, "\n"]
+emitInstruction (BranchLink op1)
+  = case op1 of
+      Label lab -> tell ["bl ", lab, "\n"]
+      Reg rt    -> tell ["blx ", nameForReg rt, "\n"]
 emitInstruction (PureAsm ss)
   = tell ss
 
