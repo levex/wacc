@@ -75,6 +75,10 @@ emitInstruction (Load rt op1 plus op2)
           Reg rm -> tell ["ldr ", nameForReg rt, ", [", nameForReg rn,
                       if plus then " + " else " - ", nameForReg rm, "]\n"]
           Imm 0  -> tell ["ldr ", nameForReg rt, ", [", nameForReg rn, "]\n"]
+emitInstruction (Move rt op1)
+  = case op1 of
+      Imm i -> tell ["mov ", nameForReg rt, ", #", show i, "\n"]
+      Reg rn -> tell ["mov ", nameForReg rt, ", ", nameForReg rn, "\n"]
 emitInstruction (PureAsm ss)
   = tell ss
 
