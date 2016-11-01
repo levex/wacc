@@ -1,19 +1,35 @@
+{-# LANGUAGE RecordWildCards #-}
 module WACC.CodeGen.Strings where
 
+import           Control.Monad.State
+import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
 skip = return ()
 
+createNewLiteralId :: CodeGenerator Int
+createNewLiteralId = do
+  s@CodeGenState{..} <- get
+  put $ s { lastLiteralId = lastLiteralId + 1 }
+  return $ lastLiteralId + 1
+
 emitLiteral :: Literal -> CodeGenerator ()
-emitLiteral (STR s)
-  = skip
+emitLiteral (STR s) = do
+  id <- createNewLiteralId
+  emitStringLiteral ("__str_lit_" ++ show id) (Lit (STR s))
 
 emitLiteral (ARRAY arr)
   = skip
 
 emitLiteral _
   = skip
+
+emitStringLiteral :: Identifier -> Expr -> CodeGenerator ()
+emitStringLiteral id (Lit (STR str)) = do
+  tell [id, ":\n"]
+  tell ["  ", ".word ", show . length $ str, "\n"]
+  tell ["  ", ".asciz \"", str, "\"\n"]
 
 emitLiteralsFromExpr :: Expr -> CodeGenerator ()
 emitLiteralsFromExpr (Lit l)            = emitLiteral l
@@ -30,6 +46,7 @@ emitLiteralsFromExpr (NewPair e1 e2)    = emitLiteralsFromExpr e1 >>
 emitLiteralsFromStmt :: Statement -> CodeGenerator ()
 emitLiteralsFromStmt (Noop)                     = skip
 emitLiteralsFromStmt (Block ss)                 = mapM_ emitLiteralsFromStmt ss
+emitLiteralsFromStmt (VarDef (id, TString) str) = emitStringLiteral id str
 emitLiteralsFromStmt (VarDef _ e)               = emitLiteralsFromExpr e
 emitLiteralsFromStmt (Ctrl _)                   = skip
 emitLiteralsFromStmt (Cond e ts fs)             = emitLiteralsFromExpr e >>
@@ -46,5 +63,6 @@ emitLiteralsFromDef (FunDef _ s) = emitLiteralsFromStmt s
 --emitLiteralsFromDef _ = skip
 
 emitLiterals :: Program -> CodeGenerator ()
-emitLiterals
-  = mapM_ emitLiteralsFromDef
+emitLiterals p = do
+  tell [".section \".data\"\n"]
+  mapM_ emitLiteralsFromDef p

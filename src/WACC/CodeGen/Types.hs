@@ -7,6 +7,7 @@ import Control.Monad.Writer
 type Code = [Instruction]
 
 data CodeGenState = CodeGenState
+  { lastLiteralId :: Int }
 
 newtype CodeGenerator a = CodeGenerator
   { runCodeGen :: StateT CodeGenState (Writer [String]) a }

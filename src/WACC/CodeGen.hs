@@ -8,9 +8,12 @@ import           WACC.CodeGen.Strings
 import           WACC.CodeGen.InstructionGen
 import           WACC.CodeGen.EmitARM
 
+cgState :: CodeGenState
+cgState = CodeGenState { lastLiteralId = 0 }
+
 generateCode :: Program -> String
 generateCode p
-  = (concat . execWriter . flip evalStateT CodeGenState . runCodeGen) $ do
+  = (concat . execWriter . flip evalStateT cgState . runCodeGen) $ do
       emitLiterals p
-      instructions <- generateInstructions p
-      generateAssembly instructions
+      -- instructions <- generateInstructions p
+      -- generateAssembly instructions

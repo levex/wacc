@@ -25,6 +25,7 @@ library
                      , WACC.CodeGen.Types
                      , WACC.CodeGen.EmitARM
                      , WACC.CodeGen.InstructionGen
+                     , WACC.CodeGen.Strings
                      , WACC.Semantics.Types
                      , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics
