@@ -79,6 +79,10 @@ emitInstruction (Move rt op1)
   = case op1 of
       Imm i -> tell ["mov ", nameForReg rt, ", #", show i, "\n"]
       Reg rn -> tell ["mov ", nameForReg rt, ", ", nameForReg rn, "\n"]
+emitInstruction (Push rs)
+  = tell ["push {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
+emitInstruction (Pop rs)
+  = tell ["pop {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
 emitInstruction (PureAsm ss)
   = tell ss
 
