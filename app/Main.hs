@@ -5,7 +5,9 @@ import           System.Exit
 
 import           WACC.Parser
 import           WACC.Semantics
+import           WACC.CodeGen
 
+-- FIXME: this needs rewriting to use >>=
 main :: IO ()
 main = do
   args <- getArgs
@@ -18,7 +20,12 @@ main = do
         Left err -> (putStrLn $ show err) >> exitWith (ExitFailure 100)
         Right p  -> case checkProgram p of
           Left err -> (putStrLn $ show err) >> exitWith (compilationError err)
-          Right p  -> (putStrLn $ show p) >> exitSuccess
+          Right p  -> do
+            print p
+            putStrLn ""
+            putStrLn ""
+            putStrLn $ generateCode p
+            exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"
 
     compilationError err
