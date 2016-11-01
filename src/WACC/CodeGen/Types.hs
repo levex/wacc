@@ -3,6 +3,7 @@ module WACC.CodeGen.Types where
 
 import Control.Monad.State
 import Control.Monad.Writer
+import WACC.Parser.Types
 
 type Code = [Instruction]
 
@@ -14,6 +15,14 @@ newtype CodeGenerator a = CodeGenerator
       deriving (Functor, Applicative, Monad,
                 MonadState CodeGenState,
                 MonadWriter [String])
+
+data InstrGenState = InstrGenState { lastRegister :: Register }
+
+newtype InstructionGenerator a = InstructionGenerator
+  { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }
+      deriving (Functor, Applicative, Monad,
+                MonadState InstrGenState,
+                MonadWriter [Instruction])
 
 data Condition
   = CAl -- always
@@ -60,9 +69,15 @@ data RegType
   | Variable
   deriving (Eq, Show)
 
+data SpecialLink
+  = FunctionStart String
+  | FunctionEnd   String
+  | VariableDecl  String Type Register
+  deriving (Eq, Show)
+
 data Instruction
   = Op Operation Register Register Operand
-  | Load Register Register Bool Operand -- Rt, Rn (+/-) Rm/imm
+  | Load Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
   | Store Register Register Bool Operand
   | Move Register Operand
   | Negate Register Operand
@@ -71,6 +86,11 @@ data Instruction
   | Branch Operand
   | BranchLink Operand
   | Compare Register Operand
+  | Special SpecialLink
+  | PureAsm [String]
   deriving (Eq, Show)
 
 type CondInstr = (Condition, Instruction)
+
+skip :: CodeGenerator ()
+skip = return ()

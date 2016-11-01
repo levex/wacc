@@ -6,8 +6,6 @@ import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
-skip = return ()
-
 createNewLiteralId :: CodeGenerator Int
 createNewLiteralId = do
   s@CodeGenState{..} <- get
