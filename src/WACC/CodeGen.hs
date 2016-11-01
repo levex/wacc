@@ -5,6 +5,7 @@ import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 import           WACC.CodeGen.Strings
+import           WACC.CodeGen.Functions
 import           WACC.CodeGen.InstructionGen
 import           WACC.CodeGen.EmitARM
 
@@ -15,5 +16,7 @@ generateCode :: Program -> String
 generateCode p
   = (concat . execWriter . flip evalStateT cgState . runCodeGen) $ do
       emitLiterals p
+      tell [".section \".text\"\n"]
+      -- FIXME: intermediate language a good idea?
       -- instructions <- generateInstructions p
-      -- generateAssembly instructions
+      mapM_ emitFunction p

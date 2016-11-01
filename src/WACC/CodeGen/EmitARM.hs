@@ -57,6 +57,12 @@ armFunctionEnter = [
 armFunctionExit :: [Instruction]
 armFunctionExit = [Pop $ 15 : [4..11]] -- pc and r4-r11
 
+-- FIXME: this needs rethinking
+emitInstruction :: Instruction -> CodeGenerator ()
+emitInstruction a@(Move _ _) = emitMoveInstr (CAl, a)
+emitInstruction a@(Push _) = emitStackInstr (CAl, a)
+emitInstruction a@(Pop _) = emitStackInstr (CAl, a)
+
 nameForReg :: Register -> String
 nameForReg = fromJust . flip lookup regNames
 

@@ -27,9 +27,9 @@ emitLiteral _
 
 emitStringLiteral :: Identifier -> Expr -> CodeGenerator ()
 emitStringLiteral id (Lit (STR str)) = do
-  tell [id, ":\n"]
-  tell ["  ", ".word ", show . length $ str, "\n"]
-  tell ["  ", ".asciz \"", str, "\"\n"]
+  tell ["  ", id, ":\n"]
+  tell ["    ", ".word ", show . length $ str, "\n"]
+  tell ["    ", ".asciz \"", str, "\"\n"]
 
 emitLiteralsFromExpr :: Expr -> CodeGenerator ()
 emitLiteralsFromExpr (Lit l)            = emitLiteral l
