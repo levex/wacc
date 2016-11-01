@@ -39,17 +39,38 @@ registers :: Int -> [Register]
 registers
   = flip take $ iterate (+ 1) 0
 
+data Operand
+  = Imm Int
+  | Reg Register
+  | Label String
+  deriving (Eq, Show)
+
+data Operation
+  = Add
+  | Sub
+  | Mul
+  | Div
+  | Mod
+  | And
+  | Or
+  deriving (Eq, Show)
+
+data RegType
+  = Temporary
+  | Variable
+  deriving (Eq, Show)
+
 data Instruction
-  = Add Register Register Register
-  | Sub Register Register Register
-  | Mul Register Register Register
-  | Div Register Register Register
-  | LoadMemoryImmediate Register Register Int -- Rt, Rn, #offset
-  | LoadMemoryRegister Register Register Bool Register -- Rt, Rn (+/-) Rm
-  | Move Register Register
+  = Op Operation Register Register Operand
+  | Load Register Register Bool Operand -- Rt, Rn (+/-) Rm/imm
+  | Store Register Register Bool Operand
+  | Move Register Operand
+  | Negate Register Operand
   | Push [Register]
   | Pop [Register]
-  | Branch Register
+  | Branch Operand
+  | BranchLink Operand
+  | Compare Register Operand
   deriving (Eq, Show)
 
 type CondInstr = (Condition, Instruction)

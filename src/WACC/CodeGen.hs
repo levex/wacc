@@ -19,4 +19,4 @@ generateCode p
       tell [".section \".text\"\n"]
       -- FIXME: intermediate language a good idea?
       -- instructions <- generateInstructions p
-      mapM_ emitFunction p
+--      mapM_ emitFunction p
