@@ -16,7 +16,9 @@ newtype CodeGenerator a = CodeGenerator
                 MonadState CodeGenState,
                 MonadWriter [String])
 
-data InstrGenState = InstrGenState { lastRegister :: Register }
+data InstrGenState = InstrGenState
+  { lastRegister :: Register,
+    lastLabelId :: Integer }
 
 newtype InstructionGenerator a = InstructionGenerator
   { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }
@@ -73,6 +75,9 @@ data SpecialLink
   = FunctionStart String
   | FunctionEnd   String
   | VariableDecl  String Type Register
+  | StringLit     String String
+  | LabelDecl     String
+  | SWI           Int
   deriving (Eq, Show)
 
 data Instruction
@@ -92,5 +97,5 @@ data Instruction
 
 type CondInstr = (Condition, Instruction)
 
-skip :: CodeGenerator ()
+skip :: Monad m => m ()
 skip = return ()

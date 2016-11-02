@@ -44,4 +44,4 @@ generateFunction (FunDef (ident, _) stmt) = do
 
 generateInstructions :: Program -> [Instruction]
 generateInstructions
-  = execWriter . flip evalStateT (InstrGenState 0) . runInstrGen . mapM_ generateFunction
+  = execWriter . flip evalStateT (InstrGenState 0 0) . runInstrGen . mapM_ generateFunction
