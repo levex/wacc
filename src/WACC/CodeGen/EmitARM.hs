@@ -63,8 +63,9 @@ emitInstruction (Special _)
 emitInstruction (Load c rt op1 plus op2) = do
   tell $ [genCond c "ldr", " "]
   case op1 of
-    Imm i  -> tell [nameForReg rt, ", =", show i, "\n"]
-    Reg rn -> case op2 of
+    Imm i   -> tell [nameForReg rt, ", =", show i, "\n"]
+    Label l -> tell [nameForReg rt, ", =", l, "\n"]
+    Reg rn  -> case op2 of
       Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, " ",
                   if plus then "" else "-", nameForReg rm, "]\n"]
       Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
