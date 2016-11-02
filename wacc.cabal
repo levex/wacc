@@ -23,7 +23,6 @@ library
                      , WACC.Parser.Parser
                      , WACC.Parser.Primitives
                      , WACC.CodeGen.Types
-                     , WACC.CodeGen.Builtin
                      , WACC.CodeGen.EmitARM
                      , WACC.CodeGen.Functions
                      , WACC.CodeGen.InstructionGen

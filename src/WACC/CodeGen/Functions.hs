@@ -3,7 +3,6 @@ module WACC.CodeGen.Functions where
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
-import           WACC.CodeGen.Builtin
 import           WACC.CodeGen.EmitARM
 import           WACC.CodeGen.Types
 

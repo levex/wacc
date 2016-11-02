@@ -4,11 +4,12 @@ module WACC.CodeGen.InstructionGen where
 
 import           Data.Bool
 import           Data.Char
+import qualified Data.Map as Map
+import           Data.Maybe
 import           Control.Monad
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
-import           WACC.CodeGen.Builtin
 import           WACC.CodeGen.Types
 
 getFreeRegister :: InstructionGenerator Register
