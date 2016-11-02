@@ -54,8 +54,8 @@ generateInstrForStatement (Cond e t f) = do
   elseLabel <- generateLabel
   afterCondLabel <- generateLabel
   r1 <- getFreeRegister
-  generateInstrForCondExpr r1 e
-  tell [Branch CNe $ Label elseLabel]
+  generateInstrForExpr r1 e
+  tell [Branch CEq $ Label elseLabel]
   generateInstrForStatement t
   tell [Branch CAl $ Label afterCondLabel]
   tell [Special $ LabelDecl elseLabel]
@@ -66,8 +66,8 @@ generateInstrForStatement (Loop e b) = do
   endLabel <- generateLabel
   r1 <- getFreeRegister
   tell [Special $ LabelDecl beginLabel]
-  generateInstrForCondExpr r1 e
-  tell [Branch CNe $ Label endLabel]
+  generateInstrForExpr r1 e
+  tell [Branch CEq $ Label endLabel]
   generateInstrForStatement b
   tell [Branch CAl $ Label beginLabel]
   tell [Special $ LabelDecl endLabel]
@@ -108,10 +108,6 @@ generateAssignment (ArrElem i idxs) r
 generateAssignment (PairElem e i) r
   = skip
 
-generateInstrForCondExpr :: Register -> Expr -> InstructionGenerator ()
-generateInstrForCondExpr r e
-   = skip
-
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
 generateInstrForExpr r (Lit l)
   = generateLiteral r l
@@ -144,12 +140,12 @@ generateInstrForExpr r (BinApp op e1 e2) = do
     Mod -> tell [Op CAl ModOp r r1 (Reg r2)]
     And -> tell [Op CAl AndOp r r1 (Reg r2)]
     Or  -> tell [Op CAl OrOp r r1 (Reg r2)]
-    Gt  -> skip
-    Gte -> skip
-    Lt  -> skip
-    Lte -> skip
-    Eq  -> skip
-    NEq -> skip
+    Gt  -> tell [Compare CAl r1 (Reg r2), Move CGt r (Imm 1), Move CLe r (Imm 0)]
+    Gte -> tell [Compare CAl r1 (Reg r2), Move CGe r (Imm 1), Move CLt r (Imm 0)]
+    Lt  -> tell [Compare CAl r1 (Reg r2), Move CLt r (Imm 1), Move CGe r (Imm 0)]
+    Lte -> tell [Compare CAl r1 (Reg r2), Move CLe r (Imm 1), Move CGt r (Imm 0)]
+    Eq  -> tell [Compare CAl r1 (Reg r2), Move CEq r (Imm 1), Move CNe r (Imm 0)]
+    NEq -> tell [Compare CAl r1 (Reg r2), Move CNe r (Imm 1), Move CEq r (Imm 0)]
 generateInstrForExpr r (FunCall id expr)
   = skip
 generateInstrForExpr r (NewPair e1 e2)
