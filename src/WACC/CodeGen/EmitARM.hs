@@ -43,20 +43,6 @@ conditions = [ (CAl, "")
             ,  (CGt, "gt")
             ,  (CLe, "le") ]
 
--- FIXME: this needs moving
-armFunctionEnter :: [Instruction]
-armFunctionEnter = [
-                    Push $ 14 : [4..11],   -- save registers
-                    Move 4 (Reg 0),  -- push arguments to scratch
-                    Move 5 (Reg 1),
-                    Move 6 (Reg 2),
-                    Move 7 (Reg 3)
-                    ] -- lr and r4-r11
-
--- FIXME: this needs moving
-armFunctionExit :: [Instruction]
-armFunctionExit = [Pop $ 15 : [4..11]] -- pc and r4-r11
-
 nameForReg :: Register -> String
 nameForReg r = fromMaybe ("t_" ++ show r) $ lookup r regNames
 
@@ -65,7 +51,11 @@ genCond = flip (++) . fromJust . flip lookup conditions
 
 emitInstruction :: Instruction -> CodeGenerator ()
 emitInstruction (Special (FunctionStart label))
-  = tell [label, ": \n"]
+  = tell [label, ": \npush {lr}\n"]
+emitInstruction (Special (FunctionEnd _))
+  = tell ["pop {pc}"]
+emitInstruction (Special (SWI i))
+  = tell ["swi #", show i, "\n"]
 emitInstruction (Special _)
   = skip
 emitInstruction (Load rt op1 plus op2)
