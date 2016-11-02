@@ -1,9 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module WACC.CodeGen.Types where
 
-import Control.Monad.State
-import Control.Monad.Writer
-import WACC.Parser.Types
+import qualified Data.Map as Map
+import           Data.Map (Map)
+import           Control.Monad.State
+import           Control.Monad.Writer
+import           WACC.Parser.Types
 
 type Code = [Instruction]
 
@@ -18,7 +20,8 @@ newtype CodeGenerator a = CodeGenerator
 
 data InstrGenState = InstrGenState
   { lastRegister :: Register,
-    lastLabelId :: Integer }
+    lastLabelId :: Integer,
+    regIdsTable :: Map Identifier Register }
 
 newtype InstructionGenerator a = InstructionGenerator
   { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }
@@ -57,13 +60,13 @@ data Operand
   deriving (Eq, Show)
 
 data Operation
-  = Add
-  | Sub
-  | Mul
-  | Div
-  | Mod
-  | And
-  | Or
+  = AddOp
+  | SubOp
+  | MulOp
+  | DivOp
+  | ModOp
+  | AndOp
+  | OrOp
   deriving (Eq, Show)
 
 data RegType
@@ -81,16 +84,16 @@ data SpecialLink
   deriving (Eq, Show)
 
 data Instruction
-  = Op Operation Register Register Operand
-  | Load Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
-  | Store Register Register Bool Operand
-  | Move Register Operand
-  | Negate Register Operand
+  = Op Condition Operation Register Register Operand
+  | Load Condition Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
+  | Store Condition Register Register Bool Operand
+  | Move Condition Register Operand
+  | Negate Condition Register Operand
   | Push [Register]
   | Pop [Register]
-  | Branch Operand
-  | BranchLink Operand
-  | Compare Register Operand
+  | Branch Condition Operand
+  | BranchLink Condition Operand
+  | Compare Condition Register Operand
   | Special SpecialLink
   | PureAsm [String]
   deriving (Eq, Show)
