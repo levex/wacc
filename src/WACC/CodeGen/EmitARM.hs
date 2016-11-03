@@ -58,6 +58,11 @@ emitInstruction (Special (SWI i))
   = tell ["swi #", show i, "\n"]
 emitInstruction (Special (LabelDecl l))
   = tell [l, ":\n"]
+emitInstruction (Special (Alloc r b))
+  = mapM_ emitInstruction
+    [ Move CAl 0 (Imm b),
+      BranchLink CAl (Label "malloc"),
+      Move CAl r (Reg 0) ]
 emitInstruction (Special _)
   = skip
 emitInstruction (Load c rt op1 plus op2) = do
@@ -69,6 +74,8 @@ emitInstruction (Load c rt op1 plus op2) = do
       Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, " ",
                   if plus then "" else "-", nameForReg rm, "]\n"]
       Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
+      Imm i2 -> tell [nameForReg rt, ", [", nameForReg rn, " ",
+                                            "#", show i2, "]\n"]
 emitInstruction (Move c rt op1) = do
   tell [genCond c "mov", " "]
   case op1 of
