@@ -70,6 +70,13 @@ data Operation
   | XorOp
   deriving (Eq, Show)
 
+data ShiftType
+  = LSL
+  | LSR
+  | ASR
+  | ROR
+  deriving (Eq, Show)
+
 data SpecialLink
   = FunctionStart Identifier
   | FunctionCall  Identifier [Register]
@@ -77,7 +84,7 @@ data SpecialLink
   | StringLit     Identifier String
   | LabelDecl     Identifier
   | Alloc         Register Int
-  | Free          Register
+  | Dealloc       Register
   | SWI           Int
   | Ret           Operand
   deriving (Eq, Show)
@@ -87,6 +94,7 @@ data Instruction
   | Load Condition Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
   | Store Condition Register Register Bool Operand
   | Move Condition Register Operand
+  | Shift Condition Register Register ShiftType Int
   | Negate Condition Register Operand
   | Push [Register]
   | Pop [Register]

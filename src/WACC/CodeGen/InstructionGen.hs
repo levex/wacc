@@ -91,13 +91,20 @@ generateControl (Return e) = do
 
 -- FIXME: arg needs to be checked to be in bounds of -255 < arg < 255
 generateBuiltin :: BuiltinFunc -> Expr -> InstructionGenerator ()
-generateBuiltin f e = do
+generateBuiltin Exit e = do
   generateInstrForExpr 0 e
-  case f of
-    Exit -> do
-      tell [Move CAl 7 (Imm 1)]
-      tell [Special $ SWI 0]
-    _ -> skip
+  tell [Move CAl 7 (Imm 1)]
+  tell [Special $ SWI 0]
+generateBuiltin Free e = do
+  r <- getFreeRegister
+  generateInstrForExpr r e
+  tell [Special $ Dealloc r]
+generateBuiltin Read e
+  = skip
+generateBuiltin Print e
+  = skip
+generateBuiltin PrintLn e
+  = skip
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
@@ -107,12 +114,15 @@ generateAddressDeref :: Register -> Register -> InstructionGenerator ()
 generateAddressDeref r offsetR
   = tell [Load CAl r (Reg r) True (Reg offsetR)]
 
+generateArrayIndex :: Register -> Expr -> InstructionGenerator ()
+generateArrayIndex r e = do
+  generateInstrForExpr r e
+  tell [Op CAl AddOp r r (Imm 1), Shift CAl r r LSL 2]
+
 generateArrayDeref :: Register -> Expr -> InstructionGenerator ()
 generateArrayDeref r offset = do
   offsetR <- getFreeRegister
-  -- FIXME replace mul with BwShiftL after extensions merge
-  generateInstrForExpr offsetR
-    (BinApp Mul (BinApp Add offset (Lit (INT 1))) (Lit (INT 4)))
+  generateArrayIndex offsetR offset
   generateAddressDeref r offsetR
 
 generatePairDeref :: Register -> Identifier -> PairElement -> InstructionGenerator ()
@@ -137,8 +147,7 @@ generateAssignment (ArrElem i idxs) e = do
   r2 <- getFreeRegister
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
-  generateInstrForExpr r3
-    (BinApp Mul (BinApp Add lastIdx (Lit (INT 1))) (Lit (INT 4)))
+  generateArrayIndex r3 lastIdx
   tell [Store CAl r2 r True (Reg r3)]
 generateAssignment (PairElem p i) e = do
   r <- getFreeRegister
