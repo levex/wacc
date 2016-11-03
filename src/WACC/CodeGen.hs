@@ -15,7 +15,7 @@ cgState = CodeGenState { lastLiteralId = 0 }
 generateCode :: Program -> String
 generateCode p
   = (concat . execWriter . flip evalStateT cgState . runCodeGen) $ do
-      emitLiterals p
       let instructions = generateInstructions p
       tell [show instructions, "\n"]
+      emitLiterals instructions
       generateAssembly instructions
