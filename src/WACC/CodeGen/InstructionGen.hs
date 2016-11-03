@@ -163,8 +163,7 @@ generateInstrForExpr r (UnApp op e) = do
     Not -> tell [Op CAl XorOp r r1 (Imm 1)]
     Neg -> tell [Negate CAl r (Reg r1)]
     Len -> tell [Load CAl r (Reg r1) True (Imm 0)]
-    Ord -> skip
-    Chr -> skip
+    _   -> tell [Move CAl r (Reg r1)] -- Chr and Ord are noops in assembly
 generateInstrForExpr r (BinApp op e1 e2) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e1
