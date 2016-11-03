@@ -64,6 +64,10 @@ emitInstruction (Special (Alloc r b))
     [ Move CAl 0 (Imm b),
       BranchLink CAl (Label "malloc"),
       Move CAl r (Reg 0) ]
+emitInstruction (Special (Dealloc r))
+  = mapM_ emitInstruction
+    [ Move CAl 0 (Reg r),
+      BranchLink CAl (Label "free") ]
 emitInstruction (Special (Ret op))
   = mapM_ emitInstruction
     [ Move CAl 0 op,
