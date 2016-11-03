@@ -86,7 +86,7 @@ generateBuiltin :: BuiltinFunc -> Expr -> InstructionGenerator ()
 generateBuiltin Exit e = do
   r <- getFreeRegister
   generateInstrForExpr r e
-  tell [Special $ Exit r]
+  tell [Special $ Terminate r]
 generateBuiltin Free e = do
   r <- getFreeRegister
   generateInstrForExpr r e
