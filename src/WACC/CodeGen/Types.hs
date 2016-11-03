@@ -82,6 +82,8 @@ data SpecialLink
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
   | LabelDecl     Identifier
+  | Alloc         Register Int
+  | Free          Register
   | SWI           Int
   | Ret           Operand
   deriving (Eq, Show)

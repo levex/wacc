@@ -99,13 +99,32 @@ generateBuiltin f e = do
       tell [Special $ SWI 0]
     _ -> skip
 
+generateAddressDeref :: Register -> Expr -> InstructionGenerator ()
+generateAddressDeref r offset = do
+  offsetR <- getFreeRegister
+  -- FIXME replace mul with BwShiftL after extensions merge
+  generateInstrForExpr offsetR
+    (BinApp Mul (BinApp Add offset (Lit (INT 1))) (Lit (INT 4)))
+  tell [Load CAl r (Reg r) True (Reg offsetR)]
+
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
 generateAssignment (Ident i) e = do
   r <- getRegById i
   generateInstrForExpr r e
-generateAssignment (ArrElem i idxs) r
-  = skip
-generateAssignment (PairElem e i) r
+generateAssignment (ArrElem i idxs) e = do
+  r <- getFreeRegister
+  r1 <- getRegById i
+  tell [Move CAl r (Reg r1)]
+  let idxCount = length idxs
+  let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
+  forM_ derefIdxs $ \i -> generateAddressDeref r i
+  r2 <- getFreeRegister
+  generateInstrForExpr r2 e
+  r3 <- getFreeRegister
+  generateInstrForExpr r3
+    (BinApp Mul (BinApp Add lastIdx (Lit (INT 1))) (Lit (INT 4)))
+  tell [Store CAl r2 r True (Reg r3)]
+generateAssignment (PairElem p i) e
   = skip
 
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
@@ -114,8 +133,11 @@ generateInstrForExpr r (Lit l)
 generateInstrForExpr r (Ident id) = do
   r1 <- getRegById id
   tell [Move CAl r (Reg r1)]
-generateInstrForExpr r (ArrElem id idxs)
-  = skip
+generateInstrForExpr r (ArrElem id idxs) = do
+  r1 <- getRegById id
+  tell [Move CAl r (Reg r1)]
+  forM_ idxs $ \i -> do
+    generateAddressDeref r i
 generateInstrForExpr r (PairElem e id)
   = skip
 generateInstrForExpr r (UnApp op e) = do
@@ -152,7 +174,6 @@ generateInstrForExpr r (FunCall id args) = do
     generateInstrForExpr r1 e
     return r1
   tell [Special $ FunctionCall id regs]
-
 generateInstrForExpr r (NewPair e1 e2)
   = skip
 
@@ -166,10 +187,17 @@ generateLiteral r (BOOL b)
 generateLiteral r (STR s) = do
   l <- generateLabel
   tell [Special $ StringLit l s, Load CAl r (Label $ l) True (Imm 0)]
-generateLiteral r (ARRAY a)
-  = skip
+generateLiteral r (ARRAY exprs) = do
+  let arrLen = length exprs
+  tell [Special $ Alloc r ((arrLen + 1) * 4)]
+  r1 <- getFreeRegister
+  tell [Move CAl r1 (Imm arrLen), Store CAl r1 r True (Imm 0)]
+  forM_ (zip [1..] exprs) $ \(i, e) -> do
+    r2 <- getFreeRegister
+    generateInstrForExpr r2 e
+    tell [Store CAl r2 r1 True (Imm (i * 4))]
 generateLiteral r NULL
-  = skip
+  = tell [Move CAl r (Imm 0)]
 
 generateImplicitReturn :: Identifier -> InstructionGenerator ()
 generateImplicitReturn "main"
