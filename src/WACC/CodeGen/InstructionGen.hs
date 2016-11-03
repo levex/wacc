@@ -115,6 +115,14 @@ generateArrayDeref r offset = do
     (BinApp Mul (BinApp Add offset (Lit (INT 1))) (Lit (INT 4)))
   generateAddressDeref r offsetR
 
+generatePairDeref :: Register -> Identifier -> PairElement -> InstructionGenerator ()
+generatePairDeref r i p = do
+  r1 <- getRegById i
+  tell [Move CAl r (Reg r1)]
+  case p of
+    Fst -> generateAddressDerefImm r 0
+    Snd -> generateAddressDerefImm r 4
+
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
 generateAssignment (Ident i) e = do
   r <- getRegById i
@@ -134,11 +142,7 @@ generateAssignment (ArrElem i idxs) e = do
   tell [Store CAl r2 r True (Reg r3)]
 generateAssignment (PairElem p i) e = do
   r <- getFreeRegister
-  r1 <- getRegById i
-  tell [Move CAl r (Reg r1)]
-  case p of
-    Fst -> generateAddressDerefImm r 0
-    Snd -> generateAddressDerefImm r 4
+  generatePairDeref r i p
   r2 <- getFreeRegister
   generateInstrForExpr r2 e
   tell [Store CAl r2 r True (Imm 0)]
@@ -154,8 +158,9 @@ generateInstrForExpr r (ArrElem id idxs) = do
   tell [Move CAl r (Reg r1)]
   forM_ idxs $ \i -> do
     generateArrayDeref r i
-generateInstrForExpr r (PairElem e id)
-  = skip
+generateInstrForExpr r (PairElem p i) = do
+  generatePairDeref r i p
+  generateAddressDerefImm r 0
 generateInstrForExpr r (UnApp op e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
