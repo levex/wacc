@@ -81,14 +81,6 @@ generateControl (Return e) = do
   generateInstrForExpr r1 e
   tell [Special $ Ret (Reg r1)]
 
--- #COPY#
--- data BuiltinFunc
---   = Read
---   | Free
---   | Exit
---   | Print
---   | PrintLn
-
 -- FIXME: arg needs to be checked to be in bounds of -255 < arg < 255
 generateBuiltin :: BuiltinFunc -> Expr -> InstructionGenerator ()
 generateBuiltin Exit e = do
