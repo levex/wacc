@@ -197,17 +197,11 @@ generateInstrForExpr r (FunCall id args) = do
   tell [Special $ FunctionCall id regs]
 generateInstrForExpr r (NewPair e1 e2) = do
   tell [Special $ Alloc r 8]
-  rAddr <- getFreeRegister
   r1 <- getFreeRegister
   generateInstrForExpr r1 e1
-  tell [Special $ Alloc rAddr 4,
-        Store CAl r1 rAddr True (Imm 0),
-        Store CAl rAddr r True (Imm 0)]
-  r2 <- getFreeRegister
-  generateInstrForExpr r2 e2
-  tell [Special $ Alloc rAddr 4,
-        Store CAl r2 rAddr True (Imm 0),
-        Store CAl rAddr r True (Imm 4)]
+  tell [Store CAl r1 r True (Imm 0)]
+  generateInstrForExpr r1 e2
+  tell [Store CAl r1 r True (Imm 4)]
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
