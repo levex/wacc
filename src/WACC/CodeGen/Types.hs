@@ -70,11 +70,6 @@ data Operation
   | XorOp
   deriving (Eq, Show)
 
-data RegType
-  = Temporary
-  | Variable
-  deriving (Eq, Show)
-
 data SpecialLink
   = FunctionStart Identifier
   | FunctionCall  Identifier [Register]
