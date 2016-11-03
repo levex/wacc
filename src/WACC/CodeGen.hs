@@ -16,6 +16,8 @@ generateCode :: Program -> String
 generateCode p
   = (concat . execWriter . flip evalStateT cgState . runCodeGen) $ do
       let instructions = generateInstructions p
-      tell [show instructions, "\n"]
+      tell ["Instructions:\n\n"]
+      tell [unlines (map show instructions)]
+      tell ["\n-----------------------------\n\n"]
       emitLiterals instructions
       generateAssembly instructions
