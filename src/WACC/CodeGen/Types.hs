@@ -67,6 +67,7 @@ data Operation
   | ModOp
   | AndOp
   | OrOp
+  | XorOp
   deriving (Eq, Show)
 
 data RegType
@@ -75,12 +76,14 @@ data RegType
   deriving (Eq, Show)
 
 data SpecialLink
-  = FunctionStart String
-  | FunctionEnd   String
-  | VariableDecl  String Type Register
-  | StringLit     String String
-  | LabelDecl     String
+  = FunctionStart Identifier
+  | FunctionEnd   Identifier
+  | FunctionCall  Identifier [Register]
+  | VariableDecl  Identifier Type Register
+  | StringLit     Identifier String
+  | LabelDecl     Identifier
   | SWI           Int
+  | Ret           Operand
   deriving (Eq, Show)
 
 data Instruction

@@ -79,7 +79,7 @@ generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
-  tell [Move CAl 0 (Reg r1)]
+  tell [Special $ Ret (Reg r1)]
 
 -- #COPY#
 -- data BuiltinFunc
@@ -122,9 +122,9 @@ generateInstrForExpr r (UnApp op e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   case op of
-    Not -> skip
+    Not -> tell [Op CAl XorOp r r1 (Imm 1)]
     Neg -> tell [Negate CAl r (Reg r1)]
-    Len -> skip
+    Len -> tell [Load CAl r (Reg r1) True (Imm 0)]
     Ord -> skip
     Chr -> skip
 generateInstrForExpr r (BinApp op e1 e2) = do
@@ -146,8 +146,13 @@ generateInstrForExpr r (BinApp op e1 e2) = do
     Lte -> tell [Compare CAl r1 (Reg r2), Move CLe r (Imm 1), Move CGt r (Imm 0)]
     Eq  -> tell [Compare CAl r1 (Reg r2), Move CEq r (Imm 1), Move CNe r (Imm 0)]
     NEq -> tell [Compare CAl r1 (Reg r2), Move CNe r (Imm 1), Move CEq r (Imm 0)]
-generateInstrForExpr r (FunCall id expr)
-  = skip
+generateInstrForExpr r (FunCall id args) = do
+  regs <- forM args $ \e -> do
+    r1 <- getFreeRegister
+    generateInstrForExpr r1 e
+    return r1
+  tell [Special $ FunctionCall id regs]
+
 generateInstrForExpr r (NewPair e1 e2)
   = skip
 
@@ -168,7 +173,7 @@ generateLiteral r NULL
 
 generateImplicitReturn :: Identifier -> InstructionGenerator ()
 generateImplicitReturn "main"
-  = tell [Move CAl 0 (Imm 0)]
+  = tell [Special $ Ret (Imm 0)]
 generateImplicitReturn _
   = skip
 
