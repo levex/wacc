@@ -51,9 +51,9 @@ genCond = flip (++) . fromJust . flip lookup conditions
 
 emitInstruction :: Instruction -> CodeGenerator ()
 emitInstruction (Special (FunctionStart label))
-  = tell [label, ": \npush {lr}\n"]
-emitInstruction (Special (FunctionEnd _))
-  = tell ["pop {pc}"]
+  = mapM_ emitInstruction
+    [ Special (LabelDecl label),
+      Push [14] ]
 emitInstruction (Special (SWI i))
   = tell ["swi #", show i, "\n"]
 emitInstruction (Special (LabelDecl l))
@@ -63,6 +63,10 @@ emitInstruction (Special (Alloc r b))
     [ Move CAl 0 (Imm b),
       BranchLink CAl (Label "malloc"),
       Move CAl r (Reg 0) ]
+emitInstruction (Special (Ret op))
+  = mapM_ emitInstruction
+    [ Move CAl 0 op,
+      Pop [15] ]
 emitInstruction (Special _)
   = skip
 emitInstruction (Load c rt op1 plus op2) = do

@@ -237,7 +237,6 @@ generateFunction (FunDef (ident, _) stmt) = do
   tell [Special $ FunctionStart ident]
   generateInstrForStatement stmt
   generateImplicitReturn ident
-  tell [Special $ FunctionEnd ident]
 
 generateInstructions :: Program -> [Instruction]
 generateInstructions

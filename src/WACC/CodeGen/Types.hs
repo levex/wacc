@@ -77,7 +77,6 @@ data RegType
 
 data SpecialLink
   = FunctionStart Identifier
-  | FunctionEnd   Identifier
   | FunctionCall  Identifier [Register]
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
