@@ -99,13 +99,21 @@ generateBuiltin f e = do
       tell [Special $ SWI 0]
     _ -> skip
 
-generateAddressDeref :: Register -> Expr -> InstructionGenerator ()
-generateAddressDeref r offset = do
+generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
+generateAddressDerefImm r offset
+  = tell [Load CAl r (Reg r) True (Imm offset)]
+
+generateAddressDeref :: Register -> Register -> InstructionGenerator ()
+generateAddressDeref r offsetR
+  = tell [Load CAl r (Reg r) True (Reg offsetR)]
+
+generateArrayDeref :: Register -> Expr -> InstructionGenerator ()
+generateArrayDeref r offset = do
   offsetR <- getFreeRegister
   -- FIXME replace mul with BwShiftL after extensions merge
   generateInstrForExpr offsetR
     (BinApp Mul (BinApp Add offset (Lit (INT 1))) (Lit (INT 4)))
-  tell [Load CAl r (Reg r) True (Reg offsetR)]
+  generateAddressDeref r offsetR
 
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
 generateAssignment (Ident i) e = do
@@ -117,15 +125,23 @@ generateAssignment (ArrElem i idxs) e = do
   tell [Move CAl r (Reg r1)]
   let idxCount = length idxs
   let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
-  forM_ derefIdxs $ \i -> generateAddressDeref r i
+  forM_ derefIdxs $ \i -> generateArrayDeref r i
   r2 <- getFreeRegister
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
   generateInstrForExpr r3
     (BinApp Mul (BinApp Add lastIdx (Lit (INT 1))) (Lit (INT 4)))
   tell [Store CAl r2 r True (Reg r3)]
-generateAssignment (PairElem p i) e
-  = skip
+generateAssignment (PairElem p i) e = do
+  r <- getFreeRegister
+  r1 <- getRegById i
+  tell [Move CAl r (Reg r1)]
+  case p of
+    Fst -> generateAddressDerefImm r 0
+    Snd -> generateAddressDerefImm r 4
+  r2 <- getFreeRegister
+  generateInstrForExpr r2 e
+  tell [Store CAl r2 r True (Imm 0)]
 
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
 generateInstrForExpr r (Lit l)
@@ -137,7 +153,7 @@ generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
   tell [Move CAl r (Reg r1)]
   forM_ idxs $ \i -> do
-    generateAddressDeref r i
+    generateArrayDeref r i
 generateInstrForExpr r (PairElem e id)
   = skip
 generateInstrForExpr r (UnApp op e) = do
@@ -151,8 +167,8 @@ generateInstrForExpr r (UnApp op e) = do
     Chr -> skip
 generateInstrForExpr r (BinApp op e1 e2) = do
   r1 <- getFreeRegister
-  r2 <- getFreeRegister
   generateInstrForExpr r1 e1
+  r2 <- getFreeRegister
   generateInstrForExpr r2 e2
   case op of
     Add -> tell [Op CAl AddOp r r1 (Reg r2)]
@@ -174,8 +190,19 @@ generateInstrForExpr r (FunCall id args) = do
     generateInstrForExpr r1 e
     return r1
   tell [Special $ FunctionCall id regs]
-generateInstrForExpr r (NewPair e1 e2)
-  = skip
+generateInstrForExpr r (NewPair e1 e2) = do
+  tell [Special $ Alloc r 8]
+  rAddr <- getFreeRegister
+  r1 <- getFreeRegister
+  generateInstrForExpr r1 e1
+  tell [Special $ Alloc rAddr 4,
+        Store CAl r1 rAddr True (Imm 0),
+        Store CAl rAddr r True (Imm 0)]
+  r2 <- getFreeRegister
+  generateInstrForExpr r2 e2
+  tell [Special $ Alloc rAddr 4,
+        Store CAl r2 rAddr True (Imm 0),
+        Store CAl rAddr r True (Imm 4)]
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
