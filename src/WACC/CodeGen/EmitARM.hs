@@ -68,6 +68,10 @@ emitInstruction (Special (Dealloc r))
   = mapM_ emitInstruction
     [ Move CAl 0 (Reg r),
       BranchLink CAl (Label "free") ]
+emitInstruction (Special (Exit r))
+  = mapM_ emitInstruction
+    [ Move CAl 0 (Reg r),
+      BranchLink CAl (Label "exit") ]
 emitInstruction (Special (Ret op))
   = mapM_ emitInstruction
     [ Move CAl 0 op,

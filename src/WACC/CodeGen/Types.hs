@@ -85,6 +85,7 @@ data SpecialLink
   | LabelDecl     Identifier
   | Alloc         Register Int
   | Dealloc       Register
+  | Exit          Register
   | SWI           Int
   | Ret           Operand
   deriving (Eq, Show)

@@ -84,9 +84,9 @@ generateControl (Return e) = do
 -- FIXME: arg needs to be checked to be in bounds of -255 < arg < 255
 generateBuiltin :: BuiltinFunc -> Expr -> InstructionGenerator ()
 generateBuiltin Exit e = do
-  generateInstrForExpr 0 e
-  tell [Move CAl 7 (Imm 1)]
-  tell [Special $ SWI 0]
+  r <- getFreeRegister
+  generateInstrForExpr r e
+  tell [Special $ Exit r]
 generateBuiltin Free e = do
   r <- getFreeRegister
   generateInstrForExpr r e
