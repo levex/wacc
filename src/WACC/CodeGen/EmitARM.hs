@@ -50,8 +50,9 @@ genCond :: Condition -> String -> String
 genCond = flip (++) . fromJust . flip lookup conditions
 
 emitInstruction :: Instruction -> CodeGenerator ()
-emitInstruction (Special (FunctionStart label))
-  = mapM_ emitInstruction
+emitInstruction (Special (FunctionStart label)) = do
+  tell [".globl ", label, "\n"]
+  mapM_ emitInstruction
     [ Special (LabelDecl label),
       Push [14] ]
 emitInstruction (Special (SWI i))
