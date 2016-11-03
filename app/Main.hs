@@ -1,5 +1,6 @@
 module Main where
 
+import           System.FilePath
 import           System.Environment
 import           System.Exit
 
@@ -29,7 +30,9 @@ main = do
             putStrLn ""
             print p
             putStrLn "\n----------------------------\n"
-            putStrLn $ generateCode p
+            let code = generateCode p
+            putStrLn code
+            writeFile (replaceExtension file ".s") code
             exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"
 

@@ -1,5 +1,6 @@
 module WACC.CodeGen where
 
+import           Debug.Trace
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
@@ -16,8 +17,8 @@ generateCode :: Program -> String
 generateCode p
   = (concat . execWriter . flip evalStateT cgState . runCodeGen) $ do
       let instructions = generateInstructions p
-      tell ["Instructions:\n\n"]
-      tell [unlines (map show instructions)]
-      tell ["\n-----------------------------\n\n"]
+      traceM "Instructions:\n\n"
+      traceM (unlines (map show instructions))
+      traceM "\n-----------------------------\n\n"
       emitLiterals instructions
       generateAssembly instructions
