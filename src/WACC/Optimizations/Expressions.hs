@@ -118,8 +118,7 @@ minimizeExpr e
 
 minimizeStmt :: Statement -> Optimizer Statement
 minimizeStmt (Block stmts)
-  = Block <$> mapM (\(IdentifiedStatement s i)
-      -> IdentifiedStatement <$> minimizeStmt s <*> return i) stmts
+  = Block <$> mapM minimizeStmt stmts
 
 minimizeStmt (VarDef d e)
   = VarDef <$> return d <*> minimizeExpr e
@@ -138,6 +137,9 @@ minimizeStmt (Builtin f e)
 
 minimizeStmt (ExpStmt e)
   = ExpStmt <$> minimizeExpr e
+
+minimizeStmt (IdentifiedStatement s i)
+  = IdentifiedStatement <$> minimizeStmt s <*> return i
 
 minimizeStmt s
   = return s
