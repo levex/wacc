@@ -127,10 +127,10 @@ minimizeStmt (Ctrl (Return e))
   = Ctrl <$> (Return <$> minimizeExpr e)
 
 minimizeStmt (Cond e t f)
-  = Cond <$> minimizeExpr e <*> return t <*> return f
+  = Cond <$> minimizeExpr e <*> minimizeStmt t <*> minimizeStmt f
 
 minimizeStmt (Loop e body)
-  = Loop <$> minimizeExpr e <*> return body
+  = Loop <$> minimizeExpr e <*> minimizeStmt body
 
 minimizeStmt (Builtin f e)
   = Builtin <$> return f <*> minimizeExpr e
