@@ -3,6 +3,8 @@ module WACC.CodeGen.Types where
 
 import qualified Data.Map as Map
 import           Data.Map (Map)
+import           Data.Graph
+import           Data.Array
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
@@ -28,6 +30,20 @@ newtype InstructionGenerator a = InstructionGenerator
       deriving (Functor, Applicative, Monad,
                 MonadState InstrGenState,
                 MonadWriter [Instruction])
+
+data RegAllocState = RegAllocState
+  { interferenceGraph :: Graph,
+    instrCount :: Int,
+    liveVars :: [LiveVar] }
+
+newtype RegisterAllocator a = RegisterAllocator
+  { runRegAllocator :: State RegAllocState a }
+      deriving (Functor, Applicative, Monad,
+                MonadState RegAllocState)
+
+data LiveVar = LiveVar
+  { varID :: Int,
+    liveRange :: Int}
 
 data Condition
   = CAl -- always
