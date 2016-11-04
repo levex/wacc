@@ -43,6 +43,13 @@ conditions = [ (CAl, "")
             ,  (CGt, "gt")
             ,  (CLe, "le") ]
 
+opTable :: [(Operation, String)]
+opTable = [ (AddOp, "add")
+          , (SubOp, "sub")
+          , (OrOp , "orr")
+          , (XorOp, "eor")
+          , (AndOp, "and")]
+
 nameForReg :: Register -> String
 nameForReg r = fromMaybe ("t_" ++ show r) $ lookup r regNames
 
@@ -118,6 +125,11 @@ emitInstruction (Store c rt rn plus op2) = do
                 if plus then "" else "-", nameForReg rm, "]\n"]
     Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
     Imm i  -> tell [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
+emitInstruction (Op c op rt rn op1) = do
+  tell [genCond c (fromJust $ lookup op opTable), " "]
+  case op1 of
+    Reg rm -> tell [intercalate ", " $ map nameForReg [rt, rn, rm],"\n"]
+    Imm i  -> tell [nameForReg rt, ", ", nameForReg rn, ", #", show i,"\n"]
 emitInstruction (PureAsm ss)
   = tell ss
 
