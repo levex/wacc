@@ -61,7 +61,7 @@ emitInstruction (Special (FunctionStart label)) = do
   tell [".globl ", label, "\n"]
   mapM_ emitInstruction
     [ Special (LabelDecl label),
-      Push [14] ]
+      Push CAl [14] ]
 emitInstruction (Special (SWI i))
   = tell ["swi #", show i, "\n"]
 emitInstruction (Special (LabelDecl l))
@@ -82,7 +82,7 @@ emitInstruction (Special (Terminate r))
 emitInstruction (Special (Ret op))
   = mapM_ emitInstruction
     [ Move CAl 0 op,
-      Pop [15] ]
+      Pop CAl [15] ]
 emitInstruction (Special _)
   = skip
 emitInstruction (Load c rt op1 plus op2) = do
@@ -101,10 +101,10 @@ emitInstruction (Move c rt op1) = do
   case op1 of
     Imm i -> tell [nameForReg rt, ", #", show i, "\n"]
     Reg rn -> tell [nameForReg rt, ", ", nameForReg rn, "\n"]
-emitInstruction (Push rs)
-  = tell ["push {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
-emitInstruction (Pop rs)
-  = tell ["pop {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
+emitInstruction (Push c rs)
+  = tell [genCond c "push", " {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
+emitInstruction (Pop c rs)
+  = tell [genCond c "pop", " {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
 emitInstruction (Branch c op1)
   = case op1 of
       Label lab -> tell [genCond c "b", " ", lab, "\n"]
@@ -125,6 +125,12 @@ emitInstruction (Store c rt rn plus op2) = do
                 if plus then "" else "-", nameForReg rm, "]\n"]
     Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
     Imm i  -> tell [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
+emitInstruction (Op c DivOp rt rn op1) = do
+  emitInstruction (Push c [0, 1])
+  emitInstruction (Move c 0 (Reg rn)) -- FIXME: proper regsave and div-by-zero check
+  emitInstruction (Move c 1 op1)
+  emitInstruction (BranchLink c (Label "__aeabi_idiv"))
+  emitInstruction (Move c rt (Reg 0))
 emitInstruction (Op c op rt rn op1) = do
   tell [genCond c (fromJust $ lookup op opTable), " "]
   case op1 of

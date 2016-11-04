@@ -113,8 +113,8 @@ data Instruction
   | Move Condition Register Operand
   | Shift Condition Register Register ShiftType Int
   | Negate Condition Register Operand
-  | Push [Register]
-  | Pop [Register]
+  | Push Condition [Register]
+  | Pop Condition [Register]
   | Branch Condition Operand
   | BranchLink Condition Operand
   | Compare Condition Register Operand
