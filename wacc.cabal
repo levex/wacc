@@ -34,7 +34,7 @@ library
                      , WACC.Semantics.Primitives
                      , WACC.Optimizations.Types
                      , WACC.Optimizations.Expressions
-  build-depends:       base >= 4.7 && < 5, containers, parsec, mtl
+  build-depends:       base >= 4.7 && < 5, containers, parsec, mtl, array
   default-language:    Haskell2010
 
 executable wacc-exe
