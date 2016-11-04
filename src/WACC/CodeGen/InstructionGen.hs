@@ -196,8 +196,9 @@ generateInstrForExpr r (NewPair e1 e2) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e1
   tell [Store CAl r1 r True (Imm 0)]
-  generateInstrForExpr r1 e2
-  tell [Store CAl r1 r True (Imm 4)]
+  r2 <- getFreeRegister
+  generateInstrForExpr r2 e2
+  tell [Store CAl r2 r True (Imm 4)]
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
@@ -217,7 +218,7 @@ generateLiteral r (ARRAY exprs) = do
   forM_ (zip [1..] exprs) $ \(i, e) -> do
     r2 <- getFreeRegister
     generateInstrForExpr r2 e
-    tell [Store CAl r2 r1 True (Imm (i * 4))]
+    tell [Store CAl r2 r True (Imm (i * 4))]
 generateLiteral r NULL
   = tell [Move CAl r (Imm 0)]
 
