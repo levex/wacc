@@ -87,7 +87,7 @@ emitInstruction (Special (Ret op))
 emitInstruction (Special _)
   = skip
 emitInstruction (Load c rt op1 plus op2) = do
-  tell $ [genCond c "ldr", " "]
+  tell [genCond c "ldr", " "]
   case op1 of
     Imm i   -> tell [nameForReg rt, ", =", show i, "\n"]
     Label l -> tell [nameForReg rt, ", =", l, "\n"]
@@ -126,20 +126,18 @@ emitInstruction (Store c rt rn plus op2) = do
                 if plus then "" else "-", nameForReg rm, "]\n"]
     Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
     Imm i  -> tell [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
-emitInstruction (Op c ModOp rt rn op1) = do
-  mapM_ emitInstruction
-    [ (Push c [0, 1])
-    , (Move c 0 (Reg rn)) -- FIXME: see DivOp and unify these
-    , (Move c 1 op1)
-    , (BranchLink c (Label "__aeabi_idivmod"))
-    , (Move c rt (Reg 0))]
-emitInstruction (Op c DivOp rt rn op1) = do
-  mapM_ emitInstruction
-    [ (Push c [0, 1])
-    , (Move c 0 (Reg rn)) -- FIXME: proper regsave and div-by-zero check
-    , (Move c 1 op1)
-    , (BranchLink c (Label "__aeabi_idiv"))
-    , (Move c rt (Reg 0))]
+emitInstruction (Op c ModOp rt rn op1) = mapM_ emitInstruction
+    [ Push c [0, 1]
+    , Move c 0 (Reg rn) -- FIXME: see DivOp and unify these
+    , Move c 1 op1
+    , BranchLink c (Label "__aeabi_idivmod")
+    , Move c rt (Reg 0)]
+emitInstruction (Op c DivOp rt rn op1) = mapM_ emitInstruction
+    [ Push c [0, 1]
+    , Move c 0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
+    , Move c 1 op1
+    , BranchLink c (Label "__aeabi_idiv")
+    , Move c rt (Reg 0)]
 emitInstruction (Op c op rt rn op1) = do
   tell [genCond c (fromJust $ lookup op opTable), " "]
   case op1 of
