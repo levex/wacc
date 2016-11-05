@@ -292,10 +292,10 @@ calcLiveRange r ((Negate _ rd (Reg r1)) : func) lastSeen line
   | r == rd            = lastSeen
   | r == r1            = calcLiveRange r func line (line + 1)
   | otherwise          = calcLiveRange r func lastSeen (line + 1)
-calcLiveRange r ((Push regs) : func) lastSeen line
+calcLiveRange r ((Push _ regs) : func) lastSeen line
   | r `elem` regs      = calcLiveRange r func line (line + 1)
   | otherwise          = calcLiveRange r func lastSeen (line + 1)
-calcLiveRange r ((Pop regs) : func) lastSeen line
+calcLiveRange r ((Pop _ regs) : func) lastSeen line
   | r `elem` regs      = lastSeen
   | otherwise          = calcLiveRange r func lastSeen (line + 1)
 calcLiveRange r ((Branch _ (Reg r1)) : func) lastSeen line
@@ -332,7 +332,7 @@ addToGraph ((Store _ rd _ _ _) : func)
   = addRegToGraph rd func
 addToGraph ((Move _ rd _) : func)
   = addRegToGraph rd func
-addToGraph ((Pop regs) : func)
+addToGraph ((Pop _ regs) : func)
   = mapM_ (flip addRegToGraph func) regs
 addToGraph (instr : func)
   = buildGraph func
