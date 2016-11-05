@@ -125,6 +125,13 @@ emitInstruction (Store c rt rn plus op2) = do
                 if plus then "" else "-", nameForReg rm, "]\n"]
     Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
     Imm i  -> tell [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
+emitInstruction (Op c ModOp rt rn op1) = do
+  mapM_ emitInstruction
+    [ (Push c [0, 1])
+    , (Move c 0 (Reg rn)) -- FIXME: see DivOp and unify these
+    , (Move c 1 op1)
+    , (BranchLink c (Label "__aeabi_idivmod"))
+    , (Move c rt (Reg 0))]
 emitInstruction (Op c DivOp rt rn op1) = do
   emitInstruction (Push c [0, 1])
   emitInstruction (Move c 0 (Reg rn)) -- FIXME: proper regsave and div-by-zero check
