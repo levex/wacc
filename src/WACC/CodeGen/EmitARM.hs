@@ -133,11 +133,12 @@ emitInstruction (Op c ModOp rt rn op1) = do
     , (BranchLink c (Label "__aeabi_idivmod"))
     , (Move c rt (Reg 0))]
 emitInstruction (Op c DivOp rt rn op1) = do
-  emitInstruction (Push c [0, 1])
-  emitInstruction (Move c 0 (Reg rn)) -- FIXME: proper regsave and div-by-zero check
-  emitInstruction (Move c 1 op1)
-  emitInstruction (BranchLink c (Label "__aeabi_idiv"))
-  emitInstruction (Move c rt (Reg 0))
+  mapM_ emitInstruction
+    [ (Push c [0, 1])
+    , (Move c 0 (Reg rn)) -- FIXME: proper regsave and div-by-zero check
+    , (Move c 1 op1)
+    , (BranchLink c (Label "__aeabi_idiv"))
+    , (Move c rt (Reg 0))]
 emitInstruction (Op c op rt rn op1) = do
   tell [genCond c (fromJust $ lookup op opTable), " "]
   case op1 of
