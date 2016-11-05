@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 module WACC.CodeGen.InstructionGen where
 
@@ -152,8 +151,7 @@ generateInstrForExpr r (Ident id) = do
 generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
   tell [Move CAl r (Reg r1)]
-  forM_ idxs $ \i -> do
-    generateArrayDeref r i
+  forM_ idxs $ generateArrayDeref r
 generateInstrForExpr r (PairElem p i) = do
   r1 <- getRegById i
   tell [Move CAl r (Reg r1)]
@@ -211,7 +209,7 @@ generateLiteral r (BOOL b)
   = tell [Load CAl r (Imm $ bool 0 1 b) True (Imm 0)]
 generateLiteral r (STR s) = do
   l <- generateLabel
-  tell [Special $ StringLit l s, Load CAl r (Label $ l) True (Imm 0)]
+  tell [Special $ StringLit l s, Load CAl r (Label l) True (Imm 0)]
 generateLiteral r (ARRAY exprs) = do
   let arrLen = length exprs
   tell [Special $ Alloc r ((arrLen + 1) * 4)]
@@ -239,7 +237,7 @@ generateFunction (FunDef (ident, _) stmt) = do
 filterDeadVars :: RegisterAllocator ()
 filterDeadVars = do
   s@RegAllocState{..} <- get
-  put $ s{liveVars = filter (((>=) instrCount) . liveRange) liveVars}
+  put $ s{liveVars = filter ((instrCount >=) . liveRange) liveVars}
 
 createEdges :: Register -> [Register] -> [Edge]
 createEdges r nodes
@@ -249,7 +247,7 @@ addNodeToGraph :: Register -> RegisterAllocator ()
 addNodeToGraph r = do
   s@RegAllocState{..} <- get
   let livingVars = map (\(LiveVar r c) -> r) liveVars
-  let newEdges = (edges interferenceGraph) ++ (createEdges r livingVars)
+  let newEdges = edges interferenceGraph ++ createEdges r livingVars
   let newGraph = buildG (minimum (r : livingVars), maximum (r : livingVars)) newEdges
   put s{interferenceGraph = newGraph}
 
@@ -333,7 +331,7 @@ addToGraph ((Store _ rd _ _ _) : func)
 addToGraph ((Move _ rd _) : func)
   = addRegToGraph rd func
 addToGraph ((Pop _ regs) : func)
-  = mapM_ (flip addRegToGraph func) regs
+  = mapM_ (`addRegToGraph` func) regs
 addToGraph (instr : func)
   = buildGraph func
 
