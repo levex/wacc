@@ -92,7 +92,7 @@ emitInstruction (Load c rt op1 plus op2) = do
     Imm i   -> tell [nameForReg rt, ", =", show i, "\n"]
     Label l -> tell [nameForReg rt, ", =", l, "\n"]
     Reg rn  -> case op2 of
-      Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, " ",
+      Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, ", ",
                   if plus then "" else "-", nameForReg rm, "]\n"]
       Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
       Imm i2 -> tell [nameForReg rt, ", [", nameForReg rn, " ",
@@ -122,8 +122,8 @@ emitInstruction (Compare c rt op1) = do
 emitInstruction (Store c rt rn plus op2) = do
   tell [genCond c "str", " "]
   case op2 of
-    Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, " ",
-                if plus then "" else "-", nameForReg rm, "]\n"]
+    Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, ", ",
+                if plus then "" else "- ", nameForReg rm, "]\n"]
     Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
     Imm i  -> tell [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
 emitInstruction (Op c ModOp rt rn op1) = mapM_ emitInstruction
