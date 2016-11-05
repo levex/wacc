@@ -46,6 +46,7 @@ conditions = [ (CAl, "")
 opTable :: [(Operation, String)]
 opTable = [ (AddOp, "add")
           , (SubOp, "sub")
+          , (MulOp, "mul")
           , (OrOp , "orr")
           , (XorOp, "eor")
           , (AndOp, "and")]
