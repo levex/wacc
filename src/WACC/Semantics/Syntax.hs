@@ -156,6 +156,9 @@ checkStmt (ExpStmt (BinApp Assign lhs rhs))
 checkStmt (IdentifiedStatement s i)
   = checkStmt s `catchError` rethrowWithLocation i
 
+checkStmt (InlineAssembly _)
+  = valid
+
 checkStmt s
   = invalid SyntaxError "invalid statement"
 
