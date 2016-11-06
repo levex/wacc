@@ -111,6 +111,7 @@ data Control
 data Statement
   = Noop
   | Block [Statement]
+  | InlineAssembly [String]
   | VarDef Declaration Expr
   | Ctrl Control
   | Cond Expr Statement Statement
