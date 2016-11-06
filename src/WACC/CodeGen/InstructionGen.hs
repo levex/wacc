@@ -92,6 +92,8 @@ generateInstrForStatement (VarDef (id, t) e) = do
   saveRegId r1 id t
   generateAssignment (Ident id) e
 generateInstrForStatement (Ctrl c) = generateControl c
+generateInstrForStatement (InlineAssembly ss) =
+  tell [PureAsm ss]
 generateInstrForStatement (Cond e t f) = do
   elseLabel <- generateLabel
   afterCondLabel <- generateLabel
