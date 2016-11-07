@@ -1,0 +1,5 @@
+begin
+	extern _start ;
+
+	exit 1
+end
