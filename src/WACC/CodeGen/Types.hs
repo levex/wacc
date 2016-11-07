@@ -23,7 +23,8 @@ newtype CodeGenerator a = CodeGenerator
 data InstrGenState = InstrGenState
   { lastRegister :: Register,
     lastLabelId :: Integer,
-    regIdsTable :: Map Identifier Register }
+    regIdsTable :: Map (Identifier, Integer) Register,
+    scopeId :: Integer }
 
 newtype InstructionGenerator a = InstructionGenerator
   { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }

@@ -20,14 +20,32 @@ getFreeRegister = do
   return $ lastRegister + 1
 
 getRegById :: Identifier -> InstructionGenerator Register
-getRegById i = do
-  s@InstrGenState{..} <- get
-  return $ fromJust (Map.lookup i regIdsTable)
+getRegById i
+  = gets scopeId >>= getRegById' i
+  where
+    getRegById' :: Identifier -> Integer -> InstructionGenerator Register
+    getRegById' i sId = do
+      table <- gets regIdsTable
+      case Map.lookup (i, sId) table of
+        Just r  -> return r
+        Nothing -> getRegById' i (sId - 1)
 
 saveRegId :: Register -> Identifier -> InstructionGenerator ()
 saveRegId r i = do
   s@InstrGenState{..} <- get
-  put s{regIdsTable = Map.insert i r regIdsTable}
+  put s{regIdsTable = Map.insert (i, scopeId) r regIdsTable}
+
+increaseScope :: InstructionGenerator ()
+increaseScope
+  = modify (\s@InstrGenState{..} -> s{scopeId = scopeId + 1})
+
+decreaseScope :: InstructionGenerator ()
+decreaseScope
+  = modify (\s@InstrGenState{..} -> s{scopeId = scopeId - 1})
+
+scoped :: InstructionGenerator a -> InstructionGenerator a
+scoped p
+  = increaseScope *> p <* decreaseScope
 
 generateLabel :: InstructionGenerator String
 generateLabel = do
@@ -38,7 +56,7 @@ generateLabel = do
 generateInstrForStatement :: Statement -> InstructionGenerator ()
 generateInstrForStatement Noop = return ()
 generateInstrForStatement (IdentifiedStatement st _) = generateInstrForStatement st
-generateInstrForStatement (Block xs) = mapM_ generateInstrForStatement xs
+generateInstrForStatement (Block xs) = scoped $ mapM_ generateInstrForStatement xs
 generateInstrForStatement (Builtin f e) = generateBuiltin f e
 generateInstrForStatement (VarDef (id, t) (Lit lit)) = do
   r1 <- getFreeRegister
@@ -367,4 +385,4 @@ allocateFuncRegisters function
 
 generateInstructions :: Program -> [Instruction]
 generateInstructions
-  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 0 0 Map.empty) . runInstrGen . generateFunction
+  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 0 0 Map.empty 0) . runInstrGen . generateFunction
