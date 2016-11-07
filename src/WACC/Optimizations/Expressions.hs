@@ -107,15 +107,6 @@ minimizeExpr :: Expr -> Optimizer Expr
 minimizeExpr e
   = return $ minimize e Null
 
---  = Lit Literal
---  | Ident Identifier
---  | ArrElem Identifier [Expr]
---  | PairElem PairElement Identifier
---  | UnApp UnOp Expr
---  | BinApp BinOp Expr Expr
---  | FunCall Identifier [Expr]
---  | NewPair Expr Expr
-
 minimizeStmt :: Statement -> Optimizer Statement
 minimizeStmt (Block stmts)
   = Block <$> mapM minimizeStmt stmts
