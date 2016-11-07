@@ -24,11 +24,9 @@ getRegById i
   = gets scopeId >>= getRegById' i
   where
     getRegById' :: Identifier -> Integer -> InstructionGenerator Register
-    getRegById' i sId = do
-      table <- gets regIdsTable
-      case Map.lookup (i, sId) table of
-        Just r  -> return r
-        Nothing -> getRegById' i (sId - 1)
+    getRegById' i sId = case gets regIdsTable >>= Map.lookup (i, sId) of
+      Just r  -> return r
+      Nothing -> getRegById' i (sId - 1)
 
 saveRegId :: Register -> Identifier -> InstructionGenerator ()
 saveRegId r i = do
