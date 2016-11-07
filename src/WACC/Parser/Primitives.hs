@@ -19,6 +19,7 @@ keywords
   = [ "begin"
     , "end"
     , "begin inline"
+    , "extern"
     , "struct"
     , "is"
     , "skip"

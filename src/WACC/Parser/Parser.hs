@@ -183,7 +183,7 @@ newPair = try $ do
 stmt :: GenParser Char LocationData Statement
 stmt
   = inlineAsm <|> block <|> varDef <|> control <|> cond
-    <|> loop <|> builtin <|> noop <|> expStmt
+    <|> extern <|> loop <|> builtin <|> noop <|> expStmt
 
 idStmt :: GenParser Char LocationData Statement
 idStmt = do
@@ -199,6 +199,12 @@ stmtSeq
 noop :: GenParser Char LocationData Statement
 noop
   = try $ keyword "skip" *> return Noop
+
+extern :: GenParser Char LocationData Statement
+extern = try $ do
+  keyword "extern"
+  i <- identifier
+  return $ ExternDecl i
 
 inlineAsm :: GenParser Char LocationData Statement
 inlineAsm = try $ do
