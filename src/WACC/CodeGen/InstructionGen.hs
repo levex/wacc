@@ -17,7 +17,7 @@ getFreeRegister :: InstructionGenerator Register
 getFreeRegister = do
   s@InstrGenState{..} <- get
   put s{lastRegister = lastRegister + 1}
-  return $ lastRegister + 1
+  return lastRegister
 
 getRegById :: Identifier -> InstructionGenerator Register
 getRegById i
@@ -58,11 +58,6 @@ generateInstrForStatement Noop = return ()
 generateInstrForStatement (IdentifiedStatement st _) = generateInstrForStatement st
 generateInstrForStatement (Block xs) = scoped $ mapM_ generateInstrForStatement xs
 generateInstrForStatement (Builtin f e) = generateBuiltin f e
-generateInstrForStatement (VarDef (id, t) (Lit lit)) = do
-  r1 <- getFreeRegister
-  tell [Special $ VariableDecl id t r1]
-  saveRegId r1 id
-  generateLiteral r1 lit
 generateInstrForStatement (VarDef (id, t) e) = do
   r1 <- getFreeRegister
   tell [Special $ VariableDecl id t r1]
@@ -91,7 +86,6 @@ generateInstrForStatement (Loop e b) = do
   tell [Branch CAl $ Label beginLabel]
   tell [Special $ LabelDecl endLabel]
 generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs)) = do
-  r1 <- getFreeRegister
   generateAssignment lhs rhs
 
 generateControl :: Control -> InstructionGenerator ()
@@ -146,7 +140,7 @@ generateAssignment (ArrElem i idxs) e = do
   tell [Move CAl r (Reg r1)]
   let idxCount = length idxs
   let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
-  forM_ derefIdxs $ \i -> generateArrayDeref r i
+  forM_ derefIdxs $ generateArrayDeref r
   r2 <- getFreeRegister
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
@@ -385,4 +379,4 @@ allocateFuncRegisters function
 
 generateInstructions :: Program -> [Instruction]
 generateInstructions
-  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 0 0 Map.empty 0) . runInstrGen . generateFunction
+  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 4 0 Map.empty 0) . runInstrGen . generateFunction
