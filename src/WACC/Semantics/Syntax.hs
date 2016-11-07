@@ -159,6 +159,9 @@ checkStmt (IdentifiedStatement s i)
 checkStmt (InlineAssembly _)
   = valid
 
+checkStmt (ExternDecl _)
+  = valid
+
 checkStmt s
   = invalid SyntaxError "invalid statement"
 

@@ -131,6 +131,8 @@ checkStmt (Ctrl Continue)
   = valid
 checkStmt (InlineAssembly _)
   = valid
+checkStmt (ExternDecl d)
+  = valid
 checkStmt (Ctrl (Return e)) = do
   checkExpr e
   rT <- identLookup "%RETURN%"
