@@ -83,8 +83,8 @@ generateInstrForStatement (Loop e b) = do
   generateInstrForStatement b
   tell [Branch CAl $ Label beginLabel]
   tell [Special $ LabelDecl endLabel]
-generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs)) = do
-  generateAssignment lhs rhs
+generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs))
+  = generateAssignment lhs rhs
 
 generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
