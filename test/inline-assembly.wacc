@@ -1,0 +1,7 @@
+begin
+  begin inline
+    push {lr}
+    swi #0
+    pop {pc}
+  end
+end
