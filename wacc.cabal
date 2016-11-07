@@ -27,6 +27,7 @@ library
                      , WACC.CodeGen.Functions
                      , WACC.CodeGen.InstructionGen
                      , WACC.CodeGen.Strings
+                     , WACC.CodeGen.RegisterAllocator
                      , WACC.Semantics.Types
                      , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics
