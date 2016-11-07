@@ -11,10 +11,7 @@ checkProgram :: AnnotatedProgram -> Either CheckerError Program
 checkProgram (p, ld)
   = (evalState . runExceptT . runSemanticChecker) (runCheck p) initialState
   where
-    runCheck p = do
-      syntaxCheck p
-      semanticCheck p
-      return p
+    runCheck p = syntaxCheck p *> semanticCheck p *> pure p
 
     initialState = (CheckerState ld (SymbolTable [] []))
 
