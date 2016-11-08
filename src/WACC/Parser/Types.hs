@@ -3,6 +3,19 @@ module WACC.Parser.Types where
 import qualified Data.Map as Map
 import           Data.Map (Map)
 
+type StatementId
+  = Int
+
+data Location = Location
+  { row :: Int,
+    column :: Int }
+  deriving (Eq, Show)
+
+data LocationData = LocationData
+  { locations :: Map.Map StatementId Location,
+    count :: StatementId }
+  deriving (Eq, Show)
+
 data Literal
   = CHAR Char
   | INT Integer
@@ -10,18 +23,6 @@ data Literal
   | STR String
   | ARRAY [Expr]
   | NULL -- FIXME add TPtr
-  deriving (Eq, Show)
-
-type StatementId
-  = Int
-
-data Location
-  = Location { row :: Int, column :: Int }
-  deriving (Eq, Show)
-
-data LocationData
-  = LocationData { locations :: Map.Map StatementId Location,
-                   count :: StatementId }
   deriving (Eq, Show)
 
 -- Can't start with a number
@@ -106,7 +107,7 @@ data Statement
   | Loop Expr Statement
   | Builtin BuiltinFunc Expr
   | ExpStmt Expr
-  | IdentifiedStatement Statement Int
+  | IdentifiedStatement Statement StatementId
   deriving (Eq, Show)
 
 data Definition
