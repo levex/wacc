@@ -3,6 +3,7 @@ module WACC.CodeGen.InstructionGen where
 
 import           Data.Bool
 import           Data.Char
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import           Data.Maybe
 import           Control.Monad
@@ -52,6 +53,11 @@ generateLabel = do
   put s{lastLabelId = lastLabelId + 1}
   return $ "__label_" ++ show lastLabelId
 
+saveBuiltinId :: Identifier -> InstructionGenerator ()
+saveBuiltinId id
+  = modify (\s@InstrGenState{..} ->
+      s{usedBuiltins = Set.insert id usedBuiltins})
+
 generateInstrForStatement :: Statement -> InstructionGenerator ()
 generateInstrForStatement Noop = return ()
 generateInstrForStatement (IdentifiedStatement st _) = generateInstrForStatement st
@@ -86,6 +92,8 @@ generateInstrForStatement (Loop e b) = do
   tell [Special $ LabelDecl endLabel]
 generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs))
   = generateAssignment lhs rhs
+generateInstrForStatement (ExpStmt builtinCall@(FunCall id _))
+  = generateInstrForFunCall builtinCall >> saveBuiltinId id
 
 generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
@@ -93,7 +101,6 @@ generateControl (Return e) = do
   generateInstrForExpr r1 e
   tell [Special $ Ret (Reg r1)]
 
--- FIXME: arg needs to be checked to be in bounds of -255 < arg < 255
 generateBuiltin :: BuiltinFunc -> Expr -> InstructionGenerator ()
 generateBuiltin Exit e = do
   r <- getFreeRegister
@@ -103,12 +110,6 @@ generateBuiltin Free e = do
   r <- getFreeRegister
   generateInstrForExpr r e
   tell [Special $ Dealloc r]
-generateBuiltin Read e
-  = skip
-generateBuiltin Print e
-  = skip
-generateBuiltin PrintLn e
-  = skip
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
@@ -196,12 +197,9 @@ generateInstrForExpr r (BinApp op e1 e2) = do
     Lte -> tell [Compare CAl r1 (Reg r2), Move CLe r (Imm 1), Move CGt r (Imm 0)]
     Eq  -> tell [Compare CAl r1 (Reg r2), Move CEq r (Imm 1), Move CNe r (Imm 0)]
     NEq -> tell [Compare CAl r1 (Reg r2), Move CNe r (Imm 1), Move CEq r (Imm 0)]
-generateInstrForExpr r (FunCall id args) = do
-  regs <- forM args $ \e -> do
-    r1 <- getFreeRegister
-    generateInstrForExpr r1 e
-    return r1
-  tell [Special $ FunctionCall id regs]
+generateInstrForExpr r fc@(FunCall _ _) = do
+  generateInstrForFunCall fc
+  tell [Move CAl r (Reg 0)]
 generateInstrForExpr r (NewPair e1 e2) = do
   tell [Special $ Alloc r 8]
   r1 <- getFreeRegister
@@ -210,6 +208,14 @@ generateInstrForExpr r (NewPair e1 e2) = do
   r2 <- getFreeRegister
   generateInstrForExpr r2 e2
   tell [Store CAl r2 r True (Imm 4)]
+
+generateInstrForFunCall :: Expr -> InstructionGenerator ()
+generateInstrForFunCall (FunCall id args) = do
+  regs <- forM args $ \e -> do
+    r1 <- getFreeRegister
+    generateInstrForExpr r1 e
+    return r1
+  tell [Special $ FunctionCall id regs]
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
@@ -247,4 +253,4 @@ generateFunction (FunDef (ident, _) stmt) = do
 
 generateInstructions :: Program -> [Instruction]
 generateInstructions
-  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 4 0 Map.empty 0) . runInstrGen . generateFunction
+  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 4 0 Map.empty 0 Set.empty) . runInstrGen . generateFunction

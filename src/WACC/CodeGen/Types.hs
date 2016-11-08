@@ -1,6 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module WACC.CodeGen.Types where
 
+import qualified Data.Set as Set
+import           Data.Set (Set)
 import qualified Data.Map as Map
 import           Data.Map (Map)
 import           Data.Graph
@@ -24,7 +26,8 @@ data InstrGenState = InstrGenState
   { lastRegister :: Register,
     lastLabelId :: Integer,
     regIdsTable :: Map (Identifier, Integer) Register,
-    scopeId :: Integer }
+    scopeId :: Integer,
+    usedBuiltins :: Set Identifier }
 
 newtype InstructionGenerator a = InstructionGenerator
   { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }
