@@ -151,6 +151,6 @@ checkDef :: Definition -> SemanticChecker ()
 checkDef (FunDef (_, t) block)
   = checkType t >> checkStmt block
 
-syntaxCheck :: Program -> SemanticChecker ()
-syntaxCheck
-  = mapM_ checkDef
+syntaxCheck :: Program -> SemanticChecker Program
+syntaxCheck p
+  = mapM_ checkDef p *> return p

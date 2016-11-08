@@ -192,10 +192,11 @@ storeFuncs
   = mapM_ (storeDecl . getDecl)
 
 
-semanticCheck :: Program -> SemanticChecker ()
-semanticCheck (mainF:funcs) = do
+semanticCheck :: Program -> SemanticChecker Program
+semanticCheck p@(mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
   mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF
   storeFuncs funcs
   mapM_ checkDef (mainF:funcs)
+  return p
