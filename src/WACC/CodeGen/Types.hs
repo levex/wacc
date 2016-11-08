@@ -37,6 +37,7 @@ newtype InstructionGenerator a = InstructionGenerator
 
 data RegAllocState = RegAllocState
   { interferenceGraph :: Graph,
+    colorMap :: Map Register Color,
     instrCount :: Int,
     liveVars :: [LiveVar] }
 
@@ -48,6 +49,8 @@ newtype RegisterAllocator a = RegisterAllocator
 data LiveVar = LiveVar
   { varID :: Int,
     liveRange :: Int}
+
+type Color = Int
 
 data Condition
   = CAl -- always
