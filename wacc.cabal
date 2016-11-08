@@ -26,6 +26,7 @@ library
                      , WACC.CodeGen.EmitARM
                      , WACC.CodeGen.Functions
                      , WACC.CodeGen.InstructionGen
+                     , WACC.CodeGen.Builtins
                      , WACC.CodeGen.Strings
                      , WACC.CodeGen.RegisterAllocator
                      , WACC.Semantics.Types
