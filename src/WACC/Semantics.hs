@@ -10,10 +10,9 @@ import           WACC.Semantics.Simplify
 
 checkProgram :: AnnotatedProgram -> Either CheckerError Program
 checkProgram (p, ld)
-  = (evalState . runExceptT . runSemanticChecker) (runCheck p) initialState
+  = (evalState . runExceptT . runSemanticChecker) runCheck initialState
   where
-    runCheck p = syntaxCheck p >>= semanticCheck >>= simplify
-
+    runCheck = syntaxCheck p >>= semanticCheck >>= simplify
     initialState = (CheckerState ld (SymbolTable [] []))
 
 getExitCode :: CheckerError -> Int -> Int -> Int -> Int
