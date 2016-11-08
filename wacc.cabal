@@ -31,6 +31,7 @@ library
                      , WACC.Semantics.Types
                      , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics
+                     , WACC.Semantics.Simplify
                      , WACC.Semantics.Typing
                      , WACC.Semantics.Primitives
                      , WACC.Optimizations.Types

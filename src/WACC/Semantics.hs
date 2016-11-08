@@ -6,12 +6,13 @@ import           WACC.Parser.Types
 import           WACC.Semantics.Types
 import           WACC.Semantics.Syntax
 import           WACC.Semantics.Semantics
+import           WACC.Semantics.Simplify
 
 checkProgram :: AnnotatedProgram -> Either CheckerError Program
 checkProgram (p, ld)
   = (evalState . runExceptT . runSemanticChecker) (runCheck p) initialState
   where
-    runCheck p = syntaxCheck p *> semanticCheck p *> pure p
+    runCheck p = syntaxCheck p >>= semanticCheck >>= simplify
 
     initialState = (CheckerState ld (SymbolTable [] []))
 
