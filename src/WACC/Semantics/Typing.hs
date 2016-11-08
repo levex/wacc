@@ -153,7 +153,7 @@ increaseScope = do
     increaseScope' (SymbolTable s [c])
       = SymbolTable s [increaseScope' c]
 
-scoped :: SemanticChecker () -> SemanticChecker ()
+scoped :: SemanticChecker a -> SemanticChecker a
 scoped stmt
   = increaseScope *> stmt <* decreaseScope
 
