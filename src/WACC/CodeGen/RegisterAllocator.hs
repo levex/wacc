@@ -3,6 +3,9 @@ module WACC.CodeGen.RegisterAllocator where
 
 import           Data.Graph
 import           Data.Array
+import           Data.Tree
+import           Data.List
+import qualified Data.Map as Map
 import           Control.Monad
 import           Control.Monad.State
 import           Control.Monad.Writer
@@ -117,24 +120,74 @@ buildGraph (instr : func) = do
   put $ s {instrCount = instrCount + 1}
   buildGraph func
 
-colorGraph :: RegisterAllocator ()
-colorGraph
-  = return ()
+setNodeColor :: Register -> Color -> RegisterAllocator ()
+setNodeColor node c
+  = modify (\s@RegAllocState{..} -> s{colorMap = Map.update (\_ -> Just c) node colorMap})
 
-allocate :: [Instruction] -> RegisterAllocator [Instruction]
-allocate function
+getNodeColor :: Register -> RegisterAllocator Color
+getNodeColor node
+  = gets colorMap >>= (return . (Map.! node))
+
+getUsedColors :: [Register] -> RegisterAllocator [Color]
+getUsedColors regs
+  = mapM getNodeColor regs >>= (\x -> return $ nub x)
+
+getMinColor :: [Register] -> RegisterAllocator Color
+getMinColor regs
+  = getUsedColors regs >>= (pure . minimum . (\uc -> [1..10] \\ uc))
+
+colorRegs :: [Register] -> RegisterAllocator Bool
+colorRegs regs
+  = mapM checkAndColorNode regs >>= (return . (all id))
+
+checkAndColorNode :: Register -> RegisterAllocator Bool
+checkAndColorNode r = do
+  color <- getNodeColor r
+  case color of
+    -1 -> colorNode r
+    _  -> return True
+
+colorNode :: Register -> RegisterAllocator Bool
+colorNode r = do
+  graph <- gets interferenceGraph
+  minColor <- getMinColor $ graph ! r
+  case minColor of
+    -1 -> return False
+    _  -> colorRegs $ graph ! r
+
+resetGraph :: RegisterAllocator ()
+resetGraph
+  = modify (\_ -> initRegAllocState)
+
+spillCode :: [Instruction] -> RegisterAllocator [Instruction]
+spillCode function
   = return []
+
+colorGraph :: RegisterAllocator Bool
+colorGraph = do
+  graph <- gets interferenceGraph
+  let startRegs = map (head.flatten) $ components graph
+  colored <- mapM checkAndColorNode startRegs
+  return $ all id colored
+
+allocate :: [Instruction] -> Bool -> RegisterAllocator [Instruction]
+allocate function True
+  = return []
+allocate function False = do
+  newFunc <- spillCode function
+  resetGraph
+  allocateRegisters newFunc
 
 allocateRegisters :: [Instruction] -> RegisterAllocator [Instruction]
 allocateRegisters function = do
   buildGraph function
-  colorGraph
-  allocate function
+  success <- colorGraph
+  allocate function success
   return function -- temporary
 
 initRegAllocState :: RegAllocState
 initRegAllocState
-  = RegAllocState (array (0, -1) []) 0 []
+  = RegAllocState (array (0, -1) []) Map.empty 0 []
 
 allocateFuncRegisters :: [Instruction] -> [Instruction]
 allocateFuncRegisters function
