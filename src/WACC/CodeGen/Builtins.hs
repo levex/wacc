@@ -1,5 +1,6 @@
 module WACC.CodeGen.Builtins where
 
+import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
@@ -17,8 +18,8 @@ generateBuiltinCall "__builtin_Print_TChar" [e] =
 generateBuiltinCall "__builtin_Print_TInt" [e] =
   tell [ Push       CAl [14]
        , Move       CAl 1 (Reg 0)
-       , Load       CAl 0 (Label "__builtin_fmt_int")
-       , Op AddOp   CAl 0 0 (Imm 4)
+       , Load       CAl 0 (Label "__builtin_fmt_int") True (Imm 0)
+       , Op         CAl AddOp 0 0 (Imm 4)
        , BranchLink CAl (Label "printf")
        , Move       CAl 0 (Imm 0)
        , BranchLink CAl (Label "fflush")
@@ -30,9 +31,9 @@ generateBuiltinCall "__builtin_Print_TInt" [e] =
 generateBuiltinCall "__builtin_Print_TBool" [e] =
   tell [ Push       CAl [14]
        , Compare    CAl 0 (Imm 0)
-       , Load       CNe 0 (Label "__builtin_str_true")
-       , Load       CEq 0 (Label "__builtin_str_false")
-       , Op AddOp   CAl 0 0 (Imm 4)
+       , Load       CNe 0 (Label "__builtin_str_true") True (Imm 0)
+       , Load       CEq 0 (Label "__builtin_str_false") True (Imm 0)
+       , Op         CAl AddOp 0 0 (Imm 4)
        , BranchLink CAl (Label "printf")
        , Move       CAl 0 (Imm 0)
        , BranchLink CAl (Label "fflush")
@@ -42,11 +43,10 @@ generateBuiltinCall "__builtin_Print_TBool" [e] =
 -- __builtin_fmt_string = "%.*s\0"
 generateBuiltinCall "__builtin_Print_TString" [e] =
   tell [ Push       CAl [14]
-       , Load       CAl 1 (Reg 0)
-       , Op AddOp   CAl 2 0 (Imm 4)
-       , Load       CAl 0 (Label "__builtin_fmt_string")
-       , Op AddOp   CAl 0 0 (Imm 4)
-       , Load       CAl 0 (Label "__builtin_fmt_string")
+       , Load       CAl 1 (Reg 0) True (Imm 0)
+       , Op         CAl AddOp 2 0 (Imm 4)
+       , Load       CAl 0 (Label "__builtin_fmt_string") True (Imm 0)
+       , Op         CAl AddOp 0 0 (Imm 4)
        , BranchLink CAl (Label "printf")
        , Move       CAl 0 (Imm 0)
        , BranchLink CAl (Label "fflush")
