@@ -6,13 +6,30 @@ import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
-emitStringLiteral :: Instruction -> CodeGenerator ()
-emitStringLiteral (Special (StringLit id str)) = do
+emitString :: Identifier -> String -> CodeGenerator ()
+emitString id str = do
   tell ["  ", id, ":\n"]
   tell ["    ", ".word ", show . length $ str, "\n"]
   tell ["    ", ".asciz \"", str, "\"\n"]
+
+emitStringLiteral :: Instruction -> CodeGenerator ()
+emitStringLiteral (Special (StringLit id str))
+  = emitString id str
 emitStringLiteral _
   = skip
 
 emitLiterals :: Code -> CodeGenerator ()
 emitLiterals = mapM_ emitStringLiteral
+
+emitBuiltinString :: Instruction -> CodeGenerator ()
+emitBuiltinString (Load _ _ (Label "__builtin_fmt_int") _ _)
+  = emitString "__builtint_fmt_int" "%d"
+emitBuiltinString (Load _ _ (Label "__builtin_fmt_string") _ _)
+  = emitString "__builtint_fmt_string" "%.*s\0"
+emitBuiltinString (Load _ _ (Label "__builtin_str_true") _ _)
+  = emitString "__builtin_str_true" "true"
+emitBuiltinString (Load _ _ (Label "__builtin_str_false") _ _)
+  = emitString "__builtin_str_false" "false"
+
+emitBuiltinStrings :: Code -> CodeGenerator ()
+emitBuiltinStrings = mapM_ emitBuiltinString

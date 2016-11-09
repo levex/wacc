@@ -22,5 +22,6 @@ generateCode p
       traceM "\n-----------------------------\n\n"
       emitSection ".data"
       emitLiterals instructions
+      emitBuiltinStrings instructions
       emitSection ".text"
       generateAssembly instructions
