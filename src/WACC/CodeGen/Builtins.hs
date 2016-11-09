@@ -4,12 +4,26 @@ import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
+-- __builtin_fmt_read_char = " %c\0"
 generateBuiltinCall :: Identifier -> [Expr] -> InstructionGenerator ()
-generateBuiltinCall "__builtin_Read_TChar" [e]
-  = return ()
+generateBuiltinCall "__builtin_Read_TChar" [e] = 
+  tell [ Push       CAl [14]
+       , Move       CAl 1 (Reg 0)
+       , Load       CAl 0 (Label "__builtin_fmt_read_char") True (Imm 0)
+       , Op         CAl AddOp 0 0 (Imm 4)
+       , BranchLink CAl (Label "scanf")
+       , Pop        CAl [15]
+       ]
 
-generateBuiltinCall "__builtin_Read_TInt" [e]
-  = return ()
+-- __builtin_fmt_read_int = " %d\0"
+generateBuiltinCall "__builtin_Read_TInt" [e] =
+  tell [ Push       CAl [14]
+       , Move       CAl 1 (Reg 0)
+       , Load       CAl 0 (Label "__builtin_fmt_read_int") True (Imm 0)
+       , Op         CAl AddOp 0 0 (Imm 4)
+       , BranchLink CAl (Label "scanf")
+       , Pop        CAl [15]
+       ]
 
 generateBuiltinCall "__builtin_Print_TChar" [e] =
   tell [Branch CAl (Label "putchar")]

@@ -21,15 +21,26 @@ emitStringLiteral _
 emitLiterals :: Code -> CodeGenerator ()
 emitLiterals = mapM_ emitStringLiteral
 
+
 emitBuiltinString :: Instruction -> CodeGenerator ()
 emitBuiltinString (Load _ _ (Label "__builtin_fmt_int") _ _)
   = emitString "__builtint_fmt_int" "%d"
+
 emitBuiltinString (Load _ _ (Label "__builtin_fmt_string") _ _)
   = emitString "__builtint_fmt_string" "%.*s\0"
+
 emitBuiltinString (Load _ _ (Label "__builtin_str_true") _ _)
   = emitString "__builtin_str_true" "true"
+
 emitBuiltinString (Load _ _ (Label "__builtin_str_false") _ _)
   = emitString "__builtin_str_false" "false"
+
+emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_char") _ _)
+  = emitString "__builtin_fmt_read_char" " %c\0"
+
+emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_int") _ _)
+  = emitString "__builtin_fmt_read_int" " %d\0"
+
 
 emitBuiltinStrings :: Code -> CodeGenerator ()
 emitBuiltinStrings = mapM_ emitBuiltinString
