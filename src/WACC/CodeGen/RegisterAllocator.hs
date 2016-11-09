@@ -147,21 +147,69 @@ checkAndColorNode r = do
     -1 -> colorNode r
     _  -> return True
 
+markSpillingReg :: Register -> RegisterAllocator Bool
+markSpillingReg r = do
+  setNodeColor r (-2)
+  return False
+
 colorNode :: Register -> RegisterAllocator Bool
 colorNode r = do
   graph <- gets interferenceGraph
   minColor <- getMinColor $ graph ! r
   case minColor of
-    -1 -> return False
-    _  -> colorRegs $ graph ! r
+    -1 -> markSpillingReg r
+    _  -> setNodeColor r minColor >> colorCurrent r minColor
+  where
+    colorCurrent :: Register -> Int -> RegisterAllocator Bool
+    colorCurrent r c = do
+      graph <- gets interferenceGraph
+      setNodeColor r c
+      colorRegs $ graph ! r
 
 resetGraph :: RegisterAllocator ()
 resetGraph
   = modify (\_ -> initRegAllocState)
 
+getUnallocReg :: [(Register, Color)] -> Register
+getUnallocReg (x:xs)
+  | snd x == -2 = fst x
+  | otherwise   = getUnallocReg xs
+
+targetsRegister :: Instruction -> Register -> Bool
+targetsRegister (Op _ _ rd _ _) r
+  = r == rd
+targetsRegister (Load _ rd _ _ _) r
+  = r == rd
+targetsRegister (Store _ rd _ _ _) r
+  = r == rd
+targetsRegister (Move _ rd _) r
+  = r == rd
+targetsRegister (Pop _ regs) r
+  = r `elem` regs
+targetsRegister instr r
+  = False
+
+spill :: [Instruction] -> Register -> Int -> RegisterAllocator [Instruction]
+spill (inst : func) regToSkip line
+  | not $ targetsRegister inst regToSkip = notFound (inst : func) regToSkip line
+  | otherwise                            = spillThis (inst : func) regToSkip line
+  where
+    notFound :: [Instruction] -> Register -> Int -> RegisterAllocator [Instruction]
+    notFound (inst : func) regToSkip line = do
+      spilledCode <- spill func regToSkip (line + 1)
+      return (inst : spilledCode)
+spill [] _ _ = pure []
+
+spillThis :: [Instruction] -> Register -> Int -> RegisterAllocator [Instruction]
+spillThis (instr : func) regToSpill line = do
+  return []
+
 spillCode :: [Instruction] -> RegisterAllocator [Instruction]
-spillCode function
-  = return []
+spillCode function = do
+  graph <- gets interferenceGraph
+  colMap <- gets colorMap
+  let regToSpill = getUnallocReg $ Map.assocs colMap
+  spill function regToSpill 0
 
 colorGraph :: RegisterAllocator Bool
 colorGraph = do
