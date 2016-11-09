@@ -41,6 +41,9 @@ emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_char") _ _)
 emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_int") _ _)
   = emitString "__builtin_fmt_read_int" " %d\0"
 
+emitBuiltinString _
+  = skip
+
 
 emitBuiltinStrings :: Code -> CodeGenerator ()
 emitBuiltinStrings = mapM_ emitBuiltinString
