@@ -146,7 +146,9 @@ emitInstruction (Op c op rt rn op1) = do
 emitInstruction (PureAsm ss)
   = tell ss
 
+emitSection :: String -> CodeGenerator ()
+emitSection section
+  = tell [".section \"", section, "\"\n"]
+
 generateAssembly :: [Instruction] -> CodeGenerator ()
-generateAssembly is = do
-  tell [".section \".text\"\n"]
-  mapM_ emitInstruction is
+generateAssembly = mapM_ emitInstruction

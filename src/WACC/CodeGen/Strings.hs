@@ -15,6 +15,4 @@ emitStringLiteral _
   = skip
 
 emitLiterals :: Code -> CodeGenerator ()
-emitLiterals p = do
-  tell [".section \".data\"\n"]
-  mapM_ emitStringLiteral p
+emitLiterals = mapM_ emitStringLiteral

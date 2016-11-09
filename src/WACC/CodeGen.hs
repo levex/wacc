@@ -20,5 +20,7 @@ generateCode p
       traceM "Instructions:\n\n"
       traceM (unlines (map show instructions))
       traceM "\n-----------------------------\n\n"
+      emitSection ".data"
       emitLiterals instructions
+      emitSection ".text"
       generateAssembly instructions
