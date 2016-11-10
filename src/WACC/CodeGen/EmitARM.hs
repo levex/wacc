@@ -1,5 +1,6 @@
 module WACC.CodeGen.EmitARM where
 
+import Data.Char
 import Data.List
 import Data.Maybe
 import Control.Monad.Writer
@@ -105,6 +106,9 @@ emitInstruction (Move c rt op1) = do
   case op1 of
     Imm i -> tell [nameForReg rt, ", #", show i, "\n"]
     Reg rn -> tell [nameForReg rt, ", ", nameForReg rn, "\n"]
+emitInstruction (Shift c rt rn st i) = do
+  tell [genCond c (map toLower (show st)), " "]
+  tell [nameForReg rt, ", ", nameForReg rn, ", #", show i, "\n"]
 emitInstruction (Push c rs)
   = tell [genCond c "push", " {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
 emitInstruction (Pop c rs)
