@@ -84,6 +84,9 @@ emitInstruction (Special (Ret op))
   = mapM_ emitInstruction
     [ Move CAl 0 op,
       Pop CAl [15] ]
+emitInstruction (Special (FunctionCall id regs))
+  = mapM_ emitInstruction
+    [ BranchLink CAl (Label id) ]
 emitInstruction (Special _)
   = skip
 emitInstruction (Load c rt op1 plus op2) = do

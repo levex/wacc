@@ -20,6 +20,7 @@ newtype CodeGenerator a = CodeGenerator
   { runCodeGen :: StateT CodeGenState (Writer [String]) a }
       deriving (Functor, Applicative, Monad,
                 MonadState CodeGenState,
+                MonadFix,
                 MonadWriter [String])
 
 data InstrGenState = InstrGenState
