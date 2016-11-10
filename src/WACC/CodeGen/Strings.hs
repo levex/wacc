@@ -41,6 +41,9 @@ emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_char") _ _)
 emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_int") _ _)
   = emitString "__builtin_fmt_read_int" " %d\0"
 
+emitBuiltinString (Load _ _ (Label "__builtin_str_newline") _ _)
+  = emitString "__builtin_str_newline" "\0"
+
 emitBuiltinString _
   = skip
 

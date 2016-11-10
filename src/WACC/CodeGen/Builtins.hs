@@ -94,6 +94,11 @@ generateBuiltinCall "__builtin_Print_TRef" _ =
 
 generateBuiltinCall "__builtin_PrintLn" _ =
        [ Special (FunctionStart "__builtin_PrintLn")
+       , Load       CAl 0 (Label "__builtin_str_newline") True (Imm 0)
+       , Op         CAl AddOp 0 0 (Imm 4)
+       , BranchLink CAl (Label "puts")
+       , Move       CAl 0 (Imm 0)
+       , BranchLink CAl (Label "fflush")
        , Pop        CAl [15]
        ]
 
