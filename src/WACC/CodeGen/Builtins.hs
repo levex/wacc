@@ -27,7 +27,6 @@ generateBuiltinInstructions = concatMap emitBuiltinFunction
 generateBuiltinCall :: Identifier -> [Expr] -> [Instruction]
 generateBuiltinCall "__builtin_Read_TChar" _ = 
        [ Special (FunctionStart "__builtin_Read_TChar")
-       , Push       CAl [14]
        , Move       CAl 1 (Reg 0)
        , Load       CAl 0 (Label "__builtin_fmt_read_char") True (Imm 0)
        , Op         CAl AddOp 0 0 (Imm 4)
@@ -38,7 +37,6 @@ generateBuiltinCall "__builtin_Read_TChar" _ =
 -- __builtin_fmt_read_int = " %d\0"
 generateBuiltinCall "__builtin_Read_TInt" _ =
        [ Special (FunctionStart "__builtin_Read_TInt")
-       , Push       CAl [14]
        , Move       CAl 1 (Reg 0)
        , Load       CAl 0 (Label "__builtin_fmt_read_int") True (Imm 0)
        , Op         CAl AddOp 0 0 (Imm 4)
@@ -53,7 +51,6 @@ generateBuiltinCall "__builtin_Print_TChar" _ =
 -- __builtin_fmt_int = "%d\n"
 generateBuiltinCall "__builtin_Print_TInt" _ =
        [ Special (FunctionStart "__builtin_Print_TInt")
-       , Push       CAl [14]
        , Move       CAl 1 (Reg 0)
        , Load       CAl 0 (Label "__builtin_fmt_int") True (Imm 0)
        , Op         CAl AddOp 0 0 (Imm 4)
@@ -67,7 +64,6 @@ generateBuiltinCall "__builtin_Print_TInt" _ =
 -- __builtin_str_true = "false"
 generateBuiltinCall "__builtin_Print_TBool" _ =
        [ Special (FunctionStart "__builtin_Print_TBool")
-       , Push       CAl [14]
        , Compare    CAl 0 (Imm 0)
        , Load       CNe 0 (Label "__builtin_str_true") True (Imm 0)
        , Load       CEq 0 (Label "__builtin_str_false") True (Imm 0)
@@ -81,7 +77,6 @@ generateBuiltinCall "__builtin_Print_TBool" _ =
 -- __builtin_fmt_string = "%.*s\0"
 generateBuiltinCall "__builtin_Print_TString" _ =
        [ Special (FunctionStart "__builtin_Print_TString")
-       , Push       CAl [14]
        , Load       CAl 1 (Reg 0) True (Imm 0)
        , Op         CAl AddOp 2 0 (Imm 4)
        , Load       CAl 0 (Label "__builtin_fmt_string") True (Imm 0)
