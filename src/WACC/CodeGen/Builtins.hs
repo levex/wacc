@@ -25,7 +25,7 @@ generateBuiltinInstructions = concatMap emitBuiltinFunction
 
 -- __builtin_fmt_read_char = " %c\0"
 generateBuiltinCall :: Identifier -> [Expr] -> [Instruction]
-generateBuiltinCall "__builtin_Read_TChar" _ = 
+generateBuiltinCall "__builtin_Read_TChar" _ =
        [ Special (FunctionStart "__builtin_Read_TChar")
        , Move       CAl 1 (Reg 0)
        , Load       CAl 0 (Label "__builtin_fmt_read_char") True (Imm 0)
@@ -87,9 +87,24 @@ generateBuiltinCall "__builtin_Print_TString" _ =
        , Pop        CAl [15]
        ]
 
-generateBuiltinCall "__builtin_Print_TRef" _
-  = []
+generateBuiltinCall "__builtin_Print_TRef" _ =
+       [ Special (FunctionStart "__builtin_Print_TRef")
+       , Pop        CAl [15]
+       ]
 
-generateBuiltinCall s _
-  = [BranchLink CAl (Label $ "ERR_" ++ s)]
+generateBuiltinCall "__builtin_PrintLn" _ =
+       [ Special (FunctionStart "__builtin_PrintLn")
+       , Pop        CAl [15]
+       ]
+
+generateBuiltinCall "__builtin_Exit" _ =
+       [ Special (FunctionStart "__builtin_Exit")
+       , BranchLink CAl (Label "exit")
+       ]
+
+generateBuiltinCall "__builtin_Free" _ =
+       [ Special (FunctionStart "__builtin_Free")
+       , BranchLink CAl (Label "free")
+       , Pop        CAl [15]
+       ]
 

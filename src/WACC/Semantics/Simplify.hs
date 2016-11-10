@@ -4,8 +4,8 @@ import           WACC.Parser.Types
 import           WACC.Semantics.Types
 import           WACC.Semantics.Typing
 
-getBuiltinName :: BuiltinFunc -> Type -> Identifier
-getBuiltinName f t
+getBuiltinName :: BuiltinFunc -> Maybe Type -> Identifier
+getBuiltinName f (Just t)
   = concat ["__builtin_", show f, "_", builtinForType t]
   where
     builtinForType (TArray _)
@@ -16,21 +16,23 @@ getBuiltinName f t
 
     builtinForType t
       = show t
+getBuiltinName f Nothing
+  = "__builtin_" ++ show f
 
 simplifyStmt :: Statement -> SemanticChecker Statement
-simplifyStmt b@(Builtin Exit _)
-  = return b
+simplifyStmt (Builtin Exit e)
+  = return $ ExpStmt (FunCall (getBuiltinName Exit Nothing) [e])
 
-simplifyStmt b@(Builtin Free _)
-  = return b
+simplifyStmt (Builtin Free e)
+  = return $ ExpStmt (FunCall (getBuiltinName Free Nothing) [e])
 
 simplifyStmt (Builtin PrintLn e) = do
   s <- simplifyStmt (Builtin Print e)
-  return $ Block [s, ExpStmt (FunCall "__builtin_println" [])]
+  return $ Block [s, ExpStmt (FunCall "__builtin_PrintLn" [])]
 
 simplifyStmt (Builtin f e) = do
   t <- getType e
-  return $ ExpStmt (FunCall (getBuiltinName f t) [e])
+  return $ ExpStmt (FunCall (getBuiltinName f (Just t)) [e])
 
 simplifyStmt (IdentifiedStatement s i)
   = simplifyStmt s

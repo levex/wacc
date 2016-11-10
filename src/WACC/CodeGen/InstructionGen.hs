@@ -60,9 +60,7 @@ saveBuiltinId id
 
 generateInstrForStatement :: Statement -> InstructionGenerator ()
 generateInstrForStatement Noop = return ()
-generateInstrForStatement (IdentifiedStatement st _) = generateInstrForStatement st
 generateInstrForStatement (Block xs) = scoped $ mapM_ generateInstrForStatement xs
-generateInstrForStatement (Builtin f e) = generateBuiltin f e
 generateInstrForStatement (VarDef (id, t) e) = do
   r1 <- getFreeRegister
   tell [Special $ VariableDecl id t r1]
@@ -100,16 +98,6 @@ generateControl (Return e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   tell [Special $ Ret (Reg r1)]
-
-generateBuiltin :: BuiltinFunc -> Expr -> InstructionGenerator ()
-generateBuiltin Exit e = do
-  r <- getFreeRegister
-  generateInstrForExpr r e
-  tell [Special $ Terminate r]
-generateBuiltin Free e = do
-  r <- getFreeRegister
-  generateInstrForExpr r e
-  tell [Special $ Dealloc r]
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
