@@ -129,6 +129,10 @@ addSymbol s = do
       newSt <- gets symbolTable
       put $ CheckerState locs (SymbolTable ss [newSt])
 
+storeDecl :: Declaration -> SemanticChecker ()
+storeDecl (ident, t)
+  = addSymbol (Symbol ident t)
+
 decreaseScope :: SemanticChecker ()
 decreaseScope = do
   st <- gets symbolTable
@@ -158,9 +162,7 @@ scoped stmt
   = increaseScope *> stmt <* decreaseScope
 
 identExists :: Identifier -> SemanticChecker ()
-identExists i = do
-  _ <- identLookup i
-  return ()
+identExists i = void $ identLookup i
 
 identLookup :: Identifier -> SemanticChecker Type
 identLookup i = do

@@ -119,3 +119,13 @@ type Program
 
 type AnnotatedProgram
   = (Program, LocationData)
+
+getVarDecl :: Statement -> Declaration
+getVarDecl (VarDef d _) = d
+
+getFunDecl :: Definition -> Declaration
+getFunDecl (FunDef d _) = d
+
+isFunDef :: Definition -> Bool
+isFunDef (FunDef _ _) = True
+isFunDef _ = False
