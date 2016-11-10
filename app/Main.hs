@@ -30,8 +30,8 @@ main = do
             putStrLn ""
             print p
             putStrLn "\n----------------------------\n"
-            --let code = generateCode p
-            --putStrLn code
+            let code = generateCode p
+            putStrLn code
             --writeFile (takeFileName (replaceExtension file ".s")) code
             exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"
