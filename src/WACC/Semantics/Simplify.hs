@@ -46,15 +46,15 @@ simplifyStmt (Cond e trueBranch falseBranch)
 simplifyStmt (Loop e body)
   = Loop e <$> simplifyStmt body
 
-simplifyStmt s@(VarDef (id, t) _)
-  = addSymbol (Symbol id t) >> return s
+simplifyStmt s@(VarDef d _)
+  = storeDecl d >> return s
 
 simplifyStmt s
   = return s
 
 simplifyDef :: Definition -> SemanticChecker Definition
-simplifyDef (FunDef decl block)
-  = FunDef decl <$> simplifyStmt block
+simplifyDef (FunDef d@(_, TFun rT paramTs) block)
+  = scoped $ mapM_ storeDecl paramTs >> FunDef d <$> simplifyStmt block
 
 simplify :: Program -> SemanticChecker Program
 simplify
