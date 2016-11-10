@@ -59,12 +59,10 @@ checkMainDoesNotReturn (FunDef _ stmts) = do
 
 
 checkDef :: Definition -> SemanticChecker ()
-checkDef (FunDef (ident, TFun rT paramT) stmt) = do
-  increaseScope
+checkDef (FunDef (ident, TFun rT paramT) stmt) = scoped $ do
   mapM_ storeDecl paramT
   storeDecl ("%RETURN%", rT)
   checkStmt stmt
-  decreaseScope
 checkDef _
   = valid
 
