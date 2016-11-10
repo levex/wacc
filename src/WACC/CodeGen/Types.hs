@@ -108,8 +108,6 @@ data SpecialLink
   | StringLit     Identifier String
   | LabelDecl     Identifier
   | Alloc         Register Int
-  | Dealloc       Register
-  | Terminate     Register
   | SWI           Int
   | Ret           Operand
   deriving (Eq, Show)
