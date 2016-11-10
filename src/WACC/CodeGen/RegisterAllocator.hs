@@ -6,6 +6,7 @@ import           Data.Array
 import           Data.Tree
 import           Data.List
 import qualified Data.Map as Map
+import           Control.Arrow
 import           Control.Monad
 import           Control.Monad.State
 import           Control.Monad.Writer
@@ -24,9 +25,9 @@ createEdges r nodes
 addNodeToGraph :: Register -> RegisterAllocator ()
 addNodeToGraph r = do
   s@RegAllocState{..} <- get
-  let livingVars = map (\(LiveVar r c) -> r) liveVars
+  let livingVars = map varID liveVars
   let newEdges = edges interferenceGraph ++ createEdges r livingVars
-  let newGraph = buildG (minimum (r : livingVars), maximum (r : livingVars)) newEdges
+  let newGraph = buildG ((minimum &&& maximum) $ r : livingVars) newEdges
   put s{interferenceGraph = newGraph}
 
 calcLiveRange :: Register -> [Instruction] -> Int -> Int -> Int
@@ -126,11 +127,11 @@ setNodeColor node c
 
 getNodeColor :: Register -> RegisterAllocator Color
 getNodeColor node
-  = gets colorMap >>= (return . (Map.! node))
+  = (Map.! node) <$> gets colorMap
 
 getUsedColors :: [Register] -> RegisterAllocator [Color]
 getUsedColors regs
-  = mapM getNodeColor regs >>= (\x -> return $ nub x)
+  = nub <$> mapM getNodeColor regs
 
 getMinColor :: [Register] -> RegisterAllocator Color
 getMinColor regs
@@ -138,7 +139,7 @@ getMinColor regs
 
 colorRegs :: [Register] -> RegisterAllocator Bool
 colorRegs regs
-  = mapM checkAndColorNode regs >>= (return . (all id))
+  = (all id) <$> mapM checkAndColorNode regs
 
 checkAndColorNode :: Register -> RegisterAllocator Bool
 checkAndColorNode r = do
@@ -216,7 +217,7 @@ colorGraph = do
   graph <- gets interferenceGraph
   let startRegs = map (head.flatten) $ components graph
   colored <- mapM checkAndColorNode startRegs
-  return $ all id colored
+  return $ and colored
 
 allocate :: [Instruction] -> Bool -> RegisterAllocator [Instruction]
 allocate function True
