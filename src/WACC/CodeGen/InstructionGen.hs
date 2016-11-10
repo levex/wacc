@@ -239,6 +239,14 @@ generateFunction (FunDef (ident, _) stmt) = do
   generateInstrForStatement stmt
   generateImplicitReturn ident
 
+instrGenState :: InstrGenState
+instrGenState = InstrGenState
+  { lastRegister = 4,
+    lastLabelId = 0,
+    regIdsTable = Map.empty,
+    scopeId = 0,
+    usedBuiltins = Set.empty }
+
 generateInstructions :: Program -> [Instruction]
 generateInstructions
-  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT (InstrGenState 4 0 Map.empty 0 Set.empty) . runInstrGen . generateFunction
+  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT instrGenState . runInstrGen . generateFunction
