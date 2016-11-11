@@ -58,96 +58,116 @@ nameForReg r = fromMaybe ("t_" ++ show r) $ lookup r regNames
 genCond :: Condition -> String -> String
 genCond = flip (++) . fromJust . flip lookup conditions
 
-emitInstruction :: Instruction -> CodeGenerator ()
-emitInstruction (Special (FunctionStart label)) = do
-  tell [".globl ", label, "\n"]
-  mapM_ emitInstruction
-    [ Special (LabelDecl label),
-      Push CAl [14] ]
-emitInstruction (Special (SWI i))
-  = tell ["swi #", show i, "\n"]
-emitInstruction (Special (LabelDecl l))
-  = tell [l, ":\n"]
-emitInstruction (Special (Alloc r b))
-  = mapM_ emitInstruction
-    [ Move CAl 0 (Imm b),
-      BranchLink CAl (Label "malloc"),
-      Move CAl r (Reg 0) ]
-emitInstruction (Special (Ret op))
-  = mapM_ emitInstruction
-    [ Move CAl 0 op,
-      Pop CAl [15] ]
-emitInstruction (Special (FunctionCall id regs))
-  = mapM_ emitInstruction
-    [ BranchLink CAl (Label id) ]
-emitInstruction (Special _)
-  = skip
-emitInstruction (Load c rt op1 plus op2) = do
-  tell [genCond c "ldr", " "]
-  case op1 of
-    Imm i   -> tell [nameForReg rt, ", =", show i, "\n"]
-    Label l -> tell [nameForReg rt, ", =", l, "\n"]
-    Reg rn  -> case op2 of
-      Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, ", ",
-                  if plus then "" else "-", nameForReg rm, "]\n"]
-      Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
-      Imm i2 -> tell [nameForReg rt, ", [", nameForReg rn, " ",
-                                            "#", show i2, "]\n"]
-emitInstruction (Move c rt op1) = do
-  tell [genCond c "mov", " "]
-  case op1 of
-    Imm i -> tell [nameForReg rt, ", #", show i, "\n"]
-    Reg rn -> tell [nameForReg rt, ", ", nameForReg rn, "\n"]
-emitInstruction (Shift c rt rn st i) = do
-  tell [genCond c (map toLower (show st)), " "]
-  tell [nameForReg rt, ", ", nameForReg rn, ", #", show i, "\n"]
-emitInstruction (Push c rs)
-  = tell [genCond c "push", " {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
-emitInstruction (Pop c rs)
-  = tell [genCond c "pop", " {", intercalate ", " $ map nameForReg (sort rs), "}\n"]
-emitInstruction (Branch c op1)
-  = case op1 of
-      Label lab -> tell [genCond c "b", " ", lab, "\n"]
-      Reg rt    -> tell [genCond c "bx", " ", nameForReg rt, "\n"]
-emitInstruction (BranchLink c op1)
-  = case op1 of
-      Label lab -> tell [genCond c "bl", " ", lab, "\n"]
-      Reg rt    -> tell [genCond c "blx", " ", nameForReg rt, "\n"]
-emitInstruction (Compare c rt op1) = do
-  tell [genCond c "cmp", " "]
-  case op1 of
-    Reg rn -> tell [nameForReg rt, ", ", nameForReg rn, "\n"]
-    Imm i  -> tell [nameForReg rt, ", #", show i, "\n"]
-emitInstruction (Store c rt rn plus op2) = do
-  tell [genCond c "str", " "]
-  case op2 of
-    Reg rm -> tell [nameForReg rt, ", [", nameForReg rn, ", ",
-                if plus then "" else "- ", nameForReg rm, "]\n"]
-    Imm 0  -> tell [nameForReg rt, ", [", nameForReg rn, "]\n"]
-    Imm i  -> tell [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
-emitInstruction (Op c ModOp rt rn op1) = mapM_ emitInstruction
-    [ Push c [0, 1]
-    , Move c 0 (Reg rn) -- FIXME: see DivOp and unify these
-    , Move c 1 op1
-    , BranchLink c (Label "__aeabi_idivmod")
-    , Move c rt (Reg 0)]
-emitInstruction (Op c DivOp rt rn op1) = mapM_ emitInstruction
-    [ Push c [0, 1]
-    , Move c 0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
-    , Move c 1 op1
-    , BranchLink c (Label "__aeabi_idiv")
-    , Move c rt (Reg 0)]
-emitInstruction (Op c op rt rn op1) = do
-  tell [genCond c (fromJust $ lookup op opTable), " "]
-  case op1 of
-    Reg rm -> tell [intercalate ", " $ map nameForReg [rt, rn, rm],"\n"]
-    Imm i  -> tell [nameForReg rt, ", ", nameForReg rn, ", #", show i,"\n"]
-emitInstruction (PureAsm ss)
-  = tell ss
+instance Emit Instruction where
+  emit (Special (FunctionStart label))
+    = [".globl ", label, "\n"]
+        ++ concatMap emit [Special (LabelDecl label),
+                     Push CAl [14]]
+
+  emit (Special (SWI i))
+    = ["swi #", show i, "\n"]
+
+  emit (Special (LabelDecl l))
+    = [l, ":\n"]
+
+  emit (Special (Alloc r b)) = concatMap emit
+      [ Move CAl 0 (Imm b),
+        BranchLink CAl (Label "malloc"),
+        Move CAl r (Reg 0) ]
+
+  emit (Special (Ret op)) = concatMap emit
+      [ Move CAl 0 op,
+        Pop CAl [15] ]
+
+  emit (Special (FunctionCall id regs)) = concatMap emit
+      [ BranchLink CAl (Label id) ]
+
+  emit (Special (SectionStart str))
+    = [".section ", str, "\n"]
+
+  emit (Special _)
+    = []
+
+  emit (Load c rt op1 plus op2)
+    = [genCond c "ldr", " "] ++
+        case op1 of
+          Imm i   -> [nameForReg rt, ", =", show i, "\n"]
+          Label l -> [nameForReg rt, ", =", l, "\n"]
+          Reg rn  -> case op2 of
+            Reg rm -> [nameForReg rt, ", [", nameForReg rn, ", ",
+                        if plus then "" else "-", nameForReg rm, "]\n"]
+            Imm 0  -> [nameForReg rt, ", [", nameForReg rn, "]\n"]
+            Imm i2 -> [nameForReg rt, ", [", nameForReg rn, " ",
+                                                  "#", show i2, "]\n"]
+
+  emit (Move c rt op1)
+    = [genCond c "mov", " "] ++
+        case op1 of
+          Imm i  -> [nameForReg rt, ", #", show i, "\n"]
+          Reg rn -> [nameForReg rt, ", ", nameForReg rn, "\n"]
+
+  emit (Shift c rt rn st i)
+    = [genCond c (map toLower (show st)), " ",
+        nameForReg rt, ", ", nameForReg rn, ", #", show i, "\n"]
+
+  emit (Push c rs)
+    = [genCond c "push", " {",
+        intercalate ", " $ map nameForReg (sort rs), "}\n"]
+
+  emit (Pop c rs)
+    = [genCond c "pop", " {",
+        intercalate ", " $ map nameForReg (sort rs), "}\n"]
+
+  emit (Branch c op1)
+    = case op1 of
+        Label lab -> [genCond c "b", " ", lab, "\n"]
+        Reg rt    -> [genCond c "bx", " ", nameForReg rt, "\n"]
+
+  emit (BranchLink c op1)
+    = case op1 of
+        Label lab -> [genCond c "bl", " ", lab, "\n"]
+        Reg rt    -> [genCond c "blx", " ", nameForReg rt, "\n"]
+
+  emit (Compare c rt op1) = do
+    [genCond c "cmp", " "] ++
+      case op1 of
+        Reg rn -> [nameForReg rt, ", ", nameForReg rn, "\n"]
+        Imm i  -> [nameForReg rt, ", #", show i, "\n"]
+
+  emit (Store c rt rn plus op2) = do
+    [genCond c "str", " "] ++
+      case op2 of
+        Reg rm -> [nameForReg rt, ", [", nameForReg rn, ", ",
+                    if plus then "" else "- ", nameForReg rm, "]\n"]
+        Imm 0  -> [nameForReg rt, ", [", nameForReg rn, "]\n"]
+        Imm i  -> [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
+
+  emit (Op c ModOp rt rn op1) = concatMap emit
+      [ Push c [0, 1]
+      , Move c 0 (Reg rn) -- FIXME: see DivOp and unify these
+      , Move c 1 op1
+      , BranchLink c (Label "__aeabi_idivmod")
+      , Move c rt (Reg 0)]
+
+  emit (Op c DivOp rt rn op1) = concatMap emit
+      [ Push c [0, 1]
+      , Move c 0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
+      , Move c 1 op1
+      , BranchLink c (Label "__aeabi_idiv")
+      , Move c rt (Reg 0)]
+
+  emit (Op c op rt rn op1)
+    = [genCond c (fromJust $ lookup op opTable), " "] ++
+      case op1 of
+        Reg rm -> [intercalate ", " $ map nameForReg [rt, rn, rm],"\n"]
+        Imm i  -> [nameForReg rt, ", ", nameForReg rn, ", #", show i,"\n"]
+
+  emit (PureAsm ss)
+    = ss
 
 emitSection :: String -> CodeGenerator ()
 emitSection section
   = tell [".section \"", section, "\"\n"]
 
-generateAssembly :: [Instruction] -> CodeGenerator ()
-generateAssembly = mapM_ emitInstruction
+generateAssembly :: [Instruction] -> [String]
+generateAssembly = concatMap emit

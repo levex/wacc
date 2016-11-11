@@ -13,6 +13,9 @@ import           WACC.Parser.Types
 
 type Code = [Instruction]
 
+class Emit a where
+  emit :: a -> [String]
+
 data CodeGenState = CodeGenState
   { lastLiteralId  :: Int
   , emittedStuff   :: [String]
@@ -31,6 +34,14 @@ data InstrGenState = InstrGenState
     regIdsTable :: Map (Identifier, Integer) Register,
     scopeId :: Integer,
     usedBuiltins :: Set Identifier }
+
+instrGenState :: InstrGenState
+instrGenState = InstrGenState
+  { lastRegister = 4,
+    lastLabelId = 0,
+    regIdsTable = Map.empty,
+    scopeId = 0,
+    usedBuiltins = Set.empty }
 
 newtype InstructionGenerator a = InstructionGenerator
   { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }
@@ -105,6 +116,7 @@ data ShiftType
 
 data SpecialLink
   = FunctionStart Identifier
+  | SectionStart  String
   | FunctionCall  Identifier [Register]
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String

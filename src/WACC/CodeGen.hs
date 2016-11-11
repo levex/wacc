@@ -28,6 +28,6 @@ generateCode p
       emitBuiltinStrings ins
       emitSection ".text.builtin"
       let ins = generateBuiltinInstructions instructions
-      generateAssembly ins
+      tell $ generateAssembly ins
       emitSection ".text"
-      generateAssembly instructions
+      tell $ generateAssembly instructions
