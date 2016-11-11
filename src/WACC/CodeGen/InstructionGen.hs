@@ -11,7 +11,7 @@ import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
-import           WACC.CodeGen.RegisterAllocator
+import           WACC.CodeGen.LinearScanRegisterAlloc
 
 getFreeRegister :: InstructionGenerator Register
 getFreeRegister = do

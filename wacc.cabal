@@ -27,6 +27,7 @@ library
                      , WACC.CodeGen.EmitARM
                      , WACC.CodeGen.Functions
                      , WACC.CodeGen.InstructionGen
+                     , WACC.CodeGen.LinearScanRegisterAlloc
                      , WACC.CodeGen.Builtins
                      , WACC.CodeGen.Strings
                      , WACC.CodeGen.RegisterAllocator
@@ -38,7 +39,7 @@ library
                      , WACC.Semantics.Primitives
                      , WACC.Optimizations.Types
                      , WACC.Optimizations.Expressions
-  build-depends:       base >= 4.7 && < 5, containers, parsec, mtl, array
+  build-depends:       base >= 4.7 && < 5, containers, parsec, mtl, array, either
   default-language:    Haskell2010
 
 executable wacc-exe
