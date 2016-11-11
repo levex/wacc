@@ -14,7 +14,9 @@ import           WACC.Parser.Types
 type Code = [Instruction]
 
 data CodeGenState = CodeGenState
-  { lastLiteralId :: Int }
+  { lastLiteralId  :: Int
+  , emittedStuff   :: [String]
+  }
 
 newtype CodeGenerator a = CodeGenerator
   { runCodeGen :: StateT CodeGenState (Writer [String]) a }

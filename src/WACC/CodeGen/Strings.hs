@@ -8,9 +8,12 @@ import           WACC.CodeGen.Types
 
 emitString :: Identifier -> String -> CodeGenerator ()
 emitString id str = do
-  tell ["  ", id, ":\n"]
-  tell ["    ", ".word ", show . length $ str, "\n"]
-  tell ["    ", ".asciz \"", str, "\"\n"]
+  s@CodeGenState{..} <- get
+  unless (str `elem` emittedStuff) $ do
+    tell ["  ", id, ":\n"]
+    tell ["    ", ".word ", show . length $ str, "\n"]
+    tell ["    ", ".asciz \"", str, "\"\n"]
+    put s{emittedStuff = str : emittedStuff}
 
 emitStringLiteral :: Instruction -> CodeGenerator ()
 emitStringLiteral (Special (StringLit id str))

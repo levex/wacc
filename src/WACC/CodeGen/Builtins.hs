@@ -21,7 +21,13 @@ emitBuiltinFunction _
   = []
 
 generateBuiltinInstructions :: Code -> [Instruction]
-generateBuiltinInstructions = concatMap emitBuiltinFunction
+generateBuiltinInstructions c
+  = concatMap emitBuiltinFunction (cm `nubBy` c)
+  where
+    cm (isBuiltinSpecial -> (True, s1)) (isBuiltinSpecial -> (True, s2))
+      = s1 == s2
+    cm _ _
+      = False
 
 -- __builtin_fmt_read_char = " %c\0"
 generateBuiltinCall :: Identifier -> [Expr] -> [Instruction]

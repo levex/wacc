@@ -14,7 +14,7 @@ import           WACC.CodeGen.EmitARM
 import           WACC.CodeGen.InstructionGen
 
 cgState :: CodeGenState
-cgState = CodeGenState { lastLiteralId = 0 }
+cgState = CodeGenState { emittedStuff = [], lastLiteralId = 0 }
 
 generateCode :: Program -> String
 generateCode p
