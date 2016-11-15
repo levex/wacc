@@ -17,37 +17,28 @@ class Emit a where
   emit :: a -> [String]
 
 data CodeGenState = CodeGenState
-  { lastLiteralId  :: Int
-  , emittedStuff   :: [String]
-  }
-
-newtype CodeGenerator a = CodeGenerator
-  { runCodeGen :: StateT CodeGenState (Writer [String]) a }
-      deriving (Functor, Applicative, Monad,
-                MonadState CodeGenState,
-                MonadFix,
-                MonadWriter [String])
-
-data InstrGenState = InstrGenState
   { lastRegister :: Register,
     lastLabelId :: Integer,
     regIdsTable :: Map (Identifier, Integer) Register,
     scopeId :: Integer,
     usedBuiltins :: Set Identifier }
 
-instrGenState :: InstrGenState
-instrGenState = InstrGenState
+
+newtype CodeGenerator a = CodeGenerator
+  { runCodeGen :: State CodeGenState a }
+      deriving (Functor, Applicative, Monad,
+                MonadState CodeGenState)
+
+codeGenState :: CodeGenState
+codeGenState = CodeGenState
   { lastRegister = 4,
     lastLabelId = 0,
     regIdsTable = Map.empty,
     scopeId = 0,
     usedBuiltins = Set.empty }
 
-newtype InstructionGenerator a = InstructionGenerator
-  { runInstrGen :: StateT InstrGenState (Writer [Instruction]) a }
-      deriving (Functor, Applicative, Monad,
-                MonadState InstrGenState,
-                MonadWriter [Instruction])
+type InstructionGenerator a
+  = WriterT [Instruction] CodeGenerator a
 
 data RegAllocState = RegAllocState
   { interferenceGraph :: Graph,
@@ -141,8 +132,6 @@ data Instruction
   | Special SpecialLink
   | PureAsm [String]
   deriving (Eq, Show)
-
-type CondInstr = (Condition, Instruction)
 
 skip :: Monad m => m ()
 skip = return ()

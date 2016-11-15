@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module WACC.CodeGen.RegisterAllocator where
-
+{-
 import           Data.Graph
 import           Data.Array
 import           Data.Tree
@@ -20,7 +20,7 @@ filterDeadVars = do
 
 createEdges :: Register -> [Register] -> [Edge]
 createEdges r nodes
-  = (,) <$> [r] <*> nodes
+  = ([r], nodes)
 
 addNodeToGraph :: Register -> RegisterAllocator ()
 addNodeToGraph r = do
@@ -172,9 +172,8 @@ resetGraph
   = modify (\_ -> initRegAllocState)
 
 getUnallocReg :: [(Register, Color)] -> Register
-getUnallocReg (x:xs)
-  | snd x == -2 = fst x
-  | otherwise   = getUnallocReg xs
+getUnallocReg ((r, -2) : xs) = r
+getUnallocReg (_ : xs) = getUnallocReg xs
 
 targetsRegister :: Instruction -> Register -> Bool
 targetsRegister (Op _ _ rd _ _) r
@@ -241,3 +240,4 @@ initRegAllocState
 allocateFuncRegisters :: [Instruction] -> [Instruction]
 allocateFuncRegisters function
   = evalState (runRegAllocator $ allocateRegisters function) initRegAllocState
+-}

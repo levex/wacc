@@ -1,55 +1,51 @@
 {-# LANGUAGE RecordWildCards #-}
 module WACC.CodeGen.Strings where
 
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
-emitString :: Identifier -> String -> CodeGenerator ()
-emitString id str = do
-  s@CodeGenState{..} <- get
-  unless (str `elem` emittedStuff) $ do
-    tell ["  ", id, ":\n"]
-    tell ["    ", ".word ", show . length $ str, "\n"]
-    tell ["    ", ".asciz \"", str, "\"\n"]
-    put s{emittedStuff = str : emittedStuff}
+emitString :: Identifier -> String -> CodeGenerator String
+emitString id str
+  = return $ concat ["  ", id, ":\n",
+                     "    ", ".word ", show . length $ str, "\n",
+                     "    ", ".asciz \"", str, "\"\n"]
 
-emitStringLiteral :: Instruction -> CodeGenerator ()
+emitStringLiteral :: Instruction -> CodeGenerator String
 emitStringLiteral (Special (StringLit id str))
   = emitString id str
 emitStringLiteral _
-  = skip
+  = return []
 
-emitLiterals :: Code -> CodeGenerator ()
-emitLiterals = mapM_ emitStringLiteral
-
-
-emitBuiltinString :: Instruction -> CodeGenerator ()
-emitBuiltinString (Load _ _ (Label "__builtin_fmt_int") _ _)
-  = emitString "__builtin_fmt_int" "%d"
-
-emitBuiltinString (Load _ _ (Label "__builtin_fmt_string") _ _)
-  = emitString "__builtin_fmt_string" "%.*s\0"
-
-emitBuiltinString (Load _ _ (Label "__builtin_str_true") _ _)
-  = emitString "__builtin_str_true" "true"
-
-emitBuiltinString (Load _ _ (Label "__builtin_str_false") _ _)
-  = emitString "__builtin_str_false" "false"
-
-emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_char") _ _)
+emitBuiltinString :: Identifier -> CodeGenerator String
+emitBuiltinString "__builtin_Read_TChar"
   = emitString "__builtin_fmt_read_char" " %c\0"
 
-emitBuiltinString (Load _ _ (Label "__builtin_fmt_read_int") _ _)
+emitBuiltinString "__builtin_Read_TInt"
   = emitString "__builtin_fmt_read_int" " %d\0"
 
-emitBuiltinString (Load _ _ (Label "__builtin_str_newline") _ _)
+emitBuiltinString "__builtin_Print_TInt"
+  = emitString "__builtin_fmt_int" "%d"
+
+emitBuiltinString "__builtin_Print_TBool"
+  = liftM2 (++)
+      (emitString "__builtin_str_true" "true")
+      (emitString "__builtin_str_false" "false")
+
+emitBuiltinString "__builtin_Print_TString"
+  = emitString "__builtin_fmt_string" "%.*s\0"
+
+emitBuiltinString "__builtin_PrintLn"
   = emitString "__builtin_str_newline" "\0"
 
 emitBuiltinString _
-  = skip
+  = return []
 
+emitLiterals :: Code -> CodeGenerator String
+emitLiterals = liftM concat . mapM emitStringLiteral
 
-emitBuiltinStrings :: Code -> CodeGenerator ()
-emitBuiltinStrings = mapM_ emitBuiltinString
+emitBuiltinStrings :: Set Identifier -> CodeGenerator String
+emitBuiltinStrings = liftM concat . mapM emitBuiltinString . Set.toList

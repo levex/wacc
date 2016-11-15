@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module WACC.CodeGen.InstructionGen where
 
+import Debug.Trace
 import           Data.Bool
 import           Data.Char
 import qualified Data.Set as Set
@@ -15,7 +16,7 @@ import           WACC.CodeGen.LinearScanRegisterAlloc
 
 getFreeRegister :: InstructionGenerator Register
 getFreeRegister = do
-  s@InstrGenState{..} <- get
+  s@CodeGenState{..} <- get
   put s{lastRegister = lastRegister + 1}
   return lastRegister
 
@@ -32,16 +33,16 @@ getRegById i
 
 saveRegId :: Register -> Identifier -> InstructionGenerator ()
 saveRegId r i = do
-  s@InstrGenState{..} <- get
+  s@CodeGenState{..} <- get
   put s{regIdsTable = Map.insert (i, scopeId) r regIdsTable}
 
 increaseScope :: InstructionGenerator ()
 increaseScope
-  = modify (\s@InstrGenState{..} -> s{scopeId = scopeId + 1})
+  = modify (\s@CodeGenState{..} -> s{scopeId = scopeId + 1})
 
 decreaseScope :: InstructionGenerator ()
 decreaseScope
-  = modify (\s@InstrGenState{..} -> s{scopeId = scopeId - 1})
+  = modify (\s@CodeGenState{..} -> s{scopeId = scopeId - 1})
 
 scoped :: InstructionGenerator a -> InstructionGenerator a
 scoped p
@@ -49,13 +50,13 @@ scoped p
 
 generateLabel :: InstructionGenerator String
 generateLabel = do
-  s@InstrGenState{..} <- get
+  s@CodeGenState{..} <- get
   put s{lastLabelId = lastLabelId + 1}
   return $ "__label_" ++ show lastLabelId
 
 saveBuiltinId :: Identifier -> InstructionGenerator ()
 saveBuiltinId id
-  = modify (\s@InstrGenState{..} ->
+  = modify (\s@CodeGenState{..} ->
       s{usedBuiltins = Set.insert id usedBuiltins})
 
 generateInstrForStatement :: Statement -> InstructionGenerator ()
@@ -241,6 +242,6 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident
 
-generateInstructions :: Program -> [Instruction]
+generateInstructions :: Program -> CodeGenerator [Instruction]
 generateInstructions
-  = concatMap $ allocateFuncRegisters . execWriter . flip evalStateT instrGenState . runInstrGen . generateFunction
+  = execWriterT . mapM generateFunction

@@ -165,9 +165,8 @@ instance Emit Instruction where
   emit (PureAsm ss)
     = ss
 
-emitSection :: String -> CodeGenerator ()
-emitSection section
-  = tell [".section \"", section, "\"\n"]
+emitSection :: String -> CodeGenerator String
+emitSection section = pure . concat $ [".section \"", section, "\"\n"]
 
-generateAssembly :: [Instruction] -> [String]
-generateAssembly = concatMap emit
+emitAssembly :: [Instruction] -> CodeGenerator String
+emitAssembly = pure . concat . concatMap emit

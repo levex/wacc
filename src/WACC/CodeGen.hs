@@ -13,21 +13,17 @@ import           WACC.CodeGen.Functions
 import           WACC.CodeGen.EmitARM
 import           WACC.CodeGen.InstructionGen
 
-cgState :: CodeGenState
-cgState = CodeGenState { emittedStuff = [], lastLiteralId = 0 }
-
 generateCode :: Program -> String
 generateCode p
-  = (concat . execWriter . flip evalStateT cgState . runCodeGen) $ mdo
-      let instructions = generateInstructions p
-      traceM "Instructions:\n\n"
-      traceM (unlines (map show instructions))
-      traceM "\n-----------------------------\n\n"
-      emitSection ".data"
-      emitLiterals instructions
-      emitBuiltinStrings ins
-      emitSection ".text.builtin"
-      let ins = generateBuiltinInstructions instructions
-      tell $ generateAssembly ins
-      emitSection ".text"
-      tell $ generateAssembly instructions
+  = flip evalState codeGenState . runCodeGen $ do
+      instructions <- generateInstructions p
+      builtins <- gets usedBuiltins
+      builtinInstructions <- generateBuiltins builtins
+      liftM concat . sequence $
+        [ emitSection ".data"
+        , emitLiterals instructions
+        , emitBuiltinStrings builtins
+        , emitSection ".text"
+        , emitAssembly builtinInstructions
+        , emitAssembly instructions
+        ]
