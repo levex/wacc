@@ -234,9 +234,11 @@ generateImplicitReturn _
   = skip
 
 generateFunction :: Definition -> InstructionGenerator ()
-generateFunction (FunDef (ident, _) stmt) = do
+generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   tell [Special $ FunctionStart ident]
-  generateInstrForStatement stmt
+  forM_ (zip [0..3] paramTs) $ \(i, (id, _)) ->
+    saveRegId i id
+  scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident
 
 generateInstructions :: Program -> [Instruction]
