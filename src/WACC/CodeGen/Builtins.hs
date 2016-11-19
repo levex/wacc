@@ -8,7 +8,6 @@ import           Control.Monad.Writer
 import           Data.List
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
-import           WACC.CodeGen.EmitARM
 
 generateBuiltins :: Set Identifier -> CodeGenerator [Instruction]
 generateBuiltins

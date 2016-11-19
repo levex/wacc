@@ -24,13 +24,15 @@ library
                      , WACC.Parser.Primitives
                      , WACC.CodeGen.Types
                      , WACC.CodeGen.Builtins
-                     , WACC.CodeGen.EmitARM
+                     , WACC.CodeGen.Emit
                      , WACC.CodeGen.Functions
                      , WACC.CodeGen.InstructionGen
                      , WACC.CodeGen.LinearScanRegisterAlloc
                      , WACC.CodeGen.Builtins
                      , WACC.CodeGen.Strings
                      , WACC.CodeGen.RegisterAllocator
+                     , WACC.CodeGen.ARM.Emit
+                     , WACC.CodeGen.ARM.CallingConvention
                      , WACC.Semantics.Types
                      , WACC.Semantics.Syntax
                      , WACC.Semantics.Semantics

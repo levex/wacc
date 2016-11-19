@@ -10,8 +10,12 @@ import           WACC.CodeGen.Builtins
 import           WACC.CodeGen.Types
 import           WACC.CodeGen.Strings
 import           WACC.CodeGen.Functions
-import           WACC.CodeGen.EmitARM
+import           WACC.CodeGen.Emit
 import           WACC.CodeGen.InstructionGen
+import           WACC.CodeGen.LinearScanRegisterAlloc
+
+import           WACC.CodeGen.ARM.CallingConvention
+import           WACC.CodeGen.ARM.Emit
 
 generateCode :: Program -> String
 generateCode p
