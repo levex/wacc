@@ -1,10 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE BangPatterns #-}
 module WACC.CodeGen.LinearScanRegisterAlloc where
 
 import           Data.Graph
 import           Data.Array
+import           Data.Either
 import           Data.Tree
 import           Data.List
 import qualified Data.Map as Map
@@ -26,30 +29,55 @@ import           WACC.CodeGen.Types
 -- replaceRegister and the liveRange calculation is nice as is, don't touch it
 -- please. -L
 
-totalNumberRegister = 8
+availableRegisters = [4..8]
+
+data LiveRange = LiveRange
+  { registerOld  :: Int
+  , registerNew  :: Maybe Int
+  , startLine    :: Int
+  , endLine      :: Int
+  , location     :: Maybe Int
+  } deriving (Eq, Show)
+
+selReg :: LiveRange -> Int
+selReg lr = case location lr of
+  Nothing -> case registerNew lr of
+    Nothing -> registerOld lr
+    Just x  -> x
+  Just _ -> error " uh"
 
 data LSRAState = LSRAState
-  { lranges :: Map.Map Int (Int, Int) -- reg (start, end)
-  , instructions :: [Instruction]
-  , active :: [(Int, Int, Int)] -- (reg, start, end)
-  , freePool :: [Register]
-  , finalAllocations :: [(Register, Register)]
-  } deriving (Eq, Show)
+  { lranges          :: [LiveRange]
+  , instructions     :: [Instruction]
+  , active           :: [LiveRange]
+  , freePool         :: [Register]
+  , finalAllocations :: [LiveRange]
+  , lastStack        :: Int
+  , spillage         :: [(Int, (Condition -> [Register] -> Instruction, Register))]
+  } 
 
 initialLSRAState :: [Instruction] -> LSRAState
 initialLSRAState p = LSRAState
-  { lranges = Map.empty
+  { lranges = []
   , instructions = p
   , active = []
-  , freePool = [0..totalNumberRegister]
+  , freePool = availableRegisters
   , finalAllocations = []
+  , lastStack = 0
+  , spillage = []
   }
 
 newtype LSRA a = LSRA { unLSRA :: State LSRAState a }
-                  deriving (Functor, Applicative, Monad,
+                  deriving (Functor, Applicative, Monad, MonadFix,
                             MonadState LSRAState)
 
 data RegAction = RRead | RWrite | RIgnore
+
+getNewStackLocation :: LSRA Int
+getNewStackLocation = do
+  st@LSRAState{..} <- get
+  put st{lastStack = lastStack + 1}
+  return lastStack
 
 analyzeAccess :: Register -> Instruction -> RegAction
 analyzeAccess r (Op _ _ rd r1 (Reg r2))
@@ -127,10 +155,17 @@ analyzeAccess _ _ = RIgnore
 
 ------------------------------------------------
 
-replace' :: [(Register, Register)] -> Register -> Register
-replace' rs r = fromMaybe r (lookup r rs)
+liveRangeMap :: LiveRange -> (Register, LiveRange)
+liveRangeMap = (,) =<< registerOld
 
-replaceRegister :: [(Register, Register)] -> Instruction  -> Instruction
+replace' :: [LiveRange] -> Register -> Register
+replace' rs r
+  = case lookup r (liveRangeMap <$> rs) of
+      Nothing -> r
+      Just lr -> if isNothing $ location lr then fromJust $ registerNew lr
+                  else r
+
+replaceRegister :: [LiveRange] -> Instruction  -> Instruction
 replaceRegister rs (Op a b rd r1 (Reg r2))
   = Op a b (replace' rs rd) (replace' rs r1) (Reg (replace' rs r2))
 
@@ -181,77 +216,159 @@ replaceRegister rs (Compare a r1 b)
 
 replaceRegister _ i = i
 
+----------
+
+collectRegisters :: Instruction -> [Register]
+collectRegisters (Op a b rd r1 (Reg r2))
+  = [rd, r1, r2]
+
+collectRegisters (Op a b rd r1 c)
+  = [rd, r1]
+
+collectRegisters (Load a rd (Reg r1) b (Reg r2))
+  = [rd, r1, r2]
+
+collectRegisters (Load a rd b c d)
+  = [rd]
+
+collectRegisters (Store a rd r1 b (Reg r2))
+  = [rd, r1, r2]
+
+collectRegisters (Store a rd r1 b c)
+  = [rd, r1]
+
+collectRegisters (Move a rd (Reg r1))
+  = [rd, r1]
+
+collectRegisters (Move a rd b)
+  = [rd]
+
+collectRegisters (Shift a r1 r2 b c)
+  = [r1, r2]
+
+collectRegisters (Negate a rd (Reg r1))
+  = [rd, r1]
+
+collectRegisters (Push a regs)
+  = regs
+
+collectRegisters (Pop a regs)
+  = regs
+
+collectRegisters (Branch a (Reg r1))
+  = [r1]
+
+collectRegisters (BranchLink a (Reg r1))
+  = [r1]
+
+collectRegisters (Compare a r1 (Reg r2))
+  = [r1, r2]
+
+collectRegisters (Compare a r1 b)
+  = [r1]
+
+collectRegisters _ = []
+
+----------
+
 calcLiveRange :: Register -> Int -> Instruction -> LSRA ()
-calcLiveRange r line (analyzeAccess r -> RWrite) = do
+calcLiveRange r line ins@(analyzeAccess r -> RWrite) = do
   st@LSRAState{..} <- get
-  let lr' = case Map.lookup r lranges of
-              Nothing     -> Map.insert r (line, line) lranges
-              Just (s, _) -> Map.insert r (s, line) lranges
-  put st{lranges = lr'}
-calcLiveRange r line (analyzeAccess r -> RRead) = do
+  let mran = lookup r (liveRangeMap <$> lranges)
+  case mran of
+    Nothing ->
+      put st{lranges = LiveRange { startLine = line, registerOld = r, registerNew = Nothing
+                , endLine = line, location = Nothing
+                } : lranges}
+    Just range -> put st{lranges = range{endLine = line} : delete range lranges}
+calcLiveRange r line ins@(analyzeAccess r -> RRead) = do
   st@LSRAState{..} <- get
-  let lr' = case Map.lookup r lranges of
-              Nothing     ->
-                trace ("register " ++ show r ++ " not loaded with value at l"
-                    ++ show line) lranges
-              Just (s, _) -> Map.insert r (s, line) lranges
-  put st{lranges = lr'}
+  let mran = lookup r (liveRangeMap <$> lranges)
+  case mran of
+    Nothing -> error "invalid register access"
+    Just range -> put st{lranges = range{endLine = line} : delete range lranges}
 calcLiveRange _ _ _ = return ()
 
 allocateLSRA :: LSRA ()
-allocateLSRA = do
+allocateLSRA = mdo
   -- calculate live ranges
   ins <- gets instructions
-  forM_ [4..10] $ \r ->
-    forM_ (zip [0..] ins) $ \(l, i) ->
-      calcLiveRange r l i
+  let usedRegs = maximum $ concatMap collectRegisters ins
+  forM_ (zip [0..] ins) $ \(i, instr) ->
+    forM_ [0..(usedRegs + 1)] $ \r -> calcLiveRange r i instr
   -- start LSRA
-  lr <- sortBy ((\(s1, _) (s2, _) -> compare s1 s2) . snd)
-          <$> Map.toList <$> gets lranges
-  forM_ lr $ \i@(r, (s, e)) -> do
+  lr <- sortOn startLine <$> gets lranges
+  forM_ lr $ \i -> do
     expireOldIntervals i
     len <- length <$> gets active
-    if len == totalNumberRegister then
+    -- traceShowM len
+    if len == length availableRegisters then
       spillAtInterval i
     else do
       st@LSRAState{..} <- get
       let rt = head freePool
+      traceShowM ("chose: " ++ show rt)
+      let newi = i{registerNew = Just rt}
       put st{ freePool = freePool \\ [rt]
-            , finalAllocations = (r, rt) : finalAllocations  -- r got assigned to rt
-            , active = (r, s, e) : active  -- i is now active
+            , finalAllocations = newi : finalAllocations  -- r got assigned to rt
+            , active = nub $ sortOn endLine (newi : active)  -- i is now active
             }
       
-  traceM $ show lr
+  --traceM $ show lr
 
-spillAtInterval :: (Int, (Int, Int)) -> LSRA ()
-spillAtInterval = undefined
-
-expireOldIntervals :: (Int, (Int, Int)) -> LSRA ()
-expireOldIntervals i@(r, (s, e)) = do
-  st@LSRAState{..} <- get
-  let acts = sortBy (\(_, _, e1) (_, _, e2) -> compare e1 e2) active
-  void $ runEitherT (forM_ acts $ \j@(rj, sj, ej) -> do
-    if ej > s then
+expireOldIntervals :: LiveRange -> LSRA ()
+expireOldIntervals i = do
+  beginActives <- gets active
+  void $ runEitherT (forM_ (sortOn endLine beginActives) $ \j -> do
+    if endLine j >= startLine i then do
       left () -- exit from the loop
-    else
-      put st{active = acts \\ [j],     -- remove interval j from active intervals
-            freePool = rj : freePool}) -- remove reg j from the freepool
+    else do
+      st2 <- get
+      let acts = sortOn endLine (active st2)
+      --traceShowM ("lr " ++ show i ++ " adding " ++ (show $ selReg j) ++ " to freepool")
+      put st2{active = nub $ (acts \\ [j]),     -- remove interval j from active intervals
+            freePool = selReg j : freePool st2}) -- remove reg j from the freepool
+
+spillAtInterval :: LiveRange -> LSRA ()
+spillAtInterval i = do
+  st@LSRAState{..} <- get
+  let spill = last (sortOn endLine active)
+  stack <- getNewStackLocation
+  if (endLine spill > endLine i) then do
+    let newi = i{registerNew = Just $ selReg spill}
+    put st{ finalAllocations = newi : spill{location = Just stack} : finalAllocations
+          , spillage = (startLine i, (Push, selReg spill)) : (endLine spill - 1, (Pop, selReg spill)) : spillage
+          , active = nub $ sortOn endLine (newi : (active \\ [spill]))
+          }
+  else
+    put st{finalAllocations = i{location = Just stack} : finalAllocations }
 
 testInstructions :: [Instruction]
 testInstructions =
-  [ Load CAl 4 (Imm 0) True (Imm 0) -- l0
-  , Load CAl 5 (Imm 1) True (Imm 0) -- l1
-  , Load CAl 6 (Imm 2) True (Imm 0) -- l2
-  , Op   CAl AddOp 7 4 (Reg 5) -- l3
-  , Op   CAl AddOp 8 7 (Reg 6) -- l4
+  [ Load CAl 4 (Imm 0) True (Imm 0) -- l0  -- ldr r4, #0
+  , Load CAl 5 (Imm 1) True (Imm 0) -- l1  -- ldr r5, #1
+  , Load CAl 6 (Imm 2) True (Imm 0) -- l2  -- ldr r6, #2
+  , Load CAl 7 (Imm 3) True (Imm 0) -- l2  -- ldr r6, #2
+  , Op   CAl AddOp 8 4 (Reg 5) -- l3  -- add r7, r4, r5
+  , Op   CAl AddOp 9 8 (Reg 6) -- l4  -- add r8, r7, r6
+  , Load CAl 10 (Imm 5) True (Imm 0)
+  , Op   CAl AddOp 11 10 (Reg 4)
+  , Op   CAl AddOp 12 5 (Reg 5)
+  , Op   CAl AddOp 13 4 (Reg 6)
+  , Op   CAl AddOp 14 7 (Reg 6)
   ]
 
 runLSRA = allocateFuncRegisters
 
 allocateFuncRegisters :: [Instruction] -> [Instruction]
 allocateFuncRegisters p
-  = map (replaceRegister allocs) p
+  = reverse . snd $ foldl f (0, []) (map (replaceRegister allocs) p)
   where
     final = (execState . unLSRA) allocateLSRA (initialLSRAState p)
     instrs = instructions final
+    spills = spillage final
     allocs = finalAllocations final
+    f (i, acc) instr
+      = case lookup i spills of
+          Nothing -> (i + 1, instr : acc)
+          Just (fi, reg) -> (i + 1, instr : fi CAl [reg] : acc)

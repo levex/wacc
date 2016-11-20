@@ -1,4 +1,3 @@
-{-# LANGUAGE RecursiveDo #-}
 module WACC.CodeGen where
 
 import           Debug.Trace
@@ -13,14 +12,13 @@ import           WACC.CodeGen.Functions
 import           WACC.CodeGen.Emit
 import           WACC.CodeGen.InstructionGen
 import           WACC.CodeGen.LinearScanRegisterAlloc
-
 import           WACC.CodeGen.ARM.CallingConvention
 import           WACC.CodeGen.ARM.Emit
 
 generateCode :: Program -> String
 generateCode p
   = flip evalState codeGenState . runCodeGen $ do
-      instructions <- generateInstructions p
+      instructions <- allocateFuncRegisters <$> generateInstructions p
       builtins <- gets usedBuiltins
       builtinInstructions <- generateBuiltins builtins
       liftM concat . sequence $
