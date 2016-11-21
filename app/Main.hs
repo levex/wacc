@@ -32,7 +32,7 @@ main = do
             putStrLn "\n----------------------------\n"
             let code = generateCode p
             putStrLn code
-            --writeFile (takeFileName (replaceExtension file ".s")) code
+            writeFile (takeFileName (replaceExtension file ".s")) code
             exitSuccess
     main' _ = putStrLn "Usage: ./wacc <filename>"
 
