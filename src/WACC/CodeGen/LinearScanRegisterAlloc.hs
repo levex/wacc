@@ -95,6 +95,11 @@ analyzeAccess r (Load _ rd (Reg r1) _ (Reg r2))
   | r == r1 || r == r2 = RRead
   | otherwise          = RIgnore
 
+analyzeAccess r (Load _ rd (Reg r1) _ _)
+  | r == rd            = RWrite
+  | r == r1            = RRead
+  | otherwise          = RIgnore
+
 analyzeAccess r (Load _ rd _ _ _)
   | r == rd            = RWrite
   | otherwise          = RIgnore
@@ -118,8 +123,9 @@ analyzeAccess r (Move _ rd _)
   | r == rd            = RWrite
   | otherwise          = RIgnore
 
-analyzeAccess r (Shift _ r1 r2 _ _)
-  | r == r1 || r == r2 = RRead      --- FIXME: is this correct?
+analyzeAccess r (Shift _ rd r1 _ _)
+  | r == rd            = RWrite
+  | r == r1            = RRead
   | otherwise          = RIgnore
 
 analyzeAccess r (Negate _ rd (Reg r1))
