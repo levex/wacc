@@ -115,13 +115,9 @@ data ShiftType
 data SpecialLink
   = FunctionStart Identifier
   | SectionStart  String
-  | FunctionCall  Identifier [Register]
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
   | LabelDecl     Identifier
-  | Alloc         Register Int
-  | SWI           Int
-  | Ret           Operand
   deriving (Eq, Show)
 
 data Instruction
@@ -136,6 +132,8 @@ data Instruction
   | Branch Condition Operand
   | BranchLink Condition Operand
   | Compare Condition Register Operand
+  | SWI Int
+  | Ret Operand
   | Special SpecialLink
   | PureAsm [String]
   deriving (Eq, Show)

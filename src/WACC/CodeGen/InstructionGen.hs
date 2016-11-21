@@ -104,7 +104,7 @@ generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
-  tell [Special $ Ret (Reg r1)]
+  tell [Ret (Reg r1)]
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
@@ -196,7 +196,7 @@ generateInstrForExpr r fc@(FunCall _ _) = do
   generateInstrForFunCall fc
   tell [Move CAl r (Reg r0)]
 generateInstrForExpr r (NewPair e1 e2) = do
-  tell [Special $ Alloc r 8]
+  generateInstrForAlloc r 8
   r1 <- getFreeRegister
   generateInstrForExpr r1 e1
   tell [Store CAl r1 r True (Imm 0)]
@@ -214,6 +214,12 @@ generateInstrForFunCall (FunCall id args) = do
   tell [BranchLink CAl (Label id)]
   tell [Op CAl AddOp SP SP (Imm $ length args * 4)]
 
+generateInstrForAlloc :: Register -> Int -> InstructionGenerator ()
+generateInstrForAlloc r size = do
+  generateInstrForFunCall (FunCall "__builtin_Alloc"
+    [Lit (INT (fromIntegral size))])
+  tell [Move CAl r (Reg r0)]
+
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
   = tell [Load CAl r (Imm $ fromInteger i) True (Imm 0)]
@@ -226,7 +232,7 @@ generateLiteral r (STR s) = do
   tell [Special $ StringLit l s, Load CAl r (Label l) True (Imm 0)]
 generateLiteral r (ARRAY exprs) = do
   let arrLen = length exprs
-  tell [Special $ Alloc r ((arrLen + 1) * 4)]
+  generateInstrForAlloc r ((arrLen + 1) * 4)
   r1 <- getFreeRegister
   tell [Move CAl r1 (Imm arrLen), Store CAl r1 r True (Imm 0)]
   forM_ (zip [1..] exprs) $ \(i, e) -> do
@@ -238,7 +244,7 @@ generateLiteral r NULL
 
 generateImplicitReturn :: Identifier -> InstructionGenerator ()
 generateImplicitReturn "main"
-  = tell [Special $ Ret (Imm 0)]
+  = tell [Ret (Imm 0)]
 generateImplicitReturn _
   = skip
 

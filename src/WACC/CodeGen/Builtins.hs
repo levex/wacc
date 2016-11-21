@@ -101,6 +101,13 @@ generateBuiltinCall "__builtin_Exit" =
        , BranchLink CAl (Label "exit")
        ]
 
+generateBuiltinCall "__builtin_Alloc" =
+  tell [ Special (FunctionStart "__builtin_Alloc")
+       , Load       CAl r0 (Reg SP) True (Imm 4)
+       , BranchLink CAl (Label "malloc")
+       , Pop        CAl [PC]
+       ]
+
 generateBuiltinCall "__builtin_Free" =
   tell [ Special (FunctionStart "__builtin_Free")
        , Load       CAl r0 (Reg SP) True (Imm 4)

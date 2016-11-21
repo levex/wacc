@@ -46,23 +46,8 @@ instance Emit Instruction where
         ++ concatMap emit [Special (LabelDecl label),
                      Push CAl [LR]]
 
-  emit (Special (SWI i))
-    = ["swi #", show i, "\n"]
-
   emit (Special (LabelDecl l))
     = [l, ":\n"]
-
-  emit (Special (Alloc r b)) = concatMap emit
-      [ Move CAl r0 (Imm b),
-        BranchLink CAl (Label "malloc"),
-        Move CAl r (Reg r0) ]
-
-  emit (Special (Ret op)) = concatMap emit
-      [ Move CAl r0 op,
-        Pop CAl [LR] ]
-
-  emit (Special (FunctionCall id regs)) = concatMap emit
-      [ BranchLink CAl (Label id) ]
 
   emit (Special (SectionStart str))
     = [".section ", str, "\n"]
@@ -145,6 +130,13 @@ instance Emit Instruction where
       case op1 of
         Reg rm -> [intercalate ", " $ map nameForReg [rt, rn, rm],"\n"]
         Imm i  -> [nameForReg rt, ", ", nameForReg rn, ", #", show i,"\n"]
+
+  emit (SWI i)
+    = ["swi #", show i, "\n"]
+
+  emit (Ret op) = concatMap emit
+      [ Move CAl r0 op,
+        Pop CAl [PC] ]
 
   emit (PureAsm ss)
     = ss
