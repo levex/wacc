@@ -216,6 +216,7 @@ generateInstrForFunCall (FunCall id args) = do
 
 generateInstrForAlloc :: Register -> Int -> InstructionGenerator ()
 generateInstrForAlloc r size = do
+  saveBuiltinId "__builtin_Alloc"
   generateInstrForFunCall (FunCall "__builtin_Alloc"
     [Lit (INT (fromIntegral size))])
   tell [Move CAl r (Reg r0)]
