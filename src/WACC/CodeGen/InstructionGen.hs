@@ -20,6 +20,10 @@ getFreeRegister = do
   put s{lastRegister = lastRegister + 1}
   return lastRegister
 
+resetFreeRegisters :: InstructionGenerator ()
+resetFreeRegisters
+  = modify (\s@CodeGenState{..} -> s{lastRegister = 0})
+
 getRegById :: Identifier -> InstructionGenerator Register
 getRegById i
   = gets scopeId >>= getRegById' i
@@ -206,7 +210,9 @@ generateInstrForFunCall (FunCall id args) = do
     r1 <- getFreeRegister
     generateInstrForExpr r1 e
     return r1
-  tell [Special $ FunctionCall id regs]
+  mapM_ (\r -> tell [Push CAl [r]]) regs
+  tell [BranchLink CAl (Label id)]
+  tell [Op CAl AddOp 13 13 (Imm $ length args * 4)] -- FIXME hardcoded sp register
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
@@ -238,9 +244,12 @@ generateImplicitReturn _
 
 generateFunction :: Definition -> InstructionGenerator ()
 generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
+  resetFreeRegisters
   tell [Special $ FunctionStart ident]
-  forM_ (zip [0..3] paramTs) $ \(i, (id, _)) ->
-    saveRegId i id
+  forM_ (zip [0..] paramTs) $ \(i, (id, _)) -> do
+    r <- getFreeRegister
+    tell [Load CAl r (Reg 13) True (Imm $ i * 4)] -- FIXME hardcoded sp register
+    saveRegId r id
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident
 
