@@ -6,6 +6,7 @@ import           System.Exit
 
 import           WACC.Parser
 import           WACC.Semantics
+import           WACC.Optimizations
 import           WACC.CodeGen
 
 -- FIXME: this needs rewriting to use >>=
@@ -30,7 +31,7 @@ main = do
             putStrLn ""
             print p
             putStrLn "\n----------------------------\n"
-            let code = generateCode p
+            let code = generateCode (optimizeProgram p)
             putStrLn code
             writeFile (takeFileName (replaceExtension file ".s")) code
             exitSuccess
