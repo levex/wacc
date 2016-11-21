@@ -98,6 +98,7 @@ generateBuiltinCall "__builtin_PrintLn" =
 
 generateBuiltinCall "__builtin_Exit" =
   tell [ Special (FunctionStart "__builtin_Exit")
+       , Load       CAl r0 (Reg SP) True (Imm 4)
        , BranchLink CAl (Label "exit")
        ]
 
