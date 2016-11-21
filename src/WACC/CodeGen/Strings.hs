@@ -12,7 +12,7 @@ emitString :: Identifier -> String -> CodeGenerator String
 emitString id str
   = return $ concat ["  ", id, ":\n",
                      "    ", ".word ", show . length $ str, "\n",
-                     "    ", ".asciz \"", str, "\"\n"]
+                     "    ", ".asciz ", show str, "\n"]
 
 emitStringLiteral :: Instruction -> CodeGenerator String
 emitStringLiteral (Special (StringLit id str))
