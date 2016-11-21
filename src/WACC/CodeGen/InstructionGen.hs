@@ -45,8 +45,8 @@ increaseScope
   = modify (\s@CodeGenState{..} -> s{scopeId = scopeId + 1})
 
 decreaseScope :: InstructionGenerator ()
-decreaseScope
-  = modify (\s@CodeGenState{..} -> s{scopeId = scopeId - 1})
+decreaseScope = modify (\s@CodeGenState{..} -> s{scopeId = scopeId - 1,
+  regIdsTable = Map.filterWithKey (\(_, sId) _ -> sId < scopeId) regIdsTable})
 
 scoped :: InstructionGenerator a -> InstructionGenerator a
 scoped p
