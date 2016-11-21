@@ -291,7 +291,7 @@ calcLiveRange r line ins@(analyzeAccess r -> RRead) = do
   st@LSRAState{..} <- get
   let mran = lookup r (liveRangeMap <$> lranges)
   case mran of
-    Nothing -> error "invalid register access"
+    Nothing -> if r == 13 then return () else error ("ins " ++ show ins ++ " has invalid register access")
     Just range -> put st{lranges = range{endLine = line} : delete range lranges}
 calcLiveRange _ _ _ = return ()
 
