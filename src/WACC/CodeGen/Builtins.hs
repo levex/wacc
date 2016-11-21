@@ -17,20 +17,22 @@ generateBuiltins
 generateBuiltinCall :: Identifier -> InstructionGenerator ()
 generateBuiltinCall "__builtin_Read_TChar" =
   tell [ Special (FunctionStart "__builtin_Read_TChar")
-       , Load       CAl r1 (Reg SP) True (Imm 4)
+       , Op         CAl SubOp r1 SP (Imm 4)
        , Load       CAl r0 (Label "__builtin_fmt_read_char") True (Imm 0)
        , Op         CAl AddOp r0 r0 (Imm 4)
        , BranchLink CAl (Label "scanf")
+       , Load       CAl r0 (Reg SP) True (Imm $ -4)
        , Pop        CAl [PC]
        ]
 
 -- __builtin_fmt_read_int = " %d\0"
 generateBuiltinCall "__builtin_Read_TInt" =
   tell [ Special (FunctionStart "__builtin_Read_TInt")
-       , Load       CAl r1 (Reg SP) True (Imm 4)
+       , Op         CAl SubOp r1 SP (Imm 4)
        , Load       CAl r0 (Label "__builtin_fmt_read_int") True (Imm 0)
        , Op         CAl AddOp r0 r0 (Imm 4)
        , BranchLink CAl (Label "scanf")
+       , Load       CAl r0 (Reg SP) True (Imm $ -4)
        , Pop        CAl [PC]
        ]
 

@@ -7,6 +7,7 @@ import           Data.Char
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import           Data.Maybe
+import           Data.List
 import           Control.Monad
 import           Control.Monad.State
 import           Control.Monad.Writer
@@ -97,8 +98,12 @@ generateInstrForStatement (Loop e b) = do
   tell [Special $ LabelDecl endLabel]
 generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs))
   = generateAssignment lhs rhs
-generateInstrForStatement (ExpStmt builtinCall@(FunCall id _))
-  = generateInstrForFunCall builtinCall >> saveBuiltinId id
+generateInstrForStatement (ExpStmt builtinCall@(FunCall id args)) = do
+  if "__builtin_Read_" `isPrefixOf` id then
+    generateAssignment (head args) builtinCall
+  else
+    generateInstrForFunCall builtinCall
+  when ("__builtin_" `isPrefixOf` id) $ saveBuiltinId id
 
 generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
