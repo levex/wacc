@@ -22,10 +22,10 @@ emitStringLiteral _
 
 emitBuiltinString :: Identifier -> CodeGenerator String
 emitBuiltinString "__builtin_Read_TChar"
-  = emitString "__builtin_fmt_read_char" " \"%c\\0\""
+  = emitString "__builtin_fmt_read_char" "\" %c\\0\""
 
 emitBuiltinString "__builtin_Read_TInt"
-  = emitString "__builtin_fmt_read_int" " \"%d\\0\""
+  = emitString "__builtin_fmt_read_int" "\"%d\\0\""
 
 emitBuiltinString "__builtin_Print_TInt"
   = emitString "__builtin_fmt_int" "\"%d\""
