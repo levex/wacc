@@ -343,7 +343,9 @@ spillAtInterval i = do
   if (endLine spill > endLine i) then do
     let newi = i{registerNew = Just $ selReg spill}
     put st{ finalAllocations = newi : spill{location = Just stack} : finalAllocations
-          , spillage = (startLine i, (Push, selReg spill)) : (endLine spill - 1, (Pop, selReg spill)) : spillage
+          , spillage = (startLine i, (Push, selReg spill))
+                        : (endLine spill - 1, (Pop, selReg spill))
+                          : spillage
           , active = nub $ sortOn endLine (newi : (active \\ [spill]))
           }
   else
