@@ -23,7 +23,7 @@ import           WACC.CodeGen.Types
 
 --  http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
 
-availableRegisters = map R [4..8]
+availableRegisters = map R [4..12]
 
 data LiveRange = LiveRange
   { registerOld  :: Register
