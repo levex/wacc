@@ -1,10 +1,7 @@
 all:
-	cabal update
-	cabal install --dependencies-only
-	cabal configure
-	cabal install
+	stack build
 
 clean:
-	cabal clean
+	stack clean
 
 .PHONY: all clean
