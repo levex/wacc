@@ -5,11 +5,7 @@ import           WACC.Parser.Types
 import           WACC.Optimizations.Types
 import           WACC.Optimizations.Expressions
 
-optimize :: Program -> Program
-optimize p
-  = (evalState . runOptimizer) (optimizeProgram p) OptimizerState
-  where
-    optimizeProgram :: Program -> Optimizer Program
-    optimizeProgram p = do
-      minimizeExpressions p
+optimizeProgram :: Program -> Program
+optimizeProgram p = (flip evalState OptimizerState . runOptimizer) $ do
+  minimizeExpressions p
 
