@@ -73,6 +73,7 @@ generateInstrForStatement (Cond e t f) = do
   afterCondLabel <- generateLabel
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
+  tell [Compare CAl r1 (Imm 0)]
   tell [Branch CEq $ Label elseLabel]
   generateInstrForStatement t
   tell [Branch CAl $ Label afterCondLabel]
@@ -85,6 +86,7 @@ generateInstrForStatement (Loop e b) = do
   r1 <- getFreeRegister
   tell [Special $ LabelDecl beginLabel]
   generateInstrForExpr r1 e
+  tell [Compare CAl r1 (Imm 0)]
   tell [Branch CEq $ Label endLabel]
   generateInstrForStatement b
   tell [Branch CAl $ Label beginLabel]
