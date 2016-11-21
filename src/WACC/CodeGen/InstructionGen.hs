@@ -212,7 +212,7 @@ generateInstrForFunCall (FunCall id args) = do
     return r1
   mapM_ (\r -> tell [Push CAl [r]]) regs
   tell [BranchLink CAl (Label id)]
-  tell [Op CAl AddOp SP SP (Imm $ length args * 4)]
+  when (not . null $ args) $ tell [Op CAl AddOp SP SP (Imm $ length args * 4)]
 
 generateInstrForAlloc :: Register -> Int -> InstructionGenerator ()
 generateInstrForAlloc r size = do
