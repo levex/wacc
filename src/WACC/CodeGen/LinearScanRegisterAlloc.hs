@@ -385,9 +385,21 @@ allocateFuncRegisters p
   where
     final = (execState . unLSRA) allocateLSRA (initialLSRAState p)
     instrs = instructions final
+    usedRegs = sort . nub . catMaybes . map registerNew $ allocs
     spills = spillage final
     allocs = finalAllocations final
     f (i, acc) instr
       = case lookup i spills of
-          Nothing -> (i + 1, instr : acc)
-          Just (fi, reg) -> (i + 1, instr : fi CAl [reg] : acc)
+          Nothing -> (i + 1, fixStackAccessses instr ++ acc)
+          Just (fi, reg) ->
+            (i + 1, fixStackAccessses instr ++ (fi CAl [reg] : acc))
+    fixStackAccesses i@(Special (FunctionStart _))
+      = [Push CAl usedRegs, i] -- reverse due to foldl
+    fixStackAccesses (Load c r (Reg SP) plus (Imm i))
+      = [Load c r (Reg SP) plus (Imm (i + (length usedRegs * 4)))]
+    fixStackAccessses (Store c r SP plus (Imm i))
+      = [Store c r SP plus (Imm (i + (length usedRegs * 4)))]
+    fixStackAccessses i@(Ret _)
+      = [i, Pop CAl usedRegs] -- reverse due to foldl
+    fixStackAccessses i
+      = [i]
