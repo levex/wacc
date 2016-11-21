@@ -390,16 +390,16 @@ allocateFuncRegisters p
     allocs = finalAllocations final
     f (i, acc) instr
       = case lookup i spills of
-          Nothing -> (i + 1, fixStackAccessses instr ++ acc)
+          Nothing -> (i + 1, fixStackAccesses instr ++ acc)
           Just (fi, reg) ->
-            (i + 1, fixStackAccessses instr ++ (fi CAl [reg] : acc))
+            (i + 1, fixStackAccesses instr ++ (fi CAl [reg] : acc))
     fixStackAccesses i@(Special (FunctionStart _))
       = [Push CAl usedRegs, i] -- reverse due to foldl
     fixStackAccesses (Load c r (Reg SP) plus (Imm i))
       = [Load c r (Reg SP) plus (Imm (i + (length usedRegs * 4)))]
-    fixStackAccessses (Store c r SP plus (Imm i))
+    fixStackAccesses (Store c r SP plus (Imm i))
       = [Store c r SP plus (Imm (i + (length usedRegs * 4)))]
-    fixStackAccessses i@(Ret _)
+    fixStackAccesses i@(Ret _)
       = [i, Pop CAl usedRegs] -- reverse due to foldl
-    fixStackAccessses i
+    fixStackAccesses i
       = [i]
