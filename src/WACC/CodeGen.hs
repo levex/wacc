@@ -18,7 +18,8 @@ import           WACC.CodeGen.ARM.Emit
 generateCode :: Program -> String
 generateCode p
   = flip evalState codeGenState . runCodeGen $ do
-      instructions <- allocateFuncRegisters <$> generateInstructions p
+      functions <- generateInstructions p
+      let instructions = concatMap allocateFuncRegisters functions
       builtins <- gets usedBuiltins
       builtinInstructions <- generateBuiltins builtins
       liftM concat . sequence $

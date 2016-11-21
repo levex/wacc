@@ -253,6 +253,6 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident
 
-generateInstructions :: Program -> CodeGenerator [Instruction]
+generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
-  = execWriterT . mapM generateFunction
+  = mapM (execWriterT . generateFunction)
