@@ -22,7 +22,7 @@ getFreeRegister = do
 
 resetFreeRegisters :: InstructionGenerator ()
 resetFreeRegisters
-  = modify (\s@CodeGenState{..} -> s{lastRegister = 0})
+  = modify (\s@CodeGenState{..} -> s{lastRegister = 4})
 
 getRegById :: Identifier -> InstructionGenerator Register
 getRegById i
