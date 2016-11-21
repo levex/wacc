@@ -17,7 +17,7 @@ class Emit a where
   emit :: a -> [String]
 
 data CodeGenState = CodeGenState
-  { lastRegister :: Register,
+  { lastRegister :: Int,
     lastLabelId :: Integer,
     regIdsTable :: Map (Identifier, Integer) Register,
     scopeId :: Integer,
@@ -75,11 +75,18 @@ data Condition
   | CLe -- signed Lt or Equal
   deriving (Eq, Show)
 
-type Register = Int
+data Register
+  = R Int
+  | SP
+  | LR
+  | PC
+  deriving (Eq, Ord)
 
-registers :: Int -> [Register]
-registers
-  = flip take $ iterate (+ 1) 0
+instance Show Register where
+  show (R r)  = "r" ++ show r
+  show SP     = "sp"
+  show LR     = "lr"
+  show PC     = "pc"
 
 data Operand
   = Imm Int
@@ -135,3 +142,8 @@ data Instruction
 
 skip :: Monad m => m ()
 skip = return ()
+
+r0 = R 0
+r1 = R 1
+r2 = R 2
+r3 = R 3

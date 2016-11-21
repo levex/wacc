@@ -29,17 +29,17 @@ import           WACC.CodeGen.Types
 -- replaceRegister and the liveRange calculation is nice as is, don't touch it
 -- please. -L
 
-availableRegisters = [4..8]
+availableRegisters = map R [4..8]
 
 data LiveRange = LiveRange
-  { registerOld  :: Int
-  , registerNew  :: Maybe Int
+  { registerOld  :: Register
+  , registerNew  :: Maybe Register
   , startLine    :: Int
   , endLine      :: Int
   , location     :: Maybe Int
   } deriving (Eq, Show)
 
-selReg :: LiveRange -> Int
+selReg :: LiveRange -> Register
 selReg lr = case location lr of
   Nothing -> case registerNew lr of
     Nothing -> registerOld lr
@@ -278,7 +278,7 @@ collectRegisters _ = []
 ----------
 
 calcLiveRange :: Register -> Int -> Instruction -> LSRA ()
-calcLiveRange r line ins@(analyzeAccess r -> RWrite) = do
+calcLiveRange r@(R _) line ins@(analyzeAccess r -> RWrite) = do
   st@LSRAState{..} <- get
   let mran = lookup r (liveRangeMap <$> lranges)
   case mran of
@@ -287,11 +287,11 @@ calcLiveRange r line ins@(analyzeAccess r -> RWrite) = do
                 , endLine = line, location = Nothing
                 } : lranges}
     Just range -> put st{lranges = range{endLine = line} : delete range lranges}
-calcLiveRange r line ins@(analyzeAccess r -> RRead) = do
+calcLiveRange r@(R _) line ins@(analyzeAccess r -> RRead) = do
   st@LSRAState{..} <- get
   let mran = lookup r (liveRangeMap <$> lranges)
   case mran of
-    Nothing -> if r == 13 then return () else error ("ins " ++ show ins ++ " has invalid register access")
+    Nothing -> error "invalid register access"
     Just range -> put st{lranges = range{endLine = line} : delete range lranges}
 calcLiveRange _ _ _ = return ()
 
@@ -299,9 +299,9 @@ allocateLSRA :: LSRA ()
 allocateLSRA = mdo
   -- calculate live ranges
   ins <- gets instructions
-  let usedRegs = maximum $ concatMap collectRegisters ins
+  let usedRegs = maximum [r | R r <- concatMap collectRegisters ins]
   forM_ (zip [0..] ins) $ \(i, instr) ->
-    forM_ [0..(usedRegs + 1)] $ \r -> calcLiveRange r i instr
+    forM_ (map R [0..(usedRegs + 1)]) $ \r -> calcLiveRange r i instr
   -- start LSRA
   lr <- sortOn startLine <$> gets lranges
   forM_ lr $ \i -> do
@@ -353,17 +353,17 @@ spillAtInterval i = do
 
 testInstructions :: [Instruction]
 testInstructions =
-  [ Load CAl 4 (Imm 0) True (Imm 0) -- l0  -- ldr r4, #0
-  , Load CAl 5 (Imm 1) True (Imm 0) -- l1  -- ldr r5, #1
-  , Load CAl 6 (Imm 2) True (Imm 0) -- l2  -- ldr r6, #2
-  , Load CAl 7 (Imm 3) True (Imm 0) -- l2  -- ldr r6, #2
-  , Op   CAl AddOp 8 4 (Reg 5) -- l3  -- add r7, r4, r5
-  , Op   CAl AddOp 9 8 (Reg 6) -- l4  -- add r8, r7, r6
-  , Load CAl 10 (Imm 5) True (Imm 0)
-  , Op   CAl AddOp 11 10 (Reg 4)
-  , Op   CAl AddOp 12 5 (Reg 5)
-  , Op   CAl AddOp 13 4 (Reg 6)
-  , Op   CAl AddOp 14 7 (Reg 6)
+  [ Load CAl (R 4) (Imm 0) True (Imm 0) -- l0  -- ldr r4, #0
+  , Load CAl (R 5) (Imm 1) True (Imm 0) -- l1  -- ldr r5, #1
+  , Load CAl (R 6) (Imm 2) True (Imm 0) -- l2  -- ldr r6, #2
+  , Load CAl (R 7) (Imm 3) True (Imm 0) -- l2  -- ldr r6, #2
+  , Op   CAl AddOp (R 8) (R 4) (Reg (R 5)) -- l3  -- add r7, r4, r5
+  , Op   CAl AddOp (R 9) (R 8) (Reg (R 6)) -- l4  -- add r8, r7, r6
+  , Load CAl (R 10) (Imm 5) True (Imm 0)
+  , Op   CAl AddOp (R 11) (R 10) (Reg (R 4))
+  , Op   CAl AddOp (R 12) (R 5) (Reg (R 5))
+  , Op   CAl AddOp (R 13) (R 4) (Reg (R 6))
+  , Op   CAl AddOp (R 14) (R 7) (Reg (R 6))
   ]
 
 runLSRA = allocateFuncRegisters

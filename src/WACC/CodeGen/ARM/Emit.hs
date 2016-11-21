@@ -9,24 +9,6 @@ import WACC.CodeGen.Types
 import WACC.Parser.Types hiding (Add, Sub, Mul, Div)
 import WACC.Semantics.Types
 
-regNames :: [(Register, String)]
-regNames = [ (0, "r0")
-           , (1, "r1")
-           , (2, "r2")
-           , (3, "r3")
-           , (4, "r4")
-           , (5, "r5")
-           , (6, "r6")
-           , (7, "r7")
-           , (8, "r8")
-           , (9, "r9")
-           , (10, "r10")
-           , (11, "r11")
-           , (12, "r12")
-           , (13, "sp")
-           , (14, "lr")
-           , (15, "pc")]
-
 conditions :: [(Condition, String)]
 conditions = [ (CAl, "")
             ,  (CEq, "eq")
@@ -53,7 +35,7 @@ opTable = [ (AddOp, "add")
           , (AndOp, "and")]
 
 nameForReg :: Register -> String
-nameForReg r = fromMaybe ("t_" ++ show r) $ lookup r regNames
+nameForReg = show
 
 genCond :: Condition -> String -> String
 genCond = flip (++) . fromJust . flip lookup conditions
@@ -62,7 +44,7 @@ instance Emit Instruction where
   emit (Special (FunctionStart label))
     = [".globl ", label, "\n"]
         ++ concatMap emit [Special (LabelDecl label),
-                     Push CAl [14]]
+                     Push CAl [LR]]
 
   emit (Special (SWI i))
     = ["swi #", show i, "\n"]
@@ -71,13 +53,13 @@ instance Emit Instruction where
     = [l, ":\n"]
 
   emit (Special (Alloc r b)) = concatMap emit
-      [ Move CAl 0 (Imm b),
+      [ Move CAl r0 (Imm b),
         BranchLink CAl (Label "malloc"),
-        Move CAl r (Reg 0) ]
+        Move CAl r (Reg r0) ]
 
   emit (Special (Ret op)) = concatMap emit
-      [ Move CAl 0 op,
-        Pop CAl [15] ]
+      [ Move CAl r0 op,
+        Pop CAl [LR] ]
 
   emit (Special (FunctionCall id regs)) = concatMap emit
       [ BranchLink CAl (Label id) ]
@@ -97,7 +79,7 @@ instance Emit Instruction where
             Reg rm -> [nameForReg rt, ", [", nameForReg rn, ", ",
                         if plus then "" else "-", nameForReg rm, "]\n"]
             Imm 0  -> [nameForReg rt, ", [", nameForReg rn, "]\n"]
-            Imm i2 -> [nameForReg rt, ", [", nameForReg rn, " ",
+            Imm i2 -> [nameForReg rt, ", [", nameForReg rn, ", ",
                                                   "#", show i2, "]\n"]
 
   emit (Move c rt op1)
@@ -143,18 +125,20 @@ instance Emit Instruction where
         Imm i  -> [nameForReg rt, ", [", nameForReg rn, ", #", show i, "]\n"]
 
   emit (Op c ModOp rt rn op1) = concatMap emit
-      [ Push c [0, 1]
-      , Move c 0 (Reg rn) -- FIXME: see DivOp and unify these
-      , Move c 1 op1
+      [ Push c [r0, r1]
+      , Move c r0 (Reg rn) -- FIXME: see DivOp and unify these
+      , Move c r1 op1
       , BranchLink c (Label "__aeabi_idivmod")
-      , Move c rt (Reg 0)]
+      , Move c rt (Reg r0)
+      , Pop c [r0, r1]]
 
   emit (Op c DivOp rt rn op1) = concatMap emit
-      [ Push c [0, 1]
-      , Move c 0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
-      , Move c 1 op1
+      [ Push c [r0, r1]
+      , Move c r0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
+      , Move c r1 op1
       , BranchLink c (Label "__aeabi_idiv")
-      , Move c rt (Reg 0)]
+      , Move c rt (Reg r0)
+      , Pop c [r0, r1]]
 
   emit (Op c op rt rn op1)
     = [genCond c (fromJust $ lookup op opTable), " "] ++
