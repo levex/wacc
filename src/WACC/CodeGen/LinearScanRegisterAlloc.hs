@@ -21,13 +21,7 @@ import           Control.Monad.Trans.Either
 import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
--- READ BEFORE COMPLAINING:
 --  http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
---
--- If you complain, fix it and come up with a better solution.
--- Yeah the monad part is fugly. I'll have a look at it later.
--- replaceRegister and the liveRange calculation is nice as is, don't touch it
--- please. -L
 
 availableRegisters = map R [4..8]
 
