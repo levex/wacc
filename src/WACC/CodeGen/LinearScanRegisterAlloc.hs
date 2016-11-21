@@ -381,7 +381,8 @@ runLSRA = allocateFuncRegisters
 
 allocateFuncRegisters :: [Instruction] -> [Instruction]
 allocateFuncRegisters p
-  = reverse . snd $ foldl f (0, []) (map (replaceRegister allocs) p)
+  | null (concatMap collectRegisters p) = p
+  | otherwise = reverse . snd $ foldl f (0, []) (map (replaceRegister allocs) p)
   where
     final = (execState . unLSRA) allocateLSRA (initialLSRAState p)
     instrs = instructions final
