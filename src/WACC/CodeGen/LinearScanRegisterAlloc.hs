@@ -288,6 +288,7 @@ collectRegisters _ = []
 ----------
 
 calcLiveRange :: Register -> Int -> Instruction -> LSRA ()
+calcLiveRange (R 0) _ _ = return ()
 calcLiveRange r@(R _) line ins@(analyzeAccess r -> RWrite) = do
   st@LSRAState{..} <- get
   let mran = lookup r (liveRangeMap <$> lranges)
