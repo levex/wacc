@@ -26,6 +26,11 @@ conditions = [ (CAl, "")
             ,  (CGt, "gt")
             ,  (CLe, "le") ]
 
+sizes :: [(MemAccessType, String)]
+sizes = [ (Byte,      "b")
+        , (HalfWord,  "h")
+        , (Word,      "") ]
+
 opTable :: [(Operation, String)]
 opTable = [ (AddOp, "add")
           , (SubOp, "sub")
@@ -37,8 +42,14 @@ opTable = [ (AddOp, "add")
 nameForReg :: Register -> String
 nameForReg = show
 
+genModifier :: Eq a => [(a, String)] -> a -> String -> String
+genModifier t = flip (++) . fromJust . flip lookup t
+
 genCond :: Condition -> String -> String
-genCond = flip (++) . fromJust . flip lookup conditions
+genCond = genModifier conditions
+
+genSize :: MemAccessType -> String -> String
+genSize = genModifier sizes
 
 instance Emit Instruction where
   emit (Special (FunctionStart label))
@@ -55,8 +66,8 @@ instance Emit Instruction where
   emit (Special _)
     = []
 
-  emit (Load c rt op1 plus op2)
-    = [genCond c "ldr", " "] ++
+  emit (Load c m rt op1 plus op2)
+    = [genCond c (genSize m "ldr"), " "] ++
         case op1 of
           Imm i   -> [nameForReg rt, ", =", show i, "\n"]
           Label l -> [nameForReg rt, ", =", l, "\n"]
@@ -101,8 +112,8 @@ instance Emit Instruction where
         Reg rn -> [nameForReg rt, ", ", nameForReg rn, "\n"]
         Imm i  -> [nameForReg rt, ", #", show i, "\n"]
 
-  emit (Store c rt rn plus op2) = do
-    [genCond c "str", " "] ++
+  emit (Store c m rt rn plus op2) = do
+    [genCond c (genSize m "str"), " "] ++
       case op2 of
         Reg rm -> [nameForReg rt, ", [", nameForReg rn, ", ",
                     if plus then "" else "- ", nameForReg rm, "]\n"]

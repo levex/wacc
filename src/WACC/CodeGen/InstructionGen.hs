@@ -113,11 +113,11 @@ generateControl (Return e) = do
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
-  = tell [Load CAl r (Reg r) True (Imm offset)]
+  = tell [Load CAl Word r (Reg r) True (Imm offset)]
 
 generateAddressDeref :: Register -> Register -> InstructionGenerator ()
 generateAddressDeref r offsetR
-  = tell [Load CAl r (Reg r) True (Reg offsetR)]
+  = tell [Load CAl Word r (Reg r) True (Reg offsetR)]
 
 generateArrayIndex :: Register -> Expr -> InstructionGenerator ()
 generateArrayIndex r e = do
@@ -145,14 +145,14 @@ generateAssignment (ArrElem i idxs) e = do
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
   generateArrayIndex r3 lastIdx
-  tell [Store CAl r2 r True (Reg r3)]
+  tell [Store CAl Word r2 r True (Reg r3)]
 generateAssignment (PairElem p i) e = do
   r <- getRegById i
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   case p of
-    Fst -> tell [Store CAl r1 r True (Imm 0)]
-    Snd -> tell [Store CAl r1 r True (Imm 4)]
+    Fst -> tell [Store CAl Word r1 r True (Imm 0)]
+    Snd -> tell [Store CAl Word r1 r True (Imm 4)]
 
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
 generateInstrForExpr r (Lit l)
@@ -176,7 +176,7 @@ generateInstrForExpr r (UnApp op e) = do
   case op of
     Not -> tell [Op CAl XorOp r r1 (Imm 1)]
     Neg -> tell [Negate CAl r (Reg r1)]
-    Len -> tell [Load CAl r (Reg r1) True (Imm 0)]
+    Len -> tell [Load CAl Word r (Reg r1) True (Imm 0)]
     _   -> tell [Move CAl r (Reg r1)] -- Chr and Ord are noops in assembly
 generateInstrForExpr r (BinApp op e1 e2) = do
   r1 <- getFreeRegister
@@ -204,10 +204,10 @@ generateInstrForExpr r (NewPair e1 e2) = do
   generateInstrForAlloc r 8
   r1 <- getFreeRegister
   generateInstrForExpr r1 e1
-  tell [Store CAl r1 r True (Imm 0)]
+  tell [Store CAl Word r1 r True (Imm 0)]
   r2 <- getFreeRegister
   generateInstrForExpr r2 e2
-  tell [Store CAl r2 r True (Imm 4)]
+  tell [Store CAl Word r2 r True (Imm 4)]
 
 generateInstrForFunCall :: Expr -> InstructionGenerator ()
 generateInstrForFunCall (FunCall id args) = do
@@ -228,23 +228,23 @@ generateInstrForAlloc r size = do
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
-  = tell [Load CAl r (Imm $ fromInteger i) True (Imm 0)]
+  = tell [Move CAl r (Imm $ fromInteger i)]
 generateLiteral r (CHAR c)
-  = tell [Load CAl r (Imm $ ord c) True (Imm 0)]
+  = tell [Move CAl r (Imm $ ord c)]
 generateLiteral r (BOOL b)
-  = tell [Load CAl r (Imm $ bool 0 1 b) True (Imm 0)]
+  = tell [Move CAl r (Imm $ bool 0 1 b)]
 generateLiteral r (STR s) = do
   l <- generateLabel
-  tell [Special $ StringLit l s, Load CAl r (Label l) True (Imm 0)]
+  tell [Special $ StringLit l s, Load CAl Word r (Label l) True (Imm 0)]
 generateLiteral r (ARRAY exprs) = do
   let arrLen = length exprs
   generateInstrForAlloc r ((arrLen + 1) * 4)
   r1 <- getFreeRegister
-  tell [Move CAl r1 (Imm arrLen), Store CAl r1 r True (Imm 0)]
+  tell [Move CAl r1 (Imm arrLen), Store CAl Word r1 r True (Imm 0)]
   forM_ (zip [1..] exprs) $ \(i, e) -> do
     r2 <- getFreeRegister
     generateInstrForExpr r2 e
-    tell [Store CAl r2 r True (Imm (i * 4))]
+    tell [Store CAl Word r2 r True (Imm (i * 4))]
 generateLiteral r NULL
   = tell [Move CAl r (Imm 0)]
 
@@ -260,7 +260,7 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   tell [Special $ FunctionStart ident]
   forM_ (zip [0..] paramTs) $ \(i, (id, _)) -> do
     r <- getFreeRegister
-    tell [Load CAl r (Reg SP) True (Imm $ 4 + i * 4)]
+    tell [Load CAl Word r (Reg SP) True (Imm $ 4 + i * 4)]
     saveRegId r id
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident

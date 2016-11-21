@@ -112,6 +112,12 @@ data ShiftType
   | ROR
   deriving (Eq, Show)
 
+data MemAccessType
+  = Byte
+  | HalfWord
+  | Word
+  deriving (Eq, Show)
+
 data SpecialLink
   = FunctionStart Identifier
   | SectionStart  String
@@ -122,8 +128,8 @@ data SpecialLink
 
 data Instruction
   = Op Condition Operation Register Register Operand
-  | Load Condition Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
-  | Store Condition Register Register Bool Operand
+  | Load Condition MemAccessType Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
+  | Store Condition MemAccessType Register Register Bool Operand
   | Move Condition Register Operand
   | Shift Condition Register Register ShiftType Int
   | Negate Condition Register Operand

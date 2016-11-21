@@ -84,26 +84,26 @@ analyzeAccess r (Op _ _ rd r1 _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Load _ rd (Reg r1) _ (Reg r2))
+analyzeAccess r (Load _ _ rd (Reg r1) _ (Reg r2))
   | r == rd            = RWrite
   | r == r1 || r == r2 = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Load _ rd (Reg r1) _ _)
+analyzeAccess r (Load _ _ rd (Reg r1) _ _)
   | r == rd            = RWrite
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Load _ rd _ _ _)
+analyzeAccess r (Load _ _ rd _ _ _)
   | r == rd            = RWrite
   | otherwise          = RIgnore
 
-analyzeAccess r (Store _ rd r1 _ (Reg r2))
+analyzeAccess r (Store _ _ rd r1 _ (Reg r2))
   | r == rd            = RWrite
   | r == r1 || r == r2 = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Store _ rd r1 _ _ )
+analyzeAccess r (Store _ _ rd r1 _ _ )
   | r == rd            = RWrite
   | r == r1            = RRead
   | otherwise          = RIgnore
@@ -176,17 +176,20 @@ replaceRegister rs (Op a b rd r1 (Reg r2))
 replaceRegister rs (Op a b rd r1 c)
   = Op a b (replace' rs rd) (replace' rs r1) c
 
-replaceRegister rs (Load a rd (Reg r1) b (Reg r2))
-  = Load a (replace' rs rd) (Reg (replace' rs r1)) b (Reg (replace' rs r2))
+replaceRegister rs (Load a b rd (Reg r1) c (Reg r2))
+  = Load a b (replace' rs rd) (Reg (replace' rs r1)) c (Reg (replace' rs r2))
 
-replaceRegister rs (Load a rd b c d)
-  = Load a (replace' rs rd) b c d
+replaceRegister rs (Load a b rd (Reg r1) c d)
+  = Load a b (replace' rs rd) (Reg (replace' rs r1)) c d
 
-replaceRegister rs (Store a rd r1 b (Reg r2))
-  = Store a (replace' rs rd) (replace' rs r1) b (Reg (replace' rs r2))
+replaceRegister rs (Load a b rd c d e)
+  = Load a b (replace' rs rd) c d e
 
-replaceRegister rs (Store a rd r1 b c)
-  = Store a (replace' rs rd) (replace' rs r1) b c
+replaceRegister rs (Store a b rd r1 c (Reg r2))
+  = Store a b (replace' rs rd) (replace' rs r1) c (Reg (replace' rs r2))
+
+replaceRegister rs (Store a b rd r1 c d)
+  = Store a b (replace' rs rd) (replace' rs r1) c d
 
 replaceRegister rs (Move a rd (Reg r1))
   = Move a (replace' rs rd) (Reg (replace' rs r1))
@@ -232,16 +235,16 @@ collectRegisters (Op a b rd r1 (Reg r2))
 collectRegisters (Op a b rd r1 c)
   = [rd, r1]
 
-collectRegisters (Load a rd (Reg r1) b (Reg r2))
+collectRegisters (Load a b rd (Reg r1) c (Reg r2))
   = [rd, r1, r2]
 
-collectRegisters (Load a rd b c d)
+collectRegisters (Load a b rd c d e)
   = [rd]
 
-collectRegisters (Store a rd r1 b (Reg r2))
+collectRegisters (Store a b rd r1 c (Reg r2))
   = [rd, r1, r2]
 
-collectRegisters (Store a rd r1 b c)
+collectRegisters (Store a b rd r1 c d)
   = [rd, r1]
 
 collectRegisters (Move a rd (Reg r1))
@@ -358,13 +361,13 @@ spillAtInterval i = do
 
 testInstructions :: [Instruction]
 testInstructions =
-  [ Load CAl (R 4) (Imm 0) True (Imm 0) -- l0  -- ldr r4, #0
-  , Load CAl (R 5) (Imm 1) True (Imm 0) -- l1  -- ldr r5, #1
-  , Load CAl (R 6) (Imm 2) True (Imm 0) -- l2  -- ldr r6, #2
-  , Load CAl (R 7) (Imm 3) True (Imm 0) -- l2  -- ldr r6, #2
+  [ Load CAl Word (R 4) (Imm 0) True (Imm 0) -- l0  -- ldr r4, #0
+  , Load CAl Word (R 5) (Imm 1) True (Imm 0) -- l1  -- ldr r5, #1
+  , Load CAl Word (R 6) (Imm 2) True (Imm 0) -- l2  -- ldr r6, #2
+  , Load CAl Word (R 7) (Imm 3) True (Imm 0) -- l2  -- ldr r6, #2
   , Op   CAl AddOp (R 8) (R 4) (Reg (R 5)) -- l3  -- add r7, r4, r5
   , Op   CAl AddOp (R 9) (R 8) (Reg (R 6)) -- l4  -- add r8, r7, r6
-  , Load CAl (R 10) (Imm 5) True (Imm 0)
+  , Load CAl Word (R 10) (Imm 5) True (Imm 0)
   , Op   CAl AddOp (R 11) (R 10) (Reg (R 4))
   , Op   CAl AddOp (R 12) (R 5) (Reg (R 5))
   , Op   CAl AddOp (R 13) (R 4) (Reg (R 6))
@@ -390,10 +393,10 @@ allocateFuncRegisters p
             (i + 1, fixStackAccesses instr ++ (fi CAl [reg] : acc))
     fixStackAccesses i@(Special (FunctionStart _))
       = [Push CAl usedRegs, i] -- reverse due to foldl
-    fixStackAccesses (Load c r (Reg SP) plus (Imm i))
-      = [Load c r (Reg SP) plus (Imm (i + (length usedRegs * 4)))]
-    fixStackAccesses (Store c r SP plus (Imm i))
-      = [Store c r SP plus (Imm (i + (length usedRegs * 4)))]
+    fixStackAccesses (Load c m r (Reg SP) plus (Imm i))
+      = [Load c m r (Reg SP) plus (Imm (i + (length usedRegs * 4)))]
+    fixStackAccesses (Store c m r SP plus (Imm i))
+      = [Store c m r SP plus (Imm (i + (length usedRegs * 4)))]
     fixStackAccesses i@(Ret _)
       = [i, Pop CAl usedRegs] -- reverse due to foldl
     fixStackAccesses i
