@@ -28,7 +28,7 @@ emitBuiltinString "__builtin_Read_TInt"
   = emitString "__builtin_fmt_read_int" "\"%d\\0\""
 
 emitBuiltinString "__builtin_Print_TInt"
-  = emitString "__builtin_fmt_int" "\"%d\""
+  = emitString "__builtin_fmt_int" "\"%d\\0\""
 
 emitBuiltinString "__builtin_Print_TBool"
   = liftM2 (++)
