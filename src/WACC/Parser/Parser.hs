@@ -130,7 +130,7 @@ decltype
       return $ TPair t1 t2
 
     structType
-      = try $ TStruct <$> (keyword "struct" *> identifier)
+      = try $ (TPtr . TStruct) <$> (keyword "struct" *> identifier)
 
 varDecl :: GenParser Char LocationData Declaration
 varDecl = try $ do
@@ -150,7 +150,7 @@ expr
   = buildExpressionParser operations (wssurrounded term)
   where
     term
-      = parens expr <|> funCall <|> newPair <|> val
+      = parens expr <|> funCall <|> newPair <|> newStruct <|> val
         <|> arrElement <|> pairElement <|> ident
 
 val :: GenParser Char LocationData Expr
@@ -179,6 +179,11 @@ newPair = try $ do
   keyword "newpair"
   (e1, e2) <- pair expr
   return $ NewPair e1 e2
+
+newStruct :: GenParser Char LocationData Expr
+newStruct = try $ do
+  keyword "news"
+  NewStruct <$> identifier
 
 stmt :: GenParser Char LocationData Statement
 stmt

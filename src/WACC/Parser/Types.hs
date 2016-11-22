@@ -76,6 +76,7 @@ data Expr
   | BinApp BinOp Expr Expr
   | FunCall Identifier [Expr]
   | NewPair Expr Expr
+  | NewStruct Identifier
   deriving (Eq, Show)
 
 data Type
@@ -93,6 +94,8 @@ data Type
 
 type Declaration
   = (Identifier, Type)
+
+type Offset = Int
 
 data BuiltinFunc
   = Read
