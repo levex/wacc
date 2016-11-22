@@ -315,9 +315,13 @@ extendLiveRange r ins = do
     extendLiveRange' line ((Special (ScopeBegin s)):ins) Nothing
       = extendLiveRange' (line + 1) ins (Just s)
     extendLiveRange' line ((Special (ScopeEnd s)):ins) (Just s')
-      | s == s' = modify (\st@LSRAState{..} ->
+      | s == s' = do
+        st@LSRAState{..} <- get
         let range = fromJust $ lookup r (liveRangeMap <$> lranges)
-        in st{lranges = range{endLine = line} : delete range lranges})
+        if endLine range < line then
+          put st{lranges = range{endLine = line} : delete range lranges}
+        else
+          return ()
     extendLiveRange' line (_:ins) s
       = extendLiveRange' (line + 1) ins s
     extendLiveRange' line [] s
