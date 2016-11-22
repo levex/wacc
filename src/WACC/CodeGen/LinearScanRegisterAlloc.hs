@@ -151,7 +151,7 @@ analyzeAccess r (Compare _ r1 _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Ret (Reg r1))
+analyzeAccess r (Ret (Reg r1) _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
@@ -221,8 +221,8 @@ replaceRegister rs (Compare a r1 (Reg r2))
 replaceRegister rs (Compare a r1 b)
   = Compare a (replace' rs r1) b
 
-replaceRegister rs (Ret (Reg r))
-  = Ret (Reg (replace' rs r))
+replaceRegister rs (Ret (Reg r) a)
+  = Ret (Reg (replace' rs r)) a
 
 replaceRegister _ i = i
 
@@ -280,7 +280,7 @@ collectRegisters (Compare a r1 (Reg r2))
 collectRegisters (Compare a r1 b)
   = [r1]
 
-collectRegisters (Ret (Reg r))
+collectRegisters (Ret (Reg r) a)
   = [r]
 
 collectRegisters _ = []
@@ -411,16 +411,16 @@ allocateFuncRegisters p
     allocs = finalAllocations final
     f (i, acc) instr
       = case lookup i spills of
-          Nothing -> (i + 1, fixStackAccesses instr ++ acc)
+          Nothing -> (i + 1, fixStackAccesses instr : acc)
           Just (fi, reg) ->
-            (i + 1, fixStackAccesses instr ++ (fi CAl [reg] : acc))
-    fixStackAccesses i@(Special (FunctionStart _))
-      = [Push CAl usedRegs, i] -- reverse due to foldl
+            (i + 1, fixStackAccesses instr : fi CAl [reg] : acc)
+    fixStackAccesses (Special (FunctionStart s _))
+      = Special (FunctionStart s usedRegs)
     fixStackAccesses (Load c m r (Reg SP) plus (Imm i))
-      = [Load c m r (Reg SP) plus (Imm (i + (length usedRegs * 4)))]
+      = Load c m r (Reg SP) plus (Imm (i + (length usedRegs * 4)))
     fixStackAccesses (Store c m r SP plus (Imm i))
-      = [Store c m r SP plus (Imm (i + (length usedRegs * 4)))]
-    fixStackAccesses i@(Ret _)
-      = [i, Pop CAl usedRegs] -- reverse due to foldl
+      = Store c m r SP plus (Imm (i + (length usedRegs * 4)))
+    fixStackAccesses (Ret op _)
+      = Ret op usedRegs
     fixStackAccesses i
-      = [i]
+      = i

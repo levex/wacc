@@ -52,10 +52,10 @@ genSize :: MemAccessType -> String -> String
 genSize = genModifier sizes
 
 instance Emit Instruction where
-  emit (Special (FunctionStart label))
+  emit (Special (FunctionStart label usedRegs))
     = [".globl ", label, "\n"]
         ++ concatMap emit [Special (LabelDecl label),
-                     Push CAl [LR]]
+                     Push CAl (usedRegs ++ [LR])]
 
   emit (Special (LabelDecl l))
     = [l, ":\n"]
@@ -145,9 +145,9 @@ instance Emit Instruction where
   emit (SWI i)
     = ["swi #", show i, "\n"]
 
-  emit (Ret op) = concatMap emit
+  emit (Ret op usedRegs) = concatMap emit
       [ Move CAl r0 op,
-        Pop CAl [PC] ]
+        Pop CAl (usedRegs ++ [PC]) ]
 
   emit (PureAsm ss)
     = ss
