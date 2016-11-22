@@ -125,7 +125,7 @@ instance Emit Instruction where
       , Move c r0 (Reg rn) -- FIXME: see DivOp and unify these
       , Move c r1 op1
       , BranchLink c (Label "__aeabi_idivmod")
-      , Move c rt (Reg r0)
+      , Move c rt (Reg r1)
       , Pop c [r0, r1]]
 
   emit (Op c DivOp rt rn op1) = concatMap emit
