@@ -215,7 +215,7 @@ generateInstrForFunCall (FunCall id args) = do
     r1 <- getFreeRegister
     generateInstrForExpr r1 e
     return r1
-  mapM_ (\r -> tell [Push CAl [r]]) regs
+  mapM_ (\r -> tell [Push CAl [r]]) (reverse regs)
   tell [BranchLink CAl (Label id)]
   when (not . null $ args) $ tell [Op CAl AddOp SP SP (Imm $ length args * 4)]
 
