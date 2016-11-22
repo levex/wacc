@@ -238,6 +238,9 @@ collectRegisters (Op a b rd r1 c)
 collectRegisters (Load a b rd (Reg r1) c (Reg r2))
   = [rd, r1, r2]
 
+collectRegisters (Load a b rd (Reg r1) c d)
+  = [rd, r1]
+
 collectRegisters (Load a b rd c d e)
   = [rd]
 
