@@ -318,6 +318,7 @@ extendLiveRange r ins = do
       | s == s' && endLine range < line
           = modify (\st@LSRAState{..} ->
               st{lranges = range{endLine = line} : delete range lranges})
+      | otherwise = extendLiveRange' (line + 1) ins Nothing range
     extendLiveRange' line (_:ins) s range
       | line <= endLine range || isJust s
           = extendLiveRange' (line + 1) ins s range
