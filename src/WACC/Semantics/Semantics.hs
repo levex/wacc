@@ -188,10 +188,6 @@ checkStmt (ExpStmt e)
 checkStmt (IdentifiedStatement stmt i)
   = checkStmt stmt `catchError` rethrowWithLocation i
 
-storeDecl :: Declaration -> SemanticChecker ()
-storeDecl (ident, t)
-  = addSymbol (Symbol ident t)
-
 getDecl :: Definition -> Declaration
 getDecl (FunDef d _)
   = d
@@ -219,8 +215,8 @@ storeStructs :: [Definition] -> SemanticChecker ()
 storeStructs
   = mapM_ storeStruct
 
-semanticCheck :: Program -> SemanticChecker ()
-semanticCheck (mainF:funcs) = do
+semanticCheck :: Program -> SemanticChecker Program
+semanticCheck p@(mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
   mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF
