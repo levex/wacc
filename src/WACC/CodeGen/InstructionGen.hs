@@ -230,7 +230,7 @@ generateInstrForAlloc r size = do
 
 generateLiteral :: Register -> Literal -> InstructionGenerator ()
 generateLiteral r (INT i)
-  = tell [Move CAl r (Imm $ fromInteger i)]
+  = tell [Load CAl Word r (Imm $ fromInteger i) True (Imm 0)]
 generateLiteral r (CHAR c)
   = tell [Move CAl r (Imm $ ord c)]
 generateLiteral r (BOOL b)
