@@ -1,9 +1,12 @@
+{-# LANGUAGE RecordWildCards #-}
 module WACC.Semantics.Typing where
 
 import Data.Maybe
 
 import           Control.Monad.State
 import           WACC.Parser.Types
+import qualified Data.Map as Map
+import           Data.Map (Map)
 import           WACC.Parser.Primitives
 import           WACC.Semantics.Types
 import           WACC.Semantics.Primitives
@@ -83,6 +86,30 @@ deconstructArrayType (TString)
 deconstructArrayType t
   = invalid SemanticError $ "Expected TArray, Found: " ++ show t
 
+
+unfoldStruct :: [Identifier] -> Expr -> SemanticChecker [Identifier]
+unfoldStruct idents (BinApp Member (Ident i) e)
+  = unfoldStruct (i : idents) e
+unfoldStruct idents (Ident i)
+  = pure $ reverse (i : idents)
+unfoldStruct _ _
+  = invalid SemanticError "invalid member reference"
+
+
+getMemberType :: Identifier -> Type -> [Identifier]  -> SemanticChecker Type
+getMemberType "__primMember" tp (i : ix)
+  = invalid SemanticError $ "member " ++ i ++ " not found"
+getMemberType sId tp (i : ix) = do
+  sd <- gets structDefs
+  case Map.lookup i $ fromJust $ lookup sId sd of
+    Just (o, t)  -> case t of
+                    TPtr (TStruct s) -> getMemberType s t ix
+                    _                -> getMemberType "__primMember" t ix
+    Nothing -> invalid SemanticError $ "member " ++ i ++ " not found"
+getMemberType sId t []
+  = pure t
+
+
 getType :: Expr -> SemanticChecker Type
 getType (Lit lit)
   = getLiteralType lit
@@ -98,6 +125,12 @@ getType (PairElem e id) = do
     pairElem Snd _ s = s
 getType (UnApp op _)
   = return $ unopType op
+getType e@(BinApp Member (Ident i) e') = do
+  unfolded <- unfoldStruct [] e
+  t <- getType (Ident i)
+  case t of
+    TPtr (TStruct s) -> getMemberType s t $ tail unfolded
+    _                -> invalid SemanticError $ i ++ " is not a structure"
 getType (BinApp op _ _)
   = return $ binopType op
 getType (FunCall id _) =
@@ -107,6 +140,8 @@ getType (FunCall id _) =
     getRetType _ = invalid SemanticError "identifier is not a function"
 getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
   = TPair <$> getType e1 <*> getType e2
+getType (NewStruct i)
+  = identLookup i
 
 addSymbol :: Symbol -> SemanticChecker ()
 addSymbol s = do
@@ -117,17 +152,18 @@ addSymbol s = do
       = all (\(Symbol ident _) -> i /= ident)
     addToScope :: Symbol -> SymbolTable -> SemanticChecker ()
     addToScope s (SymbolTable ss []) = do
-      locs <- gets locationData
+      st@CheckerState{..} <- get
       if notDefined s ss then
-        put $ CheckerState locs (SymbolTable (s:ss) [])
+        put st{symbolTable = (SymbolTable (s:ss) [])}
       else
         invalid SemanticError "identifier already defined"
     addToScope s (SymbolTable ss [c]) = do
       locs <- gets locationData
-      put $ CheckerState locs c
+      structs <- gets structDefs
+      put $ CheckerState locs c structs
       addSymbol s
       newSt <- gets symbolTable
-      put $ CheckerState locs (SymbolTable ss [newSt])
+      put $ CheckerState locs (SymbolTable ss [newSt]) structs
 
 storeDecl :: Declaration -> SemanticChecker ()
 storeDecl (ident, t)
@@ -135,9 +171,8 @@ storeDecl (ident, t)
 
 decreaseScope :: SemanticChecker ()
 decreaseScope = do
-  st <- gets symbolTable
-  locs <- gets locationData
-  put (CheckerState locs (decreaseScope' st))
+  s@CheckerState{..} <- get
+  put s{symbolTable = decreaseScope' symbolTable}
   where
     decreaseScope' (SymbolTable s [SymbolTable ss []])
       = SymbolTable s []
@@ -148,9 +183,8 @@ decreaseScope = do
 
 increaseScope :: SemanticChecker ()
 increaseScope = do
-  st <- gets symbolTable
-  locs <- gets locationData
-  put (CheckerState locs (increaseScope' st))
+  s@CheckerState{..} <- get
+  put s{symbolTable = increaseScope' symbolTable}
   where
     increaseScope' (SymbolTable s [])
       = SymbolTable s [SymbolTable [] []]

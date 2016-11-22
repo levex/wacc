@@ -3,11 +3,14 @@ module WACC.Semantics.Types where
 
 import           Control.Monad.Except
 import           Control.Monad.State
+import qualified Data.Map as Map
+import           Data.Map (Map)
 import           WACC.Parser.Types
 
 data CheckerState = CheckerState
   { locationData :: LocationData,
-    symbolTable :: SymbolTable }
+    symbolTable :: SymbolTable,
+    structDefs :: [(Identifier, Map.Map Identifier (Offset, Type))] }
 
 data ErrorType
   = SyntaxError

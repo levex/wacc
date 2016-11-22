@@ -13,7 +13,7 @@ checkProgram (p, ld)
   = (evalState . runExceptT . runSemanticChecker) runCheck initialState
   where
     runCheck = syntaxCheck p >>= semanticCheck >>= simplify
-    initialState = (CheckerState ld (SymbolTable [] []))
+    initialState = (CheckerState ld (SymbolTable [] []) [])
 
 getExitCode :: CheckerError -> Int -> Int -> Int -> Int
 getExitCode (CheckerError SyntaxError _ _) ec _ _

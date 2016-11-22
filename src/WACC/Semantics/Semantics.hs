@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module WACC.Semantics.Semantics where
 
 import           Data.Foldable
@@ -5,6 +6,8 @@ import           Data.Maybe
 import           Control.Monad
 import           Control.Monad.State
 import           Control.Monad.Except
+import qualified Data.Map as Map
+import           Data.Map (Map)
 import           WACC.Semantics.Types
 import           WACC.Semantics.Primitives
 import           WACC.Semantics.Typing
@@ -92,6 +95,8 @@ checkExpr (UnApp unop expr) = do
   checkExpr expr
   a <- getType expr
   checkUnopArgs unop a
+checkExpr e@(BinApp Member (Ident i) e2)
+  = getType e >> valid
 checkExpr (BinApp binop e1 e2) = do
   checkExpr e1
   checkExpr e2
@@ -113,13 +118,20 @@ checkExpr (FunCall ident args) = do
         else invalid SemanticError "invalid number of arguments"
 checkExpr (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
-
+checkExpr (NewStruct i)
+  = valid
 
 checkStmt :: Statement -> SemanticChecker ()
 checkStmt Noop
   = valid
 checkStmt (Block idStmts)
   = scoped $ mapM_ checkStmt idStmts
+checkStmt (VarDef decl@(i, TPtr (TStruct s)) expr) = do
+  checkExpr expr
+  t <- getType expr
+  let structType = TStruct s
+  equalTypes ("type Mismatch " ++ show (structType) ++ " vs " ++ show t) structType t
+  storeDecl decl
 checkStmt (VarDef decl expr) = do
   checkExpr expr
   t <- getType expr
@@ -190,11 +202,29 @@ storeFuncs :: [Definition] -> SemanticChecker ()
 storeFuncs
   = mapM_ (storeDecl . getDecl)
 
+storeMembers :: [Declaration] -> Map.Map Identifier (Offset, Type) -> Map.Map Identifier (Offset, Type)
+storeMembers ((ident, t) : ds) m
+  = storeMembers ds (Map.insert ident (0, t) m)
+storeMembers [] m
+  = m
+
+storeStruct :: Definition -> SemanticChecker ()
+storeStruct (FunDef _ _)
+  = valid
+storeStruct (TypeDef ident members) = do
+  s@CheckerState{..} <- get
+  put s{structDefs = (ident, (storeMembers members Map.empty)) : structDefs}
+
+storeStructs :: [Definition] -> SemanticChecker ()
+storeStructs
+  = mapM_ storeStruct
+
 semanticCheck :: Program -> SemanticChecker ()
 semanticCheck (mainF:funcs) = do
   mapM_ checkCodePathsReturn funcs
   mapM_ checkUnreachableCode funcs
   checkMainDoesNotReturn mainF
-  mapM_ (storeDecl . getFunDecl) (filter isFunDef p)
+  storeStructs funcs
+  storeFuncs funcs
   mapM_ checkDef (mainF:funcs)
   return p

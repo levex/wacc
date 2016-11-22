@@ -59,6 +59,12 @@ checkLhs (ArrElem _ exprs)
 checkLhs (PairElem _ _)
   = valid
 
+checkLhs (BinApp Member (Ident i) e)
+  = case e of
+      Ident _                        -> valid
+      (BinApp Member (Ident j) expr) -> checkLhs (BinApp Member (Ident j) expr)
+      _                              -> invalid SyntaxError "error in member access"
+
 checkLhs _
   = invalid SyntaxError $ "lhs of an assignment must be an identifier,"
     ++ " array element or pair element"
@@ -75,6 +81,9 @@ checkRhs (FunCall ident args)
 
 checkRhs (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
+
+checkRhs (NewStruct ident)
+  = valid
 
 checkRhs e
   = checkExpr e
@@ -111,6 +120,9 @@ checkType (TPtr (TArray _))
   = invalid SyntaxError "cannot have a pointer to an array"
 
 checkType (TPtr TArb)
+  = valid
+
+checkType (TPtr (TStruct t))
   = valid
 
 checkType (TPtr t)
