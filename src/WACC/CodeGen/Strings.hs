@@ -38,6 +38,9 @@ emitBuiltinString "__builtin_Print_TBool"
 emitBuiltinString "__builtin_Print_TString"
   = emitString "__builtin_fmt_string" "\"%.*s\\0\""
 
+emitBuiltinString "__builtin_Print_TRef"
+  = emitString "__builtin_fmt_ref" "\"%p\\0\""
+
 emitBuiltinString "__builtin_PrintLn"
   = emitString "__builtin_str_newline" "\"\\0\""
 

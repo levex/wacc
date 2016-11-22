@@ -85,6 +85,12 @@ generateBuiltinCall "__builtin_Print_TString" =
 
 generateBuiltinCall "__builtin_Print_TRef" =
   tell [ Special (FunctionStart "__builtin_Print_TRef")
+       , Load       CAl Word r1 (Reg SP) True (Imm 4)
+       , Load       CAl Word r0 (Label "__builtin_fmt_ref") True (Imm 0)
+       , Op         CAl AddOp r0 r0 (Imm 4)
+       , BranchLink CAl (Label "printf")
+       , Move       CAl r0 (Imm 0)
+       , BranchLink CAl (Label "fflush")
        , Pop        CAl [PC]
        ]
 
