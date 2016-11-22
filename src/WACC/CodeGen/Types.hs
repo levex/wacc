@@ -21,8 +21,8 @@ data CodeGenState = CodeGenState
     lastLabelId :: Integer,
     regIdsTable :: Map (Identifier, Integer) (Register, Type),
     scopeId :: Integer,
+    structDefs :: [(Identifier, Map Identifier Offset)],
     usedBuiltins :: Set Identifier }
-
 
 newtype CodeGenerator a = CodeGenerator
   { runCodeGen :: State CodeGenState a }
@@ -31,11 +31,13 @@ newtype CodeGenerator a = CodeGenerator
 
 codeGenState :: CodeGenState
 codeGenState = CodeGenState
-  { lastRegister = 4,
-    lastLabelId = 0,
-    regIdsTable = Map.empty,
-    scopeId = 0,
-    usedBuiltins = Set.empty }
+  { lastRegister = 4
+  , lastLabelId = 0
+  , regIdsTable = Map.empty
+  , scopeId = 0
+  , usedBuiltins = Set.empty
+  , structDefs = []
+  }
 
 type InstructionGenerator a
   = WriterT [Instruction] CodeGenerator a
