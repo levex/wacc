@@ -309,22 +309,20 @@ extendLiveRange :: Register -> [Instruction] -> LSRA ()
 extendLiveRange r ins = do
   st@LSRAState{..} <- get
   let range = fromJust $ lookup r (liveRangeMap <$> lranges)
-  extendLiveRange' (startLine range) (drop (startLine range) ins) Nothing
+  extendLiveRange' (startLine range) (drop (startLine range) ins) Nothing range
   where
-    extendLiveRange' :: Int -> [Instruction] -> Maybe Identifier -> LSRA ()
-    extendLiveRange' line ((Special (ScopeBegin s)):ins) Nothing
-      = extendLiveRange' (line + 1) ins (Just s)
-    extendLiveRange' line ((Special (ScopeEnd s)):ins) (Just s')
-      | s == s' = do
-        st@LSRAState{..} <- get
-        let range = fromJust $ lookup r (liveRangeMap <$> lranges)
-        if endLine range < line then
-          put st{lranges = range{endLine = line} : delete range lranges}
-        else
-          return ()
-    extendLiveRange' line (_:ins) s
-      = extendLiveRange' (line + 1) ins s
-    extendLiveRange' line [] s
+    extendLiveRange' :: Int -> [Instruction] -> Maybe Identifier -> LiveRange -> LSRA ()
+    extendLiveRange' line ((Special (ScopeBegin s)):ins) Nothing range
+      = extendLiveRange' (line + 1) ins (Just s) range
+    extendLiveRange' line ((Special (ScopeEnd s)):ins) (Just s') range
+      | s == s' && endLine range < line
+          = modify (\st@LSRAState{..} ->
+              st{lranges = range{endLine = line} : delete range lranges})
+    extendLiveRange' line (_:ins) s range
+      | line <= endLine range || isJust s
+          = extendLiveRange' (line + 1) ins s range
+      | otherwise             = return ()
+    extendLiveRange' line [] s range
       = return ()
 
 allocateLSRA :: LSRA ()
