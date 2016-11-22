@@ -288,7 +288,6 @@ collectRegisters _ = []
 ----------
 
 calcLiveRange :: Register -> Int -> Instruction -> LSRA ()
-calcLiveRange (R 0) _ _ = return ()
 calcLiveRange r@(R _) line ins@(analyzeAccess r -> RWrite) = do
   st@LSRAState{..} <- get
   let mran = lookup r (liveRangeMap <$> lranges)
@@ -306,13 +305,32 @@ calcLiveRange r@(R _) line ins@(analyzeAccess r -> RRead) = do
     Just range -> put st{lranges = range{endLine = line} : delete range lranges}
 calcLiveRange _ _ _ = return ()
 
+extendLiveRange :: Register -> [Instruction] -> LSRA ()
+extendLiveRange r ins = do
+  st@LSRAState{..} <- get
+  let range = fromJust $ lookup r (liveRangeMap <$> lranges)
+  extendLiveRange' (startLine range) (drop (startLine range) ins) Nothing
+  where
+    extendLiveRange' :: Int -> [Instruction] -> Maybe Identifier -> LSRA ()
+    extendLiveRange' line ((Special (ScopeBegin s)):ins) Nothing
+      = extendLiveRange' (line + 1) ins (Just s)
+    extendLiveRange' line ((Special (ScopeEnd s)):ins) (Just s')
+      | s == s' = modify (\st@LSRAState{..} ->
+        let range = fromJust $ lookup r (liveRangeMap <$> lranges)
+        in st{lranges = range{endLine = line} : delete range lranges})
+    extendLiveRange' line (_:ins) s
+      = extendLiveRange' (line + 1) ins s
+    extendLiveRange' line [] s
+      = return ()
+
 allocateLSRA :: LSRA ()
 allocateLSRA = mdo
   -- calculate live ranges
   ins <- gets instructions
-  let usedRegs = maximum [r | R r <- concatMap collectRegisters ins]
-  forM_ (zip [0..] ins) $ \(i, instr) ->
-    forM_ (map R [0..(usedRegs + 1)]) $ \r -> calcLiveRange r i instr
+  let usedRegs = [r | r@(R _) <- concatMap collectRegisters ins, r /= r0]
+  forM_ usedRegs $ \r -> do
+    forM_ (zip [0..] ins) $ \(i, instr) -> calcLiveRange r i instr
+    extendLiveRange r ins
   -- start LSRA
   lr <- sortOn startLine <$> gets lranges
   forM_ lr $ \i -> do
