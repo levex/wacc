@@ -124,6 +124,8 @@ data SpecialLink
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
   | LabelDecl     Identifier
+  | ScopeBegin    Identifier
+  | ScopeEnd      Identifier
   deriving (Eq, Show)
 
 data Instruction
