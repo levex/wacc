@@ -88,8 +88,8 @@ getType (Lit lit)
   = getLiteralType lit
 getType (Ident id)
   = identLookup id
-getType (ArrElem id _)
-  = getType (Ident id) >>= deconstructArrayType
+getType (ArrElem id es)
+  = getType (Ident id) >>= foldr1 (>=>) (map (const deconstructArrayType) es)
 getType (PairElem e id) = do
   (TPair f s) <- getType (Ident id)
   return (pairElem e f s)
