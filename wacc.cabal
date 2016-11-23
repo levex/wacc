@@ -28,7 +28,6 @@ library
                      , WACC.CodeGen.Functions
                      , WACC.CodeGen.InstructionGen
                      , WACC.CodeGen.LinearScanRegisterAlloc
-                     , WACC.CodeGen.Builtins
                      , WACC.CodeGen.Strings
                      , WACC.CodeGen.RegisterAllocator
                      , WACC.CodeGen.ARM.Emit
