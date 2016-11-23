@@ -177,7 +177,7 @@ generateInstrForExpr r (UnApp op e) = do
   generateInstrForExpr r1 e
   case op of
     Not -> tell [Op CAl XorOp r r1 (Imm 1)]
-    Neg -> tell [Negate CAl r (Reg r1)]
+    Neg -> tell [Op CAl RSubOp r r1 (Imm 0)]
     Len -> tell [Load CAl Word r (Reg r1) True (Imm 0)]
     _   -> tell [Move CAl r (Reg r1)] -- Chr and Ord are noops in assembly
 generateInstrForExpr r (BinApp op e1 e2) = do

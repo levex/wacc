@@ -32,12 +32,13 @@ sizes = [ (Byte,      "b")
         , (Word,      "") ]
 
 opTable :: [(Operation, String)]
-opTable = [ (AddOp, "add")
-          , (SubOp, "sub")
-          , (MulOp, "mul")
-          , (OrOp , "orr")
-          , (XorOp, "eor")
-          , (AndOp, "and")]
+opTable = [ (AddOp,  "add")
+          , (SubOp,  "sub")
+          , (RSubOp, "rsb")
+          , (MulOp,  "mul")
+          , (OrOp,   "orr")
+          , (XorOp,  "eor")
+          , (AndOp,  "and")]
 
 nameForReg :: Register -> String
 nameForReg = show

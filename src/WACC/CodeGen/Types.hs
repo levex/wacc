@@ -97,6 +97,7 @@ data Operand
 data Operation
   = AddOp
   | SubOp
+  | RSubOp
   | MulOp
   | DivOp
   | ModOp
@@ -134,7 +135,6 @@ data Instruction
   | Store Condition MemAccessType Register Register Bool Operand
   | Move Condition Register Operand
   | Shift Condition Register Register ShiftType Int
-  | Negate Condition Register Operand
   | Push Condition [Register]
   | Pop Condition [Register]
   | Branch Condition Operand
