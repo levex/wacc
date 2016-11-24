@@ -48,11 +48,11 @@ simplify (e :*: Int 1)       = simplify e
 simplify (Int 0 :*: e)       = Int 0
 simplify (e :*: Int 0)       = Int 0
 
-simplify (Int n1 :/: Int n2) = Int (n1 `div` n2)
+simplify (Int n1 :/: Int n2) | n2 /= 0 = Int (n1 `div` n2)
 simplify (Int 0 :/: e)       = Int 0
 simplify (e :/: Int 1)       = simplify e
 
-simplify (Int n1 :%: Int n2) = Int (n1 `mod` n2)
+simplify (Int n1 :%: Int n2) | n2 /= 0 = Int (n1 `mod` n2)
 simplify (e :%: Int 1)       = Int 1
 simplify (Int 0 :%: e)       = Int 0
 
