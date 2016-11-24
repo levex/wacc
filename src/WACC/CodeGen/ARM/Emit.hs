@@ -89,9 +89,6 @@ instance Emit Instruction where
     = [genCond c (map toLower (show st)), " ",
         nameForReg rt, ", ", nameForReg rn, ", #", show i, "\n"]
 
-  emit (Negate c rt (Reg rn))
-    = [genCond c "neg", " ", nameForReg rt, ", ", nameForReg rn, "\n"]
-
   emit (Push c rs)
     = [genCond c "push", " {",
         intercalate ", " $ map nameForReg (sort rs), "}\n"]

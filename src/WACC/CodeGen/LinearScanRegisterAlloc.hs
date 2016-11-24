@@ -122,11 +122,6 @@ analyzeAccess r (Shift _ rd r1 _ _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Negate _ rd (Reg r1))
-  | r == rd            = RWrite
-  | r == r1            = RRead
-  | otherwise          = RIgnore
-
 analyzeAccess r (Push _ regs)
   | r `elem` regs      = RRead
   | otherwise          = RIgnore
@@ -200,9 +195,6 @@ replaceRegister rs (Move a rd b)
 replaceRegister rs (Shift a r1 r2 b c)
   = Shift a (replace' rs r1) (replace' rs r2) b c
 
-replaceRegister rs (Negate a rd (Reg r1))
-  = Negate a (replace' rs rd) (Reg (replace' rs r1))
-
 replaceRegister rs (Push a regs)
   = Push a (map (replace' rs) regs)
 
@@ -258,9 +250,6 @@ collectRegisters (Move a rd b)
 
 collectRegisters (Shift a r1 r2 b c)
   = [r1, r2]
-
-collectRegisters (Negate a rd (Reg r1))
-  = [rd, r1]
 
 collectRegisters (Push a regs)
   = regs
