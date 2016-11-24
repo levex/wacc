@@ -44,6 +44,21 @@ emitBuiltinString "__builtin_Print_TRef"
 emitBuiltinString "__builtin_PrintLn"
   = emitString "__builtin_str_newline" "\"\\0\""
 
+emitBuiltinString "__builtin_Free"
+  = emitString "__builtin_nullptr_str" "\"Attempt to dereference null pointer; exiting.\""
+
+emitBuiltinString "__builtin_ThrowNullptr"
+  = emitString "__builtin_nullptr_str" "\"Attempt to dereference null pointer; exiting.\""
+
+emitBuiltinString "__builtin_ThrowArrayBounds"
+  = emitString "__builtin_arraybounds_str" "\"Array index out of bounds; exiting.\""
+
+emitBuiltinString "__builtin_ThrowOverflow"
+  = emitString "__builtin_overflow_str" "\"Integer overflow; exiting.\""
+
+emitBuiltinString "__builtin_ThrowDivByZero"
+  = emitString "__builtin_divbyzero_str" "\"Division by zero; exiting.\""
+
 emitBuiltinString _
   = return []
 

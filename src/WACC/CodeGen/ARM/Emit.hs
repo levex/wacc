@@ -119,26 +119,52 @@ instance Emit Instruction where
         Imm i  -> [show rt, ", [", show rn, ", #", show i, "]\n"]
 
   emit (Op c ModOp rt rn op1) = concatMap emit
-      [ Push c [r0, r1]
-      , Move c r0 (Reg rn) -- FIXME: see DivOp and unify these
-      , Move c r1 op1
-      , BranchLink c (Label "__aeabi_idivmod")
-      , Move c rt (Reg r1)
-      , Pop c [r0, r1]]
+      [ Branch c (Label "1f")
+      , Branch CAl (Label "2f")
+      , Special $ LabelDecl "1"
+      , Push CAl [r0, r1]
+      , Move CAl r0 (Reg rn)
+      , Move CAl r1 op1
+      , Compare CAl r1 (Imm 0)
+      , Branch CEq (Label "__builtin_ThrowDivByZero")
+      , BranchLink CAl (Label "__aeabi_idivmod")
+      , Move CAl rt (Reg r1)
+      , Pop CAl [r0, r1]
+      , Special $ LabelDecl "2"]
 
   emit (Op c DivOp rt rn op1) = concatMap emit
-      [ Push c [r0, r1]
-      , Move c r0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
-      , Move c r1 op1
-      , BranchLink c (Label "__aeabi_idiv")
-      , Move c rt (Reg r0)
-      , Pop c [r0, r1]]
+      [ Branch c (Label "1f")
+      , Branch CAl (Label "2f")
+      , Special $ LabelDecl "1"
+      , Push CAl [r0, r1]
+      , Move CAl r0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
+      , Move CAl r1 op1
+      , Compare CAl r1 (Imm 0)
+      , Branch CEq (Label "__builtin_ThrowDivByZero")
+      , BranchLink CAl (Label "__aeabi_idiv")
+      , Move CAl rt (Reg r0)
+      , Pop CAl [r0, r1]
+      , Special $ LabelDecl "2"]
+
+  emit (Op c MulOp rt rn op1)
+    = emit (Push CAl [r0]) ++
+      [genCond c "smull", " ", intercalate ", " $ map show [rt, r0, rn]] ++
+      case op1 of
+        Reg rm -> [", ", show rm, "\n"]
+        Imm i  -> [", #", show i,"\n"]
+      ++
+      [genCond c "cmp", " ", show r0, ", ", show rt, ", asr #31\n"] ++
+      emit (BranchLink CNe (Label "__builtin_ThrowOverflow")) ++
+      emit (Pop CAl [r0])
 
   emit (Op c op rt rn op1)
-    = [genCond c (fromJust $ lookup op opTable), " "] ++
+    = [genCond c (fromJust $ lookup op opTable), "s", " "] ++
       case op1 of
         Reg rm -> [intercalate ", " $ map show [rt, rn, rm],"\n"]
         Imm i  -> [show rt, ", ", show rn, ", #", show i,"\n"]
+      ++ if op `elem` [AddOp, SubOp, RSubOp] then
+        emit (BranchLink CVs (Label "__builtin_ThrowOverflow"))
+      else []
 
   emit (SWI i)
     = ["swi #", show i, "\n"]
