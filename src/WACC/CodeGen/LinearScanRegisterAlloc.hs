@@ -23,7 +23,7 @@ import           WACC.CodeGen.Types
 
 --  http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
 
-availableRegisters = map R [4..12]
+availableRegisters = map R [4..11]
 
 data LiveRange = LiveRange
   { registerOld  :: Register
@@ -47,7 +47,7 @@ data LSRAState = LSRAState
   , freePool         :: [Register]
   , finalAllocations :: [LiveRange]
   , lastStack        :: Int
-  , spillage         :: [(Int, (Condition -> [Register] -> Instruction, Register))]
+  , spillage         :: [(Int, Spill)]
   } 
 
 initialLSRAState :: [Instruction] -> LSRAState
@@ -65,15 +65,20 @@ newtype LSRA a = LSRA { unLSRA :: State LSRAState a }
                   deriving (Functor, Applicative, Monad, MonadFix,
                             MonadState LSRAState)
 
-data RegAction = RRead | RWrite | RIgnore
+data RegAction = {- RReadNeedBe | -} RRead | RWrite | RIgnore
+
+data Spill = SpillStart Int Int Register Int Register | SpillEnd
+              deriving (Eq, Show)
 
 getNewStackLocation :: LSRA Int
 getNewStackLocation = do
   st@LSRAState{..} <- get
-  put st{lastStack = lastStack + 1}
+  put st{lastStack = lastStack + 4}
   return lastStack
 
 analyzeAccess :: Register -> Instruction -> RegAction
+{- analyzeAccess r (Op _ AddOp SP SP _)
+  = RReadNeedBe -}
 analyzeAccess r (Op _ _ rd r1 (Reg r2))
   | r == rd = RWrite
   | r == r1 || r == r2 = RRead
@@ -99,12 +104,12 @@ analyzeAccess r (Load _ _ rd _ _ _)
   | otherwise          = RIgnore
 
 analyzeAccess r (Store _ _ rd r1 _ (Reg r2))
-  | r == rd            = RWrite
+  | r == rd            = RRead
   | r == r1 || r == r2 = RRead
   | otherwise          = RIgnore
 
 analyzeAccess r (Store _ _ rd r1 _ _ )
-  | r == rd            = RWrite
+  | r == rd            = RRead
   | r == r1            = RRead
   | otherwise          = RIgnore
 
@@ -136,7 +141,7 @@ analyzeAccess r (Branch _ (Reg r1))
 
 analyzeAccess r (BranchLink _ (Reg r1))
   | r == r1            = RRead
-  | otherwise          = RIgnore
+  | otherwise          = RRead
 
 analyzeAccess r (Compare _ r1 (Reg r2))
   | r == r1 || r == r2 = RRead
@@ -146,7 +151,7 @@ analyzeAccess r (Compare _ r1 _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Ret (Reg r1) _)
+analyzeAccess r (Ret (Reg r1) _ _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
@@ -163,93 +168,109 @@ replace' rs r
       Nothing -> r
       Just lr -> if isNothing $ location lr then fromJust $ registerNew lr
                   else r
+                  -- else (fromJust $ registerNew lr)
+                    -- FOR NOW, leave this as is
 
-replaceRegister :: [LiveRange] -> Instruction  -> Instruction
-replaceRegister rs (Op a b rd r1 (Reg r2))
-  = Op a b (replace' rs rd) (replace' rs r1) (Reg (replace' rs r2))
+addReplacements _ _ = []
+{-
+addReplacements :: Instruction -> [LiveRange] -> [Instruction]
+addReplacements ins rs = concatMap (\r -> case lookup r (liveRangeMap <$> rs) of
+    Nothing -> []
+    Just lr -> case location lr of
+      Nothing -> []
+      Just loc -> [Load CAl Word (fromJust $ registerNew lr) (Reg SP) True (Imm loc)])
+          (nub $ collectRegisters ins)
+-}
 
-replaceRegister rs (Op a b rd r1 c)
-  = Op a b (replace' rs rd) (replace' rs r1) c
+replaceRegister :: [LiveRange] -> Instruction  -> [Instruction]
+replaceRegister rs ins@(Op a b rd r1 (Reg r2))
+  = addReplacements ins rs ++ [Op a b (replace' rs rd) (replace' rs r1) (Reg (replace' rs r2))]
 
-replaceRegister rs (Load a b rd (Reg r1) c (Reg r2))
-  = Load a b (replace' rs rd) (Reg (replace' rs r1)) c (Reg (replace' rs r2))
+replaceRegister rs ins@(Op a b rd r1 c)
+  = addReplacements ins rs ++ [Op a b (replace' rs rd) (replace' rs r1) c]
 
-replaceRegister rs (Load a b rd (Reg r1) c d)
-  = Load a b (replace' rs rd) (Reg (replace' rs r1)) c d
+replaceRegister rs ins@(Load a b rd (Reg r1) c (Reg r2))
+  = addReplacements ins rs ++ [Load a b (replace' rs rd) (Reg (replace' rs r1)) c (Reg (replace' rs r2))]
 
-replaceRegister rs (Load a b rd c d e)
-  = Load a b (replace' rs rd) c d e
+replaceRegister rs ins@(Load a b rd (Reg r1) c d)
+  = addReplacements ins rs ++ [Load a b (replace' rs rd) (Reg (replace' rs r1)) c d]
 
-replaceRegister rs (Store a b rd r1 c (Reg r2))
-  = Store a b (replace' rs rd) (replace' rs r1) c (Reg (replace' rs r2))
+replaceRegister rs ins@(Load a b rd c d e)
+  = addReplacements ins rs ++ [Load a b (replace' rs rd) c d e]
 
-replaceRegister rs (Store a b rd r1 c d)
-  = Store a b (replace' rs rd) (replace' rs r1) c d
+replaceRegister rs ins@(Store a b rd r1 c (Reg r2))
+  = addReplacements ins rs ++ [Store a b (replace' rs rd) (replace' rs r1) c (Reg (replace' rs r2))]
 
-replaceRegister rs (Move a rd (Reg r1))
-  = Move a (replace' rs rd) (Reg (replace' rs r1))
+replaceRegister rs ins@(Store a b rd r1 c d)
+  = addReplacements ins rs ++ [Store a b (replace' rs rd) (replace' rs r1) c d]
 
-replaceRegister rs (Move a rd b)
-  = Move a (replace' rs rd) b
+replaceRegister rs ins@(Move a rd (Reg r1))
+  = addReplacements ins rs ++ [Move a (replace' rs rd) (Reg (replace' rs r1))]
 
-replaceRegister rs (Shift a r1 r2 b c)
-  = Shift a (replace' rs r1) (replace' rs r2) b c
+replaceRegister rs ins@(Move a rd b)
+  = addReplacements ins rs ++ [Move a (replace' rs rd) b]
 
-replaceRegister rs (Push a regs)
-  = Push a (map (replace' rs) regs)
+replaceRegister rs ins@(Shift a r1 r2 b c)
+  = addReplacements ins rs ++ [Shift a (replace' rs r1) (replace' rs r2) b c]
 
-replaceRegister rs (Pop a regs)
-  = Pop a (map (replace' rs) regs)
+replaceRegister rs ins@(Push a regs)
+  = addReplacements ins rs ++ [Push a (map (replace' rs) regs)]
 
-replaceRegister rs (Branch a (Reg r1))
-  = Branch a (Reg (replace' rs r1))
+replaceRegister rs ins@(Pop a regs)
+  = addReplacements ins rs ++ [Pop a (map (replace' rs) regs)]
 
-replaceRegister rs (BranchLink a (Reg r1))
-  = BranchLink a (Reg (replace' rs r1))
+replaceRegister rs ins@(Branch a (Reg r1))
+  = addReplacements ins rs ++ [Branch a (Reg (replace' rs r1))]
 
-replaceRegister rs (Compare a r1 (Reg r2))
-  = Compare a (replace' rs r1) (Reg (replace' rs r2))
+replaceRegister rs ins@(BranchLink a (Reg r1))
+  = addReplacements ins rs ++ [BranchLink a (Reg (replace' rs r1))]
 
-replaceRegister rs (Compare a r1 b)
-  = Compare a (replace' rs r1) b
+replaceRegister rs ins@(Compare a r1 (Reg r2))
+  = addReplacements ins rs ++ [Compare a (replace' rs r1) (Reg (replace' rs r2))]
 
-replaceRegister rs (Ret (Reg r) a)
-  = Ret (Reg (replace' rs r)) a
+replaceRegister rs ins@(Compare a r1 b)
+  = addReplacements ins rs ++ [Compare a (replace' rs r1) b]
 
-replaceRegister _ i = i
+replaceRegister rs ins@(Ret (Reg r) a b)
+  = addReplacements ins rs ++ [Ret (Reg (replace' rs r)) a b]
+
+replaceRegister rs ins@(Special (VariableDecl a b r))
+  = addReplacements ins rs ++ [Special (VariableDecl a b (replace' rs r))]
+
+replaceRegister _ i = [i]
 
 ----------
 
 collectRegisters :: Instruction -> [Register]
-collectRegisters (Op a b rd r1 (Reg r2))
-  = [rd, r1, r2]
+collectRegisters (Op a b rd tr1 (Reg tr2))
+  = [rd, tr1, tr2]
 
-collectRegisters (Op a b rd r1 c)
-  = [rd, r1]
+collectRegisters (Op a b rd tr1 c)
+  = [rd, tr1]
 
-collectRegisters (Load a b rd (Reg r1) c (Reg r2))
-  = [rd, r1, r2]
+collectRegisters (Load a b rd (Reg tr1) c (Reg tr2))
+  = [rd, tr1, tr2]
 
-collectRegisters (Load a b rd (Reg r1) c d)
-  = [rd, r1]
+collectRegisters (Load a b rd (Reg tr1) c d)
+  = [rd, tr1]
 
 collectRegisters (Load a b rd c d e)
   = [rd]
 
-collectRegisters (Store a b rd r1 c (Reg r2))
-  = [rd, r1, r2]
+collectRegisters (Store a b rd tr1 c (Reg tr2))
+  = [rd, tr1, tr2]
 
-collectRegisters (Store a b rd r1 c d)
-  = [rd, r1]
+collectRegisters (Store a b rd tr1 c d)
+  = [rd, tr1]
 
-collectRegisters (Move a rd (Reg r1))
-  = [rd, r1]
+collectRegisters (Move a rd (Reg tr1))
+  = [rd, tr1]
 
 collectRegisters (Move a rd b)
   = [rd]
 
-collectRegisters (Shift a r1 r2 b c)
-  = [r1, r2]
+collectRegisters (Shift a tr1 tr2 b c)
+  = [tr1, tr2]
 
 collectRegisters (Push a regs)
   = regs
@@ -257,19 +278,22 @@ collectRegisters (Push a regs)
 collectRegisters (Pop a regs)
   = regs
 
-collectRegisters (Branch a (Reg r1))
-  = [r1]
+collectRegisters (Branch a (Reg tr1))
+  = [tr1]
 
-collectRegisters (BranchLink a (Reg r1))
-  = [r1]
+collectRegisters (BranchLink a (Reg tr1))
+  = [tr1]
 
-collectRegisters (Compare a r1 (Reg r2))
-  = [r1, r2]
+collectRegisters (Compare a tr1 (Reg tr2))
+  = [tr1, tr2]
 
-collectRegisters (Compare a r1 b)
-  = [r1]
+collectRegisters (Compare a tr1 b)
+  = [tr1]
 
-collectRegisters (Ret (Reg r) a)
+collectRegisters (Ret (Reg r) a b)
+  = [r]
+
+collectRegisters (Special (VariableDecl a b r))
   = [r]
 
 collectRegisters _ = []
@@ -296,7 +320,7 @@ calcLiveRange _ _ _ = return ()
 
 extendLiveRange :: Register -> [Instruction] -> LSRA ()
 extendLiveRange r ins = do
-  st@LSRAState{..} <- get
+  LSRAState{..} <- get
   let range = fromJust $ lookup r (liveRangeMap <$> lranges)
   extendLiveRange' (startLine range) (drop (startLine range) ins) Nothing range
   where
@@ -319,7 +343,8 @@ allocateLSRA :: LSRA ()
 allocateLSRA = mdo
   -- calculate live ranges
   ins <- gets instructions
-  let usedRegs = [r | r@(R _) <- concatMap collectRegisters ins, r /= r0]
+  let usedRegs = nub $ [r | r@(R _) <- concatMap collectRegisters ins, r /= r0]
+  --traceShowM ("--------> USED REGS: " ++ show usedRegs)
   forM_ usedRegs $ \r -> do
     forM_ (zip [0..] ins) $ \(i, instr) -> calcLiveRange r i instr
     extendLiveRange r ins
@@ -329,12 +354,11 @@ allocateLSRA = mdo
     expireOldIntervals i
     len <- length <$> gets active
     -- traceShowM len
-    if len == length availableRegisters then
+    if len >= length availableRegisters then
       spillAtInterval i
     else do
       st@LSRAState{..} <- get
       let rt = head freePool
-      traceShowM ("chose: " ++ show rt)
       let newi = i{registerNew = Just rt}
       put st{ freePool = freePool \\ [rt]
             , finalAllocations = newi : finalAllocations  -- r got assigned to rt
@@ -358,19 +382,24 @@ expireOldIntervals i = do
 
 spillAtInterval :: LiveRange -> LSRA ()
 spillAtInterval i = do
-  st@LSRAState{..} <- get
-  let spill = last (sortOn endLine active)
-  stack <- getNewStackLocation
+  st <- get
+  let spill = last (sortOn endLine (active st))
+  stackloc <- getNewStackLocation
+  st2@LSRAState{..} <- get
   if (endLine spill > endLine i) then do
     let newi = i{registerNew = Just $ selReg spill}
-    put st{ finalAllocations = newi : spill{location = Just stack} : finalAllocations
-          , spillage = (startLine i, (Push, selReg spill))
-                        : (endLine spill - 1, (Pop, selReg spill))
-                          : spillage
-          , active = nub $ sortOn endLine (newi : (active \\ [spill]))
-          }
+    put st2{ finalAllocations = newi : spill{location = Just stackloc} : finalAllocations
+           , spillage
+            = (startLine i,
+                SpillStart  (max (startLine spill) (startLine i))
+                            (min (endLine i) (endLine spill))
+                            (selReg spill)
+                            stackloc
+                            (registerOld spill)) : spillage
+           , active = nub $ sortOn endLine (newi : (active \\ [spill]))
+           }
   else
-    put st{finalAllocations = i{location = Just stack} : finalAllocations }
+    put st2{finalAllocations = i{location = Just stackloc} : finalAllocations }
 
 testInstructions :: [Instruction]
 testInstructions =
@@ -389,28 +418,65 @@ testInstructions =
 
 runLSRA = allocateFuncRegisters
 
+thsnd (_, a, _) = a
+
+instrUsesRegister :: Instruction -> Register -> Bool
+instrUsesRegister instr reg
+  = reg `elem` (nub $ collectRegisters instr)
+
+spillOldReg   (SpillStart _ _ _ _ o) = o
+spillNewReg   (SpillStart _ _ n _ _) = n
+spillEnd      (SpillStart _ e _ _ _) = e
+spillStart    (SpillStart s _ _ _ _) = s
+spillLocation (SpillStart _ _ _ l _) = l
+
+spillNewReg2 allocs (SpillStart _ _ _ _ o)
+  = case lookup o m of
+      Just lr -> fromJust $ registerNew lr
+      Nothing -> error "screw this"
+  where
+    m = liveRangeMap <$> allocs
+
 allocateFuncRegisters :: [Instruction] -> [Instruction]
 allocateFuncRegisters p
   | null (concatMap collectRegisters p) = p
-  | otherwise = reverse . snd $ foldl f (0, []) (map (replaceRegister allocs) p)
+  | otherwise
+    = reverse . snd $ foldl f (0, []) (concatMap (replaceRegister allocs) p)
   where
     final = (execState . unLSRA) allocateLSRA (initialLSRAState p)
     instrs = instructions final
     usedRegs = sort . nub . catMaybes . map registerNew $ allocs
     spills = spillage final
     allocs = finalAllocations final
+    locRemAllocs = map (\lr -> if (isNothing $ location lr) then lr{location = Just 1337} else lr{location = Nothing}) allocs
     f (i, acc) instr
       = case lookup i spills of
-          Nothing -> (i + 1, fixStackAccesses instr : acc)
-          Just (fi, reg) ->
-            (i + 1, fixStackAccesses instr : fi CAl [reg] : acc)
-    fixStackAccesses (Special (FunctionStart s _))
-      = Special (FunctionStart s usedRegs)
+          --Nothing -> (i + 1, fixStackAccesses instr : acc, activeSpills)
+          Nothing ->
+            if or (map (instrUsesRegister (p !! i) . spillOldReg) (snd <$> spills)) then
+              -- this instruction uses a register that has been spilled
+              let
+                spilledRegisters = filter (\x -> instrUsesRegister (p !! i) (spillOldReg x)) (snd <$> spills)
+                instructionsToPush
+                  = map (\sp@(SpillStart start end nre nloc ore) ->
+                            (if i > start then Load CAl Word nre (Reg $ R 12) True (Imm nloc)
+                              else Special Empty)) spilledRegisters
+              in
+                (i + 1, ((fixStackAccesses <$> (replaceRegister locRemAllocs instr)) ++ instructionsToPush) ++ acc)
+            else
+              (i + 1, fixStackAccesses <$> (replaceRegister locRemAllocs instr) ++ acc)
+          Just spilly@(SpillStart startLocation endLocation spilledReg spillLocation oldReg) ->
+            (i + 1,
+             fixStackAccesses instr :
+               Store CAl Word spilledReg (R 12) True (Imm spillLocation) : acc
+             )
+    fixStackAccesses (Special (FunctionStart s _ _))
+      = Special (FunctionStart s usedRegs (lastStack final))
     fixStackAccesses (Load c m r (Reg SP) plus (Imm i))
-      = Load c m r (Reg SP) plus (Imm (i + (length usedRegs * 4)))
+      = Load c m r (Reg SP) plus (Imm (i + 16 + (length usedRegs * 4)))
     fixStackAccesses (Store c m r SP plus (Imm i))
-      = Store c m r SP plus (Imm (i + (length usedRegs * 4)))
-    fixStackAccesses (Ret op _)
-      = Ret op usedRegs
+      = Store c m r SP plus (Imm (i + 16 + (length usedRegs * 4)))
+    fixStackAccesses (Ret op _ _)
+      = Ret op usedRegs (lastStack final)
     fixStackAccesses i
       = i

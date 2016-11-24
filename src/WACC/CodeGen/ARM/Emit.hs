@@ -50,10 +50,18 @@ genSize :: MemAccessType -> String -> String
 genSize = genModifier sizes
 
 instance Emit Instruction where
-  emit (Special (FunctionStart label usedRegs))
+  emit (Special (FunctionStart label usedRegs stackSpace))
     = [".globl ", label, "\n"]
-        ++ concatMap emit [Special (LabelDecl label),
-                     Push CAl (usedRegs ++ [LR])]
+        ++ concatMap emit
+          [ Special (LabelDecl label)
+          , Push CAl (nub $ ({-map R [1..4] ++ -}usedRegs ++ [LR]))
+          , Push CAl [(R 12)]            -- push fp
+          , if stackSpace > 0 then
+              Op CAl SubOp (R 13) (R 13) (Imm stackSpace) -- sub sp, sp, stackSpace
+            else
+              Special Empty
+          , Move CAl (R 12) (Reg (R 13)) -- mov fp, sp
+          ]
 
   emit (Special (LabelDecl l))
     = [l, ":\n"]
@@ -143,9 +151,15 @@ instance Emit Instruction where
   emit (SWI i)
     = ["swi #", show i, "\n"]
 
-  emit (Ret op usedRegs) = concatMap emit
-      [ Move CAl r0 op,
-        Pop CAl (usedRegs ++ [PC]) ]
+  emit (Ret op usedRegs stackSpace) = concatMap emit
+      [ Move CAl r0 op
+      , if stackSpace > 0 then
+          Op CAl AddOp (R 12) (R 12) (Imm stackSpace)
+        else
+          Special Empty
+      , Pop CAl [(R 12)]     -- pop fp
+      , Pop CAl (nub $ ({-(map R [1..4]) ++ -}usedRegs ++ [PC]))
+      ]
 
   emit (PureAsm ss)
     = ss

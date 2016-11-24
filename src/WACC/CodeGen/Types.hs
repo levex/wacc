@@ -82,6 +82,18 @@ data Register
   | PC
   deriving (Eq, Ord)
 
+{-
+instance Enum Register where
+  fromEnum SP = 13
+  fromEnum PC = 15
+  fromEnum LR = 14
+  fromEnum (R i) = i
+  toEnum 13 = SP
+  toEnum 14 = LR
+  toEnum 15 = PC
+  toEnum i = (R (fromIntegral i))
+-}
+
 instance Show Register where
   show (R r)  = "r" ++ show r
   show SP     = "sp"
@@ -120,13 +132,14 @@ data MemAccessType
   deriving (Eq, Show)
 
 data SpecialLink
-  = FunctionStart Identifier [Register]
+  = FunctionStart Identifier [Register] Int
   | SectionStart  String
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
   | LabelDecl     Identifier
   | ScopeBegin    Identifier
   | ScopeEnd      Identifier
+  | Empty
   deriving (Eq, Show)
 
 data Instruction
@@ -141,7 +154,7 @@ data Instruction
   | BranchLink Condition Operand
   | Compare Condition Register Operand
   | SWI Int
-  | Ret Operand [Register]
+  | Ret Operand [Register] Int
   | Special SpecialLink
   | PureAsm [String]
   deriving (Eq, Show)
