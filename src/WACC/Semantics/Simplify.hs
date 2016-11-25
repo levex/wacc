@@ -9,7 +9,7 @@ getBuiltinName f (Just t)
   = concat ["__builtin_", show f, "_", builtinForType t]
   where
     builtinForType (TArray TChar)
-      = show TString
+      = "TCharArray"
 
     builtinForType (TArray _)
       = "TRef"
