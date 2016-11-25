@@ -90,7 +90,7 @@ generateBuiltinCall "__builtin_Print_TString" =
        ]
 
 generateBuiltinCall "__builtin_Print_TCharArray" =
-  tell [ Special (FunctionStart "__builtin_Print_TCharArray" [])
+  tell [ Special (FunctionStart "__builtin_Print_TCharArray" [] 0)
        , Push       CAl [r0, R 4, R 5, R 6]
        , Load       CAl Word (R 4) (Reg SP) True (Imm 20)
        , Load       CAl Word (R 6) (Reg $ R 4) True (Imm 0)
