@@ -26,6 +26,7 @@ generateCode p
         [ emitSection ".data"
         , emitLiterals instructions
         , emitBuiltinStrings builtins
+        , return ".ltorg\n"
         , emitSection ".text"
         , emitAssembly builtinInstructions
         , emitAssembly instructions
