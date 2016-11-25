@@ -58,6 +58,8 @@ simplifyStmt s
 simplifyDef :: Definition -> SemanticChecker Definition
 simplifyDef (FunDef d@(_, TFun rT paramTs) block)
   = scoped $ mapM_ storeDecl paramTs >> FunDef d <$> simplifyStmt block
+simplifyDef td
+  = return td
 
 simplify :: Program -> SemanticChecker Program
 simplify

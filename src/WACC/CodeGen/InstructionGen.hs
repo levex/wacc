@@ -155,6 +155,16 @@ generateArrayDeref r offset = do
   generateArrayIndex offsetR offset
   generateAddressDeref r offsetR
 
+calcStructOffset :: Identifier -> Offset -> Expr -> InstructionGenerator Int
+calcStructOffset s o (Ident i) = do
+  sd <- gets structDefs
+  let (off, _) = (fromJust $ lookup s sd) Map.! i
+  return (o + off)
+calcStructOffset s o (BinApp Member (Ident i) e) = do
+  sd <- gets structDefs
+  let (off, (TPtr (TStruct struct))) = (fromJust $ lookup s sd) Map.! i
+  calcStructOffset struct (o + off) e
+
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
 generateAssignment (Ident i) e = do
   r <- getRegById i
@@ -180,7 +190,13 @@ generateAssignment (PairElem p i) e = do
   case p of
     Fst -> tell [Store CAl Word r1 r True (Imm 0)]
     Snd -> tell [Store CAl Word r1 r True (Imm 4)]
-
+generateAssignment (BinApp Member (Ident i) ex) e = do
+  (TPtr (TStruct s)) <- getTypeById i
+  offset <- calcStructOffset s 0 ex
+  r <- getRegById i
+  r1 <- getFreeRegister
+  generateInstrForExpr r1 e
+  tell [Store CAl Word r1 r True (Imm offset)]
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
 generateInstrForExpr r (Lit l)
   = generateLiteral r l
@@ -236,6 +252,9 @@ generateInstrForExpr r (NewPair e1 e2) = do
   r2 <- getFreeRegister
   generateInstrForExpr r2 e2
   tell [Store CAl Word r2 r True (Imm 4)]
+generateInstrForExpr r (NewStruct s) = do
+  sd <- gets structDefs
+  generateInstrForAlloc r $ ((maximum . map fst . Map.elems . fromJust) $ lookup s sd) + 4
 
 generateInstrForFunCall :: Expr -> InstructionGenerator ()
 generateInstrForFunCall (FunCall id args) = do
@@ -292,6 +311,8 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
     saveRegId r id t
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident
+generateFunction (TypeDef _ _)
+  = pure ()
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
