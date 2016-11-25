@@ -19,7 +19,7 @@ invalid e s
 rethrowWithLocation :: StatementId -> CheckerError -> SemanticChecker a
 rethrowWithLocation i (CheckerError e _ s) = do
   ld <- gets locationData
-  let loc = fromJust $ Map.lookup i (locations ld)
+  let loc = fromMaybe (Location 0 0)  $ Map.lookup i (locations ld)
   throwError $ CheckerError e loc s
 
 isReturnOrExit :: Statement -> Bool

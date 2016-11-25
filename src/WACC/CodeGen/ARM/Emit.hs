@@ -166,7 +166,7 @@ instance Emit Instruction where
       emit (Pop CAl [r0])
 
   emit (Op c op rt rn op1)
-    = [genCond c (fromJust $ lookup op opTable), "s", " "] ++
+    = [genCond c (fromMaybe "" (lookup op opTable)), "s", " "] ++
       case op1 of
         Reg rm -> [intercalate ", " $ map show [rt, rn, rm],"\n"]
         Imm i  -> [show rt, ", ", show rn, ", #", show i,"\n"]

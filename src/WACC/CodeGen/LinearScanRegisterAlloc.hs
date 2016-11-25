@@ -304,8 +304,9 @@ calcLiveRange _ _ _ = return ()
 extendLiveRange :: Register -> [Instruction] -> LSRA ()
 extendLiveRange r ins = do
   st@LSRAState{..} <- get
-  let range = fromJust $ lookup r (liveRangeMap <$> lranges)
-  extendLiveRange' (startLine range) (drop (startLine range) ins) Nothing range
+  case lookup r (liveRangeMap <$> lranges) of
+    Just range -> extendLiveRange' (startLine range) (drop (startLine range) ins) Nothing range
+    Nothing -> return ()
   where
     extendLiveRange' :: Int -> [Instruction] -> Maybe Identifier -> LiveRange -> LSRA ()
     extendLiveRange' line ((Special (ScopeBegin s)):ins) Nothing range
@@ -360,33 +361,33 @@ expireOldIntervals i = do
       let acts = sortOn endLine (active st2)
       --traceShowM ("lr " ++ show i ++ " adding " ++ (show $ selReg j) ++ " to freepool")
       put st2{active = nub $ (acts \\ [j]),     -- remove interval j from active intervals
-            freePool = nub $ ((fromJust $ registerNew j) : freePool st2)}) -- remove reg j from the freepool
+            freePool = nub $ ((selReg j) : freePool st2)}) -- remove reg j from the freepool
 
 spillAtInterval :: LiveRange -> LSRA ()
 spillAtInterval i = do
   spill <- last . (sortOn endLine) <$> gets active
   stack <- getNewStackLocation
   st@LSRAState{..} <- get
-  if (endLine spill > endLine i) then do
-    let newi = i{registerNew = Just $ selReg spill}
-    put st{ finalAllocations = newi : spill{location = Just stack} : finalAllocations
+  --if (endLine spill > endLine i) then do
+  let newi = i{registerNew = Just $ selReg spill}
+  put st{ finalAllocations = newi : spill{location = Just stack} : finalAllocations
+        , spillage
+          = (registerOld spill,
+              Spill{spillRegisterOld = registerOld spill,
+                    spilledLines = [startLine i .. endLine i],
+                    spillLocation = stack}
+            ) : spillage
+        , active = nub $ sortOn endLine (newi : (active \\ [spill]))
+        }
+  {-else do
+    put st{ finalAllocations = i{registerNew = Just $ R 11, location = Just stack} : finalAllocations
           , spillage
             = (registerOld spill,
                 Spill{spillRegisterOld = registerOld spill,
                       spilledLines = [startLine i .. endLine i],
                       spillLocation = stack}
               ) : spillage
-          , active = nub $ sortOn endLine (newi : (active \\ [spill]))
-          }
-  else do
-    put st{ finalAllocations = i{location = Just stack} : finalAllocations
-          , spillage
-            = (registerOld spill,
-                Spill{spillRegisterOld = registerOld spill,
-                      spilledLines = undefined,
-                      spillLocation = stack}
-              ) : spillage
-           }
+           } -}
               
 
 testInstructions :: [Instruction]
