@@ -367,9 +367,7 @@ spillAtInterval i = do
   spill <- last . (sortOn endLine) <$> gets active
   stack <- getNewStackLocation
   st@LSRAState{..} <- get
-  traceShowM "BASTARD"
   if (endLine spill > endLine i) then do
-    traceShowM "FUCK YOU\n"
     let newi = i{registerNew = Just $ selReg spill}
     put st{ finalAllocations = newi : spill{location = Just stack} : finalAllocations
           , spillage
@@ -381,7 +379,6 @@ spillAtInterval i = do
           , active = nub $ sortOn endLine (newi : (active \\ [spill]))
           }
   else do
-    traceShowM "MOTHERFUCKER\n"
     put st{ finalAllocations = i{location = Just stack} : finalAllocations
           , spillage
             = (registerOld spill,
