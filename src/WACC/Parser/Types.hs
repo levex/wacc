@@ -101,6 +101,7 @@ data Control
 data Statement
   = Noop
   | Block [Statement]
+  | List [Statement]
   | VarDef Declaration Expr
   | Ctrl Control
   | Cond Expr Statement Statement

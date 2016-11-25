@@ -151,6 +151,10 @@ analyzeAccess r (Compare _ r1 _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
+analyzeAccess r (Special (VariableDecl a b r1))
+  | r == r1            = RWrite
+  | otherwise          = RIgnore
+
 analyzeAccess r (Ret (Reg r1) _ _)
   | r == r1            = RRead
   | otherwise          = RIgnore
@@ -273,10 +277,10 @@ collectRegisters (Shift a tr1 tr2 b c)
   = [tr1, tr2]
 
 collectRegisters (Push a regs)
-  = regs
+  = [] -- regs
 
 collectRegisters (Pop a regs)
-  = regs
+  = [] -- regs
 
 collectRegisters (Branch a (Reg tr1))
   = [tr1]
@@ -350,6 +354,7 @@ allocateLSRA = mdo
     extendLiveRange r ins
   -- start LSRA
   lr <- sortOn startLine <$> gets lranges
+  traceShowM ("LIVERANGES: " ++ show lr)
   forM_ lr $ \i -> do
     expireOldIntervals i
     len <- length <$> gets active
@@ -361,7 +366,7 @@ allocateLSRA = mdo
       let rt = head freePool
       let newi = i{registerNew = Just rt}
       put st{ freePool = freePool \\ [rt]
-            , finalAllocations = newi : finalAllocations  -- r got assigned to rt
+            , finalAllocations = newi : delete i finalAllocations  -- r got assigned to rt
             , active = nub $ sortOn endLine (newi : active)  -- i is now active
             }
       
@@ -378,7 +383,7 @@ expireOldIntervals i = do
       let acts = sortOn endLine (active st2)
       --traceShowM ("lr " ++ show i ++ " adding " ++ (show $ selReg j) ++ " to freepool")
       put st2{active = nub $ (acts \\ [j]),     -- remove interval j from active intervals
-            freePool = selReg j : freePool st2}) -- remove reg j from the freepool
+            freePool = selReg j : freePool st2}) -- add reg j to the freepool
 
 spillAtInterval :: LiveRange -> LSRA ()
 spillAtInterval i = do
@@ -388,7 +393,7 @@ spillAtInterval i = do
   st2@LSRAState{..} <- get
   if (endLine spill > endLine i) then do
     let newi = i{registerNew = Just $ selReg spill}
-    put st2{ finalAllocations = newi : spill{location = Just stackloc} : finalAllocations
+    put st2{ finalAllocations = newi : spill{location = Just stackloc} : delete i (delete spill finalAllocations)
            , spillage
             = (startLine i,
                 SpillStart  (max (startLine spill) (startLine i))
@@ -399,7 +404,15 @@ spillAtInterval i = do
            , active = nub $ sortOn endLine (newi : (active \\ [spill]))
            }
   else
-    put st2{finalAllocations = i{location = Just stackloc} : finalAllocations }
+    put st2{finalAllocations = i{location = Just stackloc} : delete i finalAllocations
+           {- , spillage
+            = (startLine i,
+                SpillStart  (max (startLine spill) (startLine i))
+                            (min (endLine i) (endLine spill))
+                            (selReg spill)
+                            stackloc
+                            (registerOld spill)) : spillage -}
+            }
 
 testInstructions :: [Instruction]
 testInstructions =
@@ -422,20 +435,13 @@ thsnd (_, a, _) = a
 
 instrUsesRegister :: Instruction -> Register -> Bool
 instrUsesRegister instr reg
-  = reg `elem` (nub $ collectRegisters instr)
+  = reg `elem` (collectRegisters instr)
 
 spillOldReg   (SpillStart _ _ _ _ o) = o
 spillNewReg   (SpillStart _ _ n _ _) = n
 spillEnd      (SpillStart _ e _ _ _) = e
 spillStart    (SpillStart s _ _ _ _) = s
 spillLocation (SpillStart _ _ _ l _) = l
-
-spillNewReg2 allocs (SpillStart _ _ _ _ o)
-  = case lookup o m of
-      Just lr -> fromJust $ registerNew lr
-      Nothing -> error "screw this"
-  where
-    m = liveRangeMap <$> allocs
 
 allocateFuncRegisters :: [Instruction] -> [Instruction]
 allocateFuncRegisters p
@@ -446,11 +452,11 @@ allocateFuncRegisters p
     final = (execState . unLSRA) allocateLSRA (initialLSRAState p)
     instrs = instructions final
     usedRegs = sort . nub . catMaybes . map registerNew $ allocs
-    spills = spillage final
+    spills = trace ("spills: " ++ show (spillage final)) (spillage final)
     allocs = finalAllocations final
     locRemAllocs = map (\lr -> if (isNothing $ location lr) then lr{location = Just 1337} else lr{location = Nothing}) allocs
     f (i, acc) instr
-      = case lookup i spills of
+      = case lookup (trace ("orig: " ++ show (p !! i) ++ "new: " ++ show instr) i) spills of
           --Nothing -> (i + 1, fixStackAccesses instr : acc, activeSpills)
           Nothing ->
             if or (map (instrUsesRegister (p !! i) . spillOldReg) (snd <$> spills)) then
@@ -466,10 +472,19 @@ allocateFuncRegisters p
             else
               (i + 1, fixStackAccesses <$> (replaceRegister locRemAllocs instr) ++ acc)
           Just spilly@(SpillStart startLocation endLocation spilledReg spillLocation oldReg) ->
-            (i + 1,
-             fixStackAccesses instr :
-               Store CAl Word spilledReg (R 12) True (Imm spillLocation) : acc
-             )
+            let
+              checkSpilledShit = []
+                {- = if or (map (instrUsesRegister (p !! i) . spillOldReg) (snd <$> spills)) then
+                    let spilledRegisters = filter (\x -> instrUsesRegister (p !! i) (spillOldReg x)) (snd <$> spills)
+                    in
+                      map (\sp@(SpillStart start end nre nloc ore) ->
+                        Load CAl Word nre (Reg $ R 12) True (Imm nloc)) spilledRegisters
+                  else []  -}
+            in
+              (i + 1,
+              fixStackAccesses instr : checkSpilledShit ++
+                (Store CAl Word spilledReg (R 12) True (Imm spillLocation) : acc)
+              )
     fixStackAccesses (Special (FunctionStart s _ _))
       = Special (FunctionStart s usedRegs (lastStack final))
     fixStackAccesses (Load c m r (Reg SP) plus (Imm i))

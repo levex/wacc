@@ -67,6 +67,7 @@ saveBuiltinId id
 generateInstrForStatement :: Statement -> InstructionGenerator ()
 generateInstrForStatement Noop = return ()
 generateInstrForStatement (Block xs) = scoped $ mapM_ generateInstrForStatement xs
+generateInstrForStatement (List xs) = mapM_ generateInstrForStatement xs
 generateInstrForStatement (VarDef (id, t) e) = do
   r1 <- getFreeRegister
   tell [Special $ VariableDecl id t r1]
