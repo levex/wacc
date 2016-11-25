@@ -134,13 +134,13 @@ generateBuiltinCall "__builtin_PrintLn" =
 
 generateBuiltinCall "__builtin_Exit" =
   tell [ Special (FunctionStart "__builtin_Exit" [] 0)
-       , Load       CAl Word r0 (Reg SP) True (Imm 4)
+       , Load       CAl Word r0 (Reg SP) True (Imm 8)
        , BranchLink CAl (Label "exit")
        ]
 
 generateBuiltinCall "__builtin_Alloc" =
   tell [ Special (FunctionStart "__builtin_Alloc" [] 0)
-       , Load       CAl Word r0 (Reg SP) True (Imm 4)
+       , Load       CAl Word r0 (Reg SP) True (Imm 8)
        , BranchLink CAl (Label "malloc")
        , Pop        CAl [R 12]
        , Pop        CAl [PC]
@@ -148,7 +148,7 @@ generateBuiltinCall "__builtin_Alloc" =
 
 generateBuiltinCall "__builtin_Free" =
   tell [ Special (FunctionStart "__builtin_Free" [] 0)
-       , Load       CAl Word r0 (Reg SP) True (Imm 4)
+       , Load       CAl Word r0 (Reg SP) True (Imm 8)
        , Compare    CAl r0 (Imm 0)
        , Load       CEq Word r0 (Label "__builtin_nullptr_str") True (Imm 0)
        , Branch     CEq (Label "__builtin_ThrowError")
