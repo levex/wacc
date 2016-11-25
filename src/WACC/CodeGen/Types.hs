@@ -19,7 +19,7 @@ class Emit a where
 data CodeGenState = CodeGenState
   { lastRegister :: Int,
     lastLabelId :: Integer,
-    regIdsTable :: Map (Identifier, Integer) Register,
+    regIdsTable :: Map (Identifier, Integer) (Register, Type),
     scopeId :: Integer,
     usedBuiltins :: Set Identifier }
 

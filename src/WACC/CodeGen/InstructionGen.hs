@@ -33,13 +33,24 @@ getRegById i
     getRegById' i sId = do
       table <- gets regIdsTable
       case Map.lookup (i, sId) table of
-        Just r  -> return r
-        Nothing -> getRegById' i (sId - 1)
+        Just (r, _) -> return r
+        Nothing     -> getRegById' i (sId - 1)
 
-saveRegId :: Register -> Identifier -> InstructionGenerator ()
-saveRegId r i = do
+getTypeById :: Identifier -> InstructionGenerator Type
+getTypeById i
+  = gets scopeId >>= getTypeById' i
+  where
+    getTypeById' :: Identifier -> Integer -> InstructionGenerator Type
+    getTypeById' i sId = do
+      table <- gets regIdsTable
+      case Map.lookup (i, sId) table of
+        Just (_, t) -> return t
+        Nothing     -> getTypeById' i (sId - 1)
+
+saveRegId :: Register -> Identifier -> Type -> InstructionGenerator ()
+saveRegId r i t = do
   s@CodeGenState{..} <- get
-  put s{regIdsTable = Map.insert (i, scopeId) r regIdsTable}
+  put s{regIdsTable = Map.insert (i, scopeId) (r, t) regIdsTable}
 
 increaseScope :: InstructionGenerator ()
 increaseScope
@@ -64,13 +75,21 @@ saveBuiltinId id
   = modify (\s@CodeGenState{..} ->
       s{usedBuiltins = Set.insert id usedBuiltins})
 
+getWidth :: Type -> MemAccessType
+getWidth (TArray TChar)
+  = Byte
+getWidth TString
+  = Byte
+getWidth (TArray _)
+  = Word
+
 generateInstrForStatement :: Statement -> InstructionGenerator ()
 generateInstrForStatement Noop = return ()
 generateInstrForStatement (Block xs) = scoped $ mapM_ generateInstrForStatement xs
 generateInstrForStatement (VarDef (id, t) e) = do
   r1 <- getFreeRegister
   tell [Special $ VariableDecl id t r1]
-  saveRegId r1 id
+  saveRegId r1 id t
   generateAssignment (Ident id) e
 generateInstrForStatement (Ctrl c) = generateControl c
 generateInstrForStatement (Cond e t f) = do
@@ -152,10 +171,12 @@ generateAssignment (ArrElem i idxs) e = do
   saveBuiltinId "__builtin_ThrowArrayBounds"
   r <- getFreeRegister
   r1 <- getRegById i
+  t <- getTypeById i
   tell [Move CAl r (Reg r1)]
   let idxCount = length idxs
   let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
   forM_ derefIdxs $ generateArrayDeref r
+  let t1 = foldr (flip (.)) id (map (const (\(TArray t) -> t)) derefIdxs) t
   r2 <- getFreeRegister
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
@@ -169,7 +190,7 @@ generateAssignment (ArrElem i idxs) e = do
         Compare CAl r3 (Reg r0),
         Branch CGe (Label "__builtin_ThrowArrayBounds"),
         Pop CAl [r0]]
-  tell [Store CAl Word r2 r True (Reg r3)]
+  tell [Store CAl (getWidth t1) r2 r True (Reg r3)]
 generateAssignment (PairElem p i) e = do
   r <- getRegById i
   saveBuiltinId "__builtin_ThrowNullptr"
@@ -291,10 +312,10 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   saveBuiltinId "__builtin_ThrowOverflow"
   resetFreeRegisters
   tell [Special $ FunctionStart ident []]
-  forM_ (zip [0..] paramTs) $ \(i, (id, _)) -> do
+  forM_ (zip [0..] paramTs) $ \(i, (id, t)) -> do
     r <- getFreeRegister
     tell [Load CAl Word r (Reg SP) True (Imm $ 4 + i * 4)]
-    saveRegId r id
+    saveRegId r id t
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident
 
