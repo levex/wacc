@@ -130,7 +130,7 @@ generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
-  tell [Ret (Reg r1) []]
+  tell [Ret (Reg r1) [] 0]
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
@@ -301,7 +301,7 @@ generateLiteral r NULL
 
 generateImplicitReturn :: Identifier -> InstructionGenerator ()
 generateImplicitReturn "main"
-  = tell [Ret (Imm 0) []]
+  = tell [Ret (Imm 0) [] 0]
 generateImplicitReturn _
   = skip
 
@@ -311,10 +311,10 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   saveBuiltinId "__builtin_ThrowError"
   saveBuiltinId "__builtin_ThrowOverflow"
   resetFreeRegisters
-  tell [Special $ FunctionStart ident []]
+  tell [Special $ FunctionStart ident [] 0]
   forM_ (zip [0..] paramTs) $ \(i, (id, t)) -> do
     r <- getFreeRegister
-    tell [Load CAl Word r (Reg SP) True (Imm $ 4 + i * 4)]
+    tell [Load CAl Word r (Reg SP) True (Imm $ 8 + i * 4)]
     saveRegId r id t
   scoped $ generateInstrForStatement stmt
   generateImplicitReturn ident

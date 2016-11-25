@@ -120,13 +120,14 @@ data MemAccessType
   deriving (Eq, Show)
 
 data SpecialLink
-  = FunctionStart Identifier [Register]
+  = FunctionStart Identifier [Register] Int
   | SectionStart  String
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
   | LabelDecl     Identifier
   | ScopeBegin    Identifier
   | ScopeEnd      Identifier
+  | Empty
   deriving (Eq, Show)
 
 data Instruction
@@ -141,7 +142,7 @@ data Instruction
   | BranchLink Condition Operand
   | Compare Condition Register Operand
   | SWI Int
-  | Ret Operand [Register]
+  | Ret Operand [Register] Int
   | Special SpecialLink
   | PureAsm [String]
   deriving (Eq, Show)

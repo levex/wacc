@@ -23,7 +23,7 @@ import           WACC.CodeGen.Types
 
 --  http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
 
-availableRegisters = map R [4..12]
+availableRegisters = map R [4..11]
 
 data LiveRange = LiveRange
   { registerOld  :: Register
@@ -146,7 +146,7 @@ analyzeAccess r (Compare _ r1 _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Ret (Reg r1) _)
+analyzeAccess r (Ret (Reg r1) _ _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
@@ -213,8 +213,8 @@ replaceRegister rs (Compare a r1 (Reg r2))
 replaceRegister rs (Compare a r1 b)
   = Compare a (replace' rs r1) b
 
-replaceRegister rs (Ret (Reg r) a)
-  = Ret (Reg (replace' rs r)) a
+replaceRegister rs (Ret (Reg r) a b)
+  = Ret (Reg (replace' rs r)) a b
 
 replaceRegister _ i = i
 
@@ -269,7 +269,7 @@ collectRegisters (Compare a r1 (Reg r2))
 collectRegisters (Compare a r1 b)
   = [r1]
 
-collectRegisters (Ret (Reg r) a)
+collectRegisters (Ret (Reg r) a b)
   = [r]
 
 collectRegisters _ = []
@@ -399,18 +399,19 @@ allocateFuncRegisters p
     usedRegs = sort . nub . catMaybes . map registerNew $ allocs
     spills = spillage final
     allocs = finalAllocations final
+    totalStack = 0
     f (i, acc) instr
       = case lookup i spills of
           Nothing -> (i + 1, fixStackAccesses instr : acc)
           Just (fi, reg) ->
             (i + 1, fixStackAccesses instr : fi CAl [reg] : acc)
-    fixStackAccesses (Special (FunctionStart s _))
-      = Special (FunctionStart s usedRegs)
+    fixStackAccesses (Special (FunctionStart s _ _))
+      = Special (FunctionStart s usedRegs totalStack)
     fixStackAccesses (Load c m r (Reg SP) plus (Imm i))
-      = Load c m r (Reg SP) plus (Imm (i + (length usedRegs * 4)))
+      = Load c m r (Reg SP) plus (Imm (i + totalStack + (length usedRegs * 4)))
     fixStackAccesses (Store c m r SP plus (Imm i))
-      = Store c m r SP plus (Imm (i + (length usedRegs * 4)))
-    fixStackAccesses (Ret op _)
-      = Ret op usedRegs
+      = Store c m r SP plus (Imm (i + totalStack + (length usedRegs * 4)))
+    fixStackAccesses (Ret op _ _)
+      = Ret op usedRegs totalStack
     fixStackAccesses i
       = i
