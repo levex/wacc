@@ -149,43 +149,7 @@ generateBuiltinCall "__builtin_Alloc" =
 generateBuiltinCall "__builtin_Free" =
   tell [ Special (FunctionStart "__builtin_Free" [] 0)
        , Load       CAl Word r0 (Reg SP) True (Imm 8)
-       , Compare    CAl r0 (Imm 0)
-       , Load       CEq Word r0 (Label "__builtin_nullptr_str") True (Imm 0)
-       , Branch     CEq (Label "__builtin_ThrowError")
        , BranchLink CAl (Label "free")
        , Pop        CAl [R 12]
        , Pop        CAl [PC]
-       ]
-
-generateBuiltinCall "__builtin_ThrowNullptr" =
-  tell [ Special (FunctionStart "__builtin_ThrowNullptr" [] 0)
-       , Load       CAl Word r0 (Label "__builtin_nullptr_str") True (Imm 0)
-       , BranchLink CAl (Label "__builtin_ThrowError")
-       ]
-
-generateBuiltinCall "__builtin_ThrowArrayBounds" =
-  tell [ Special (FunctionStart "__builtin_ThrowArrayBounds" [] 0)
-       , Load       CAl Word r0 (Label "__builtin_arraybounds_str") True (Imm 0)
-       , BranchLink CAl (Label "__builtin_ThrowError")
-       ]
-
-generateBuiltinCall "__builtin_ThrowOverflow" =
-  tell [ Special (FunctionStart "__builtin_ThrowOverflow" [] 0)
-       , Load       CAl Word r0 (Label "__builtin_overflow_str") True (Imm 0)
-       , BranchLink CAl (Label "__builtin_ThrowError")
-       ]
-
-generateBuiltinCall "__builtin_ThrowDivByZero" =
-  tell [ Special (FunctionStart "__builtin_ThrowDivByZero" [] 0)
-       , Load       CAl Word r0 (Label "__builtin_divbyzero_str") True (Imm 0)
-       , BranchLink CAl (Label "__builtin_ThrowError")
-       ]
-
-generateBuiltinCall "__builtin_ThrowError" =
-  tell [ Special (FunctionStart "__builtin_ThrowError" [] 0)
-       , Push       CAl [r0]
-       , BranchLink CAl (Label "__builtin_Print_TString")
-       , Op         CAl AddOp SP SP (Imm 4)
-       , Move       CAl r0 (Imm $ -1)
-       , Branch     CAl (Label "exit")
        ]

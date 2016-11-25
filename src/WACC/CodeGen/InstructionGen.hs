@@ -149,18 +149,6 @@ generateArrayDeref :: Register -> Expr -> InstructionGenerator ()
 generateArrayDeref r offset = do
   offsetR <- getFreeRegister
   generateArrayIndex offsetR offset
-  saveBuiltinId "__builtin_ThrowNullptr"
-  saveBuiltinId "__builtin_ThrowArrayBounds"
-  tell [Compare CAl r (Imm 0), Branch CEq (Label "__builtin_ThrowNullptr")]
-  tell [Compare CAl offsetR (Imm 4),
-        Branch CLt (Label "__builtin_ThrowArrayBounds"),
-        Push CAl [r0],
-        Load CAl Word r0 (Reg r) True (Imm 0),
-        Op CAl AddOp r0 r0 (Imm 1),
-        Shift CAl r0 r0 LSL 2,
-        Compare CAl offsetR (Reg r0),
-        Branch CGe (Label "__builtin_ThrowArrayBounds"),
-        Pop CAl [r0]]
   generateAddressDeref r offsetR
 
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
@@ -168,7 +156,6 @@ generateAssignment (Ident i) e = do
   r <- getRegById i
   generateInstrForExpr r e
 generateAssignment (ArrElem i idxs) e = do
-  saveBuiltinId "__builtin_ThrowArrayBounds"
   r <- getFreeRegister
   r1 <- getRegById i
   t <- getTypeById i
@@ -181,20 +168,9 @@ generateAssignment (ArrElem i idxs) e = do
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
   generateArrayIndex r3 lastIdx
-  tell [Compare CAl r3 (Imm 4),
-        Branch CLt (Label "__builtin_ThrowArrayBounds"),
-        Push CAl [r0],
-        Load CAl Word r0 (Reg r) True (Imm 0),
-        Op CAl AddOp r0 r0 (Imm 1),
-        Shift CAl r0 r0 LSL 2,
-        Compare CAl r3 (Reg r0),
-        Branch CGe (Label "__builtin_ThrowArrayBounds"),
-        Pop CAl [r0]]
   tell [Store CAl (getWidth t1) r2 r True (Reg r3)]
 generateAssignment (PairElem p i) e = do
   r <- getRegById i
-  saveBuiltinId "__builtin_ThrowNullptr"
-  tell [Compare CAl r (Imm 0), Branch CEq (Label "__builtin_ThrowNullptr")]
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   case p of
@@ -209,14 +185,10 @@ generateInstrForExpr r (Ident id) = do
   tell [Move CAl r (Reg r1)]
 generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
-  saveBuiltinId "__builtin_ThrowNullptr"
-  tell [Compare CAl r1 (Imm 0), Branch CEq (Label "__builtin_ThrowNullptr")]
   tell [Move CAl r (Reg r1)]
   forM_ idxs $ generateArrayDeref r
 generateInstrForExpr r (PairElem p i) = do
   r1 <- getRegById i
-  saveBuiltinId "__builtin_ThrowNullptr"
-  tell [Compare CAl r1 (Imm 0), Branch CEq (Label "__builtin_ThrowNullptr")]
   tell [Move CAl r (Reg r1)]
   case p of
     Fst -> generateAddressDerefImm r 0
@@ -238,8 +210,8 @@ generateInstrForExpr r (BinApp op e1 e2) = do
     Add -> tell [Op CAl AddOp r r1 (Reg r2)]
     Sub -> tell [Op CAl SubOp r r1 (Reg r2)]
     Mul -> tell [Op CAl MulOp r r1 (Reg r2)]
-    Div -> tell [Op CAl DivOp r r1 (Reg r2)] >> saveBuiltinId "__builtin_ThrowDivByZero"
-    Mod -> tell [Op CAl ModOp r r1 (Reg r2)] >> saveBuiltinId "__builtin_ThrowDivByZero"
+    Div -> tell [Op CAl DivOp r r1 (Reg r2)]
+    Mod -> tell [Op CAl ModOp r r1 (Reg r2)]
     And -> tell [Op CAl AndOp r r1 (Reg r2)]
     Or  -> tell [Op CAl OrOp r r1 (Reg r2)]
     Gt  -> tell [Compare CAl r1 (Reg r2), Move CGt r (Imm 1), Move CLe r (Imm 0)]
@@ -307,9 +279,6 @@ generateImplicitReturn _
 
 generateFunction :: Definition -> InstructionGenerator ()
 generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
-  saveBuiltinId "__builtin_Print_TString"
-  saveBuiltinId "__builtin_ThrowError"
-  saveBuiltinId "__builtin_ThrowOverflow"
   resetFreeRegisters
   tell [Special $ FunctionStart ident [] 0]
   forM_ (zip [0..] paramTs) $ \(i, (id, t)) -> do
