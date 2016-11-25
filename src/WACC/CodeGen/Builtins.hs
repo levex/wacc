@@ -10,8 +10,9 @@ import           WACC.Parser.Types
 import           WACC.CodeGen.Types
 
 generateBuiltins :: Set Identifier -> CodeGenerator [Instruction]
-generateBuiltins
-  = execWriterT . mapM_ generateBuiltinCall . Set.toList
+generateBuiltins _
+  = fail "Builtins disabled."
+--  = execWriterT . mapM_ generateBuiltinCall . Set.toList
 
 -- __builtin_fmt_read_char = " %c\0"
 generateBuiltinCall :: Identifier -> InstructionGenerator ()
