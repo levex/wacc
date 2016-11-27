@@ -295,12 +295,6 @@ generateLiteral r (ARRAY exprs) = do
 generateLiteral r NULL
   = tell [Move CAl r (Imm 0)]
 
-generateImplicitReturn :: Identifier -> InstructionGenerator ()
-generateImplicitReturn "main"
-  = tell [Ret (Imm 0) [] 0]
-generateImplicitReturn _
-  = skip
-
 generateFunction :: Definition -> InstructionGenerator ()
 generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
   resetFreeRegisters
@@ -310,7 +304,6 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
     tell [Load CAl Word r (Reg SP) True (Imm $ 8 + i * 4)]
     saveRegId r id t
   scoped $ generateInstrForStatement stmt
-  generateImplicitReturn ident
 generateFunction (TypeDef _ _)
   = pure ()
 
