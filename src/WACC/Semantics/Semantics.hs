@@ -50,13 +50,6 @@ checkUnreachableCode _
   = valid
 
 
-checkMainDoesNotReturn :: Definition -> SemanticChecker ()
-checkMainDoesNotReturn (FunDef _ stmts) = do
-  codePaths <- genCodePaths stmts
-  unless (not (any (any isReturn) codePaths))
-    $ invalid SemanticError "cannot return a value from the global scope"
-
-
 checkDef :: Definition -> SemanticChecker ()
 checkDef (FunDef (ident, TFun rT paramT) stmt) = scoped $ do
   mapM_ storeDecl paramT
@@ -216,11 +209,10 @@ storeStructs
   = mapM_ storeStruct
 
 semanticCheck :: Program -> SemanticChecker Program
-semanticCheck p@(mainF:funcs) = do
-  mapM_ checkCodePathsReturn funcs
-  mapM_ checkUnreachableCode funcs
-  checkMainDoesNotReturn mainF
-  storeStructs funcs
-  storeFuncs funcs
-  mapM_ checkDef (mainF:funcs)
+semanticCheck p = do
+  mapM_ checkCodePathsReturn p
+  mapM_ checkUnreachableCode p
+  storeStructs p
+  storeFuncs p
+  mapM_ checkDef p
   return p

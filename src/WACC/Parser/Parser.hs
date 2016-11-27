@@ -282,17 +282,11 @@ definition
       = try $ TypeDef <$> (keyword "struct" *> identifier <* keyword "is")
                       <*> (varDecl `sepBy` semicolon <* keyword "end")
 
-mainDecl :: Declaration
-mainDecl
-  = ("main", TFun TInt [])
-
 program :: GenParser Char LocationData AnnotatedProgram
 program = try $ do
   keyword "begin"
   defs <- many definition
-  notFollowedBy $ keyword "end"
-  mainFunc <- stmtSeq
   keyword "end"
   eof
   st <- getState
-  return $ ((FunDef mainDecl mainFunc):defs, st)
+  return $ (defs, st)
