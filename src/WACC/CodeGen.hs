@@ -20,14 +20,10 @@ generateCode p
   = flip evalState (codeGenState p) . runCodeGen $ do
       functions <- generateInstructions p
       let instructions = concatMap allocateFuncRegisters functions
-      builtins <- gets usedBuiltins
-      builtinInstructions <- generateBuiltins builtins
       liftM concat . sequence $
         [ emitSection ".data"
         , emitLiterals instructions
-        , emitBuiltinStrings builtins
         , return ".ltorg\n"
         , emitSection ".text"
-        , emitAssembly builtinInstructions
         , emitAssembly instructions
         ]
