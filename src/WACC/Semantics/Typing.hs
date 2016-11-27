@@ -76,7 +76,7 @@ getLiteralType (BOOL _)        = return TBool
 getLiteralType (STR _)         = return TString
 getLiteralType (ARRAY (e : _)) = TArray <$> getType e
 getLiteralType (ARRAY [])      = return (TArray TArb)
-getLiteralType NULL            = return (TPair TArb TArb)
+getLiteralType NULL            = return (TPtr TArb)
 
 deconstructArrayType :: Type -> SemanticChecker Type
 deconstructArrayType (TArray t)
@@ -223,6 +223,8 @@ equalTypes _ (TString) (TArray TChar) = valid
 equalTypes _ (TArray TChar) (TString) = valid
 equalTypes errMsg (TPair t11 t12) (TPair t21 t22)
   = equalTypes errMsg t11 t21 >> equalTypes errMsg t12 t22
+equalTypes errMsg (TPtr t1) (TPtr t2)
+  = equalTypes errMsg t1 t2
 equalTypes errMsg t1 t2
   | t1 == TArb || t2 == TArb = valid
   | t1 == t2                 = valid
