@@ -16,6 +16,10 @@ invalid :: ErrorType -> String -> SemanticChecker a
 invalid e s
   = throwError $ CheckerError e (Location 0 0) s
 
+validate :: ErrorType -> String -> Bool -> SemanticChecker ()
+validate e s b
+  = unless b $ invalid e s
+
 rethrowWithLocation :: StatementId -> CheckerError -> SemanticChecker a
 rethrowWithLocation i (CheckerError e _ s) = do
   ld <- gets locationData

@@ -59,6 +59,13 @@ binopType BwXorAssign     e1 e2 = getType e1
 binopType BwShiftLAssign  e1 e2 = getType e1
 binopType BwShiftRAssign  e1 e2 = getType e1
 
+isIntType :: Type -> Bool
+isIntType (TPtr _) = True
+isIntType t = t `elem` [TChar, TInt, TUInt8, TUInt16, TUInt32]
+
+validateType :: Bool -> SemanticChecker ()
+validateType = validate SemanticError "type error"
+
 checkUnopArgs :: UnOp -> Type -> SemanticChecker ()
 checkUnopArgs Not TBool         = valid
 checkUnopArgs Neg TInt          = valid
@@ -66,52 +73,40 @@ checkUnopArgs Len (TArray _)    = valid
 checkUnopArgs Ord TChar         = valid
 checkUnopArgs Chr TInt          = valid
 
-checkUnopArgs PreInc TInt       = valid
-checkUnopArgs PreInc (TPtr _)   = valid
-checkUnopArgs PostInc TInt      = valid
-checkUnopArgs PostInc (TPtr _)  = valid
-checkUnopArgs PreDec TInt       = valid
-checkUnopArgs PreDec (TPtr _)   = valid
-checkUnopArgs PostDec TInt      = valid
-checkUnopArgs PostDec (TPtr _)  = valid
+checkUnopArgs PreInc  t = validateType $ isIntType t
+checkUnopArgs PostInc t = validateType $ isIntType t
+checkUnopArgs PreDec  t = validateType $ isIntType t
+checkUnopArgs PostDec t = validateType $ isIntType t
 
 checkUnopArgs Deref (TPtr _)    = valid
 checkUnopArgs AddrOf _          = valid
 
-checkUnopArgs BwNot TInt        = valid
+checkUnopArgs BwNot t           = validateType $ isIntType t
 
 checkUnopArgs _ _               = invalid SemanticError "type error"
 
 checkBinopArgs :: BinOp -> Type -> Type -> SemanticChecker ()
-checkBinopArgs Add TInt TInt   = valid
-checkBinopArgs Sub TInt TInt   = valid
-checkBinopArgs Mul TInt TInt   = valid
-checkBinopArgs Div TInt TInt   = valid
-checkBinopArgs Mod TInt TInt   = valid
+checkBinopArgs Add t1 t2 = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Sub t1 t2 = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Mul t1 t2 = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Div t1 t2 = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Mod t1 t2 = validateType $ isIntType t1 && isIntType t2
 
 checkBinopArgs And TBool TBool = valid
 checkBinopArgs Or TBool TBool  = valid
 
-checkBinopArgs Gt TInt TInt    = valid
-checkBinopArgs Gt TChar TChar  = valid
-checkBinopArgs Gt _ _          = invalid SemanticError "type error"
-checkBinopArgs Gte TInt TInt   = valid
-checkBinopArgs Gte TChar TChar = valid
-checkBinopArgs Gte _ _         = invalid SemanticError "type error"
-checkBinopArgs Lt TInt TInt    = valid
-checkBinopArgs Lt TChar TChar  = valid
-checkBinopArgs Lt _ _          = invalid SemanticError "type error"
-checkBinopArgs Lte TInt TInt   = valid
-checkBinopArgs Lte TChar TChar = valid
-checkBinopArgs Lte _ _         = invalid SemanticError "type error"
+checkBinopArgs Gt t1 t2        = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Gte t1 t2       = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Lt t1 t2        = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs Lte t1 t2       = validateType $ isIntType t1 && isIntType t2
 checkBinopArgs Eq t1 t2        = equalTypes "type error" t1 t2
 checkBinopArgs NEq t1 t2       = equalTypes "type error" t1 t2
 
-checkBinopArgs BwAnd TInt TInt    = valid
-checkBinopArgs BwOr TInt TInt     = valid
-checkBinopArgs BwXor TInt TInt    = valid
-checkBinopArgs BwShiftL TInt TInt = valid
-checkBinopArgs BwShiftR TInt TInt = valid
+checkBinopArgs BwAnd t1 t2    = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs BwOr t1 t2     = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs BwXor t1 t2    = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs BwShiftL t1 t2 = validateType $ isIntType t1 && isIntType t2
+checkBinopArgs BwShiftR t1 t2 = validateType $ isIntType t1 && isIntType t2
 
 checkBinopArgs Assign t1 t2         = equalTypes "type error" t1 t2
 checkBinopArgs AddAssign t1 t2      = equalTypes "type error" t1 t2
@@ -286,6 +281,7 @@ equalTypes errMsg (TPair t11 t12) (TPair t21 t22)
 equalTypes errMsg (TPtr t1) (TPtr t2)
   = equalTypes errMsg t1 t2
 equalTypes errMsg t1 t2
-  | t1 == TArb || t2 == TArb = valid
-  | t1 == t2                 = valid
-  | otherwise                = invalid SemanticError errMsg
+  | t1 == TArb || t2 == TArb      = valid
+  | isIntType t1 && isIntType t2  = valid
+  | t1 == t2                      = valid
+  | otherwise                     = invalid SemanticError errMsg
