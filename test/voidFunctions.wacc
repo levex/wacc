@@ -1,0 +1,11 @@
+begin
+    void foo() is
+        int x = 0;
+        x = 1
+    end
+
+    int main() is
+        call foo();
+        return 0
+    end
+end
