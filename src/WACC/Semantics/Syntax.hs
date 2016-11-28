@@ -131,6 +131,9 @@ checkType (TPtr (TStruct t))
 checkType (TPtr t)
   = checkType t
 
+checkType (TFun TArb decls)
+  = mapM_ (checkType . snd) decls
+
 checkType (TFun retT decls)
   = checkType retT >> mapM_ (checkType . snd) decls
 
@@ -150,7 +153,7 @@ checkStmt (Block idStmts)
 checkStmt (VarDef (_, t) e)
   = checkType t >> checkRhs e
 
-checkStmt (Ctrl (Return e))
+checkStmt (Ctrl (Return (Just e)))
   = checkExpr e
 
 checkStmt (Ctrl _)
@@ -179,6 +182,9 @@ checkStmt (ExpStmt (BinApp op lhs rhs))
 
 checkStmt (ExpStmt (BinApp op e1 e2))
   = checkExpr e1 >> checkExpr e2
+
+checkStmt (ExpStmt (FunCall _ es))
+  = mapM_ checkExpr es
 
 checkStmt (IdentifiedStatement s i)
   = checkStmt s `catchError` rethrowWithLocation i

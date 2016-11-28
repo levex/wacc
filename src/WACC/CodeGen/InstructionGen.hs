@@ -165,10 +165,12 @@ generateInstrForStatement (ExpStmt e)
   = generateInstrForExpr r0 e
 
 generateControl :: Control -> InstructionGenerator ()
-generateControl (Return e) = do
+generateControl (Return (Just e)) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
-  tell [Ret (Reg r1) [] 0]
+  tell [Ret (Just $ Reg r1) [] 0]
+generateControl (Return _)
+  = tell [Ret Nothing [] 0]
 generateControl Break
   = snd . head <$> gets loopLabels >>= \l -> tell [Branch CAl $ Label l]
 generateControl Continue
@@ -372,6 +374,7 @@ generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
     tell [Load CAl Word r (Reg SP) True (Imm $ 8 + i * 4)]
     saveRegId r id t
   scoped $ generateInstrForStatement stmt
+  when (retT == TArb) $ tell [Ret Nothing [] 0]
 generateDef (TypeDef _ _)
   = pure ()
 generateDef (GlobalDef (id, t) e)

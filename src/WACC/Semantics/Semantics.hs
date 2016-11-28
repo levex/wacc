@@ -32,7 +32,9 @@ genCodePaths stmts
 
 
 checkCodePathsReturn :: Definition -> SemanticChecker ()
-checkCodePathsReturn (FunDef (ident, _) stmts) = do
+checkCodePathsReturn (FunDef (_, TFun TArb _) _)
+  = valid
+checkCodePathsReturn (FunDef _ stmts) = do
   codePaths <- genCodePaths stmts
   unless (all (any isReturnOrExit) codePaths)
     $ invalid SemanticError "not all code paths return a value"
@@ -41,7 +43,9 @@ checkCodePathsReturn _
 
 
 checkUnreachableCode :: Definition -> SemanticChecker ()
-checkUnreachableCode (FunDef (ident, _) stmts) = do
+checkUnreachableCode (FunDef (_, TFun TArb _) stmts)
+  = valid
+checkUnreachableCode (FunDef _ stmts) = do
   codePaths <- genCodePaths stmts
   when ((all (not . isReturnOrExit . last) codePaths)
         || (all ((> 1) . length . filter isReturnOrExit) codePaths))
@@ -140,11 +144,14 @@ checkStmt (InlineAssembly _)
   = valid
 checkStmt (ExternDecl d)
   = valid
-checkStmt (Ctrl (Return e)) = do
+checkStmt (Ctrl (Return (Just e))) = do
   checkExpr e
   rT <- identLookup "%RETURN%"
   t <- getType e
   equalTypes "return type must be the same as the function type" rT t
+checkStmt (Ctrl (Return Nothing)) = do
+  rT <- identLookup "%RETURN%"
+  equalTypes "no return from a non-void function" rT TArb
 checkStmt (Cond e s1 s2) = do
   checkExpr e
   t <- getType e

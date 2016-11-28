@@ -164,7 +164,7 @@ data Instruction
   | BranchLink Condition Operand
   | Compare Condition Register Operand
   | SWI Int
-  | Ret Operand [Register] Int
+  | Ret (Maybe Operand) [Register] Int
   | Special SpecialLink
   | PureAsm [String]
   deriving (Eq, Show)

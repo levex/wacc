@@ -114,8 +114,8 @@ minimizeStmt (Block stmts)
 minimizeStmt (VarDef d e)
   = VarDef <$> return d <*> minimizeExpr e
 
-minimizeStmt (Ctrl (Return e))
-  = Ctrl <$> (Return <$> minimizeExpr e)
+minimizeStmt (Ctrl (Return (Just e)))
+  = Ctrl <$> (Return . Just <$> minimizeExpr e)
 
 minimizeStmt (Cond e t f)
   = Cond <$> minimizeExpr e <*> minimizeStmt t <*> minimizeStmt f

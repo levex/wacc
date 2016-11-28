@@ -158,7 +158,7 @@ analyzeAccess r (Compare _ r1 _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
-analyzeAccess r (Ret (Reg r1) _ _)
+analyzeAccess r (Ret (Just (Reg r1)) _ _)
   | r == r1            = RRead
   | otherwise          = RIgnore
 
@@ -228,8 +228,8 @@ replaceRegister rs (Compare a r1 (Reg r2))
 replaceRegister rs (Compare a r1 b)
   = Compare a (replace' rs r1) b
 
-replaceRegister rs (Ret (Reg r) a b)
-  = Ret (Reg (replace' rs r)) a b
+replaceRegister rs (Ret (Just (Reg r)) a b)
+  = Ret (Just (Reg (replace' rs r))) a b
 
 replaceRegister _ i = i
 
@@ -287,7 +287,7 @@ collectRegisters (Compare a r1 (Reg r2))
 collectRegisters (Compare a r1 b)
   = [r1]
 
-collectRegisters (Ret (Reg r) a b)
+collectRegisters (Ret (Just (Reg r)) a b)
   = [r]
 
 collectRegisters _ = []

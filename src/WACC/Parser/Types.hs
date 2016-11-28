@@ -121,7 +121,7 @@ data BuiltinFunc
   deriving (Eq, Show)
 
 data Control
-  = Return Expr
+  = Return (Maybe Expr)
   | Break
   | Continue
   deriving (Eq, Show)

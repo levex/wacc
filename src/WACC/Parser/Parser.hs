@@ -233,7 +233,7 @@ control
   = Ctrl <$> (ret <|> break <|> cont)
   where
     ret
-      = reserved "return" Return <*> expr
+      = reserved "return" Return <*> optionMaybe expr
 
     break
       = reserved "break" Break

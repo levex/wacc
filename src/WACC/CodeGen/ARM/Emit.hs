@@ -153,9 +153,18 @@ instance Emit Instruction where
   emit (SWI i)
     = ["swi #", show i, "\n"]
 
-  emit (Ret op usedRegs stackSpace) = concatMap emit
+  emit (Ret (Just op) usedRegs stackSpace) = concatMap emit
       [ Move CAl r0 op
       , if stackSpace > 0 then
+          Op CAl AddOp (R 13) (R 13) (Imm stackSpace) -- add sp, sp, stackSpace
+        else
+          Special Empty
+      , Pop CAl [(R 12)]
+      , Pop CAl (usedRegs ++ [PC])
+      ]
+
+  emit (Ret Nothing usedRegs stackSpace) = concatMap emit
+      [ if stackSpace > 0 then
           Op CAl AddOp (R 13) (R 13) (Imm stackSpace) -- add sp, sp, stackSpace
         else
           Special Empty
