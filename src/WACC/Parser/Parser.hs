@@ -233,13 +233,13 @@ control
   = Ctrl <$> (ret <|> break <|> cont)
   where
     ret
-      = try $ Return <$> (keyword "return" *> expr)
+      = reserved "return" Return <*> expr
 
     break
-      = try $ keyword "break" >> return Break
+      = reserved "break" Break
 
     cont
-      = try $ keyword "continue" >> return Continue
+      = reserved "continue" Continue
 
 cond :: GenParser Char LocationData Statement
 cond = try $ do
