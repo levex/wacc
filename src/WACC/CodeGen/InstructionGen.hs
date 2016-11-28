@@ -129,6 +129,8 @@ generateInstrForStatement (ExpStmt funCall@(FunCall id args)) = do
   else
     generateInstrForFunCall funCall
   when ("__builtin_" `isPrefixOf` id) $ saveBuiltinId id
+generateInstrForStatement (ExpStmt e)
+  = generateInstrForExpr r0 e
 
 generateControl :: Control -> InstructionGenerator ()
 generateControl (Return e) = do
