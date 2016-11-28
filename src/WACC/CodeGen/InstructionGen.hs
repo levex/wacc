@@ -147,7 +147,7 @@ generateAddressDeref r offsetR
 generateArrayIndex :: Register -> Expr -> InstructionGenerator ()
 generateArrayIndex r e = do
   generateInstrForExpr r e
-  tell [Op CAl AddOp r r (Imm 1), Shift CAl r r LSL 2]
+  tell [Op CAl AddOp r r (Imm 1), Shift CAl r r LSL (Imm 2)]
 
 generateArrayDeref :: Register -> Expr -> InstructionGenerator ()
 generateArrayDeref r offset = do
@@ -241,6 +241,11 @@ generateInstrForExpr r (BinApp op e1 e2) = do
     Lte -> tell [Compare CAl r1 (Reg r2), Move CLe r (Imm 1), Move CGt r (Imm 0)]
     Eq  -> tell [Compare CAl r1 (Reg r2), Move CEq r (Imm 1), Move CNe r (Imm 0)]
     NEq -> tell [Compare CAl r1 (Reg r2), Move CNe r (Imm 1), Move CEq r (Imm 0)]
+    BwAnd     -> tell [Op CAl AndOp r r1 (Reg r2)]
+    BwOr      -> tell [Op CAl OrOp r r1 (Reg r2)]
+    BwXor     -> tell [Op CAl XorOp r r1 (Reg r2)]
+    BwShiftL  -> tell [Shift CAl r r1 LSL (Reg r2)]
+    BwShiftR  -> tell [Shift CAl r r1 LSR (Reg r2)]
 generateInstrForExpr r fc@(FunCall _ _) = do
   generateInstrForFunCall fc
   tell [Move CAl r (Reg r0)]

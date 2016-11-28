@@ -90,9 +90,11 @@ instance Emit Instruction where
           Imm i  -> [show rt, ", #", show i, "\n"]
           Reg rn -> [show rt, ", ", show rn, "\n"]
 
-  emit (Shift c rt rn st i)
-    = [genCond c (map toLower (show st)), " ",
-        show rt, ", ", show rn, ", #", show i, "\n"]
+  emit (Shift c rt rn st op)
+    = [genCond c (map toLower (show st)), " ", show rt, ", ", show rn, ", "] ++
+        case op of
+          Imm i  -> ["#", show i, "\n"]
+          Reg rs -> [show rs, "\n"]
 
   emit (Push c rs)
     = [genCond c "push", " {",

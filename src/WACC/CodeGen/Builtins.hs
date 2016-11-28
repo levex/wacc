@@ -95,7 +95,7 @@ generateBuiltinCall "__builtin_Print_TCharArray" =
        , Push       CAl [r0, R 4, R 5, R 6]
        , Load       CAl Word (R 4) (Reg SP) True (Imm 24)
        , Load       CAl Word (R 6) (Reg $ R 4) True (Imm 0)
-       , Shift      CAl (R 6) (R 6) LSL 2
+       , Shift      CAl (R 6) (R 6) LSL (Imm 2)
        , Op         CAl AddOp (R 6) (R 6) (Imm 4)
        , Move       CAl (R 5) (Imm 4)
        , Special        (LabelDecl "__builtin_tchararray_l1")
