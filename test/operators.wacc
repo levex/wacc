@@ -1,0 +1,49 @@
+begin
+    int main() is
+        int x = 2;
+        int y = 1;
+        int z = 0;
+        int * p = null;
+
+        z = x + y;
+        z = x - y;
+        z = x * y;
+        z = x / y;
+        z = x % y;
+
+        z = x & y;
+        z = x | y;
+        z = x ^ y;
+        z = x >> y;
+        z = x << y;
+
+        z += x;
+        z -= x;
+        z *= x;
+        z /= x;
+        z %= x;
+
+        z &= x;
+        z |= x;
+        z ^= x;
+        z <<= x;
+        z >>= x;
+
+        ++z;
+        --z;
+
+        z++;
+        z--;
+
+        *p++;
+        *p--;
+
+        (*p)++;
+        (*p)--;
+
+        *(++p);
+        *(--p);
+
+        return 0
+    end
+end
