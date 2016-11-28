@@ -87,12 +87,24 @@ popLoopLabels :: InstructionGenerator ()
 popLoopLabels
   = modify (\s@CodeGenState{..} -> s{loopLabels = tail loopLabels})
 
+deconstructArrayType :: Type -> Type
+deconstructArrayType (TArray t)
+  = t
+deconstructArrayType TString
+  = TChar
+
 getWidth :: Type -> MemAccessType
-getWidth (TArray TChar)
+getWidth TInt
+  = Word
+getWidth TChar
   = Byte
-getWidth TString
+getWidth TUInt8
   = Byte
-getWidth (TArray _)
+getWidth TUInt16
+  = HalfWord
+getWidth TUInt32
+  = Word
+getWidth _
   = Word
 
 generateInstrForStatement :: Statement -> InstructionGenerator ()
@@ -176,24 +188,24 @@ generateControl Break
 generateControl Continue
   = fst . head <$> gets loopLabels >>= \l -> tell [Branch CAl $ Label l]
 
-generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
-generateAddressDerefImm r offset
-  = tell [Load CAl Word r (Reg r) True (Imm offset)]
+generateAddressDerefImm :: MemAccessType -> Register -> Int -> InstructionGenerator ()
+generateAddressDerefImm w r offset
+  = tell [Load CAl w r (Reg r) True (Imm offset)]
 
-generateAddressDeref :: Register -> Register -> InstructionGenerator ()
-generateAddressDeref r offsetR
-  = tell [Load CAl Word r (Reg r) True (Reg offsetR)]
+generateAddressDeref :: MemAccessType -> Register -> Register -> InstructionGenerator ()
+generateAddressDeref w r offsetR
+  = tell [Load CAl w r (Reg r) True (Reg offsetR)]
 
 generateArrayIndex :: Register -> Expr -> InstructionGenerator ()
 generateArrayIndex r e = do
   generateInstrForExpr r e
   tell [Op CAl AddOp r r (Imm 1), Shift CAl r r LSL (Imm 2)]
 
-generateArrayDeref :: Register -> Expr -> InstructionGenerator ()
-generateArrayDeref r offset = do
+generateArrayDeref :: MemAccessType -> Register -> Expr -> InstructionGenerator ()
+generateArrayDeref w r offset = do
   offsetR <- getFreeRegister
   generateArrayIndex offsetR offset
-  generateAddressDeref r offsetR
+  generateAddressDeref w r offsetR
 
 calcStructOffset :: Identifier -> Offset -> Expr -> InstructionGenerator Int
 calcStructOffset s o (Ident i) = do
@@ -215,8 +227,9 @@ generateAssignment (Ident i) e = do
       r <- getFreeRegister
       r1 <- getFreeRegister
       generateInstrForExpr r e
+      t <- getTypeById i
       tell [Load CAl Word r1 (Label i) True (Imm 0)]
-      tell [Store CAl Word r r1 True (Imm 0)]
+      tell [Store CAl (getWidth t) r r1 True (Imm 0)]
     generateAssignment' i e r
       = generateInstrForExpr r e
 generateAssignment (ArrElem i idxs) e = do
@@ -226,8 +239,8 @@ generateAssignment (ArrElem i idxs) e = do
   tell [Move CAl r (Reg r1)]
   let idxCount = length idxs
   let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
-  forM_ derefIdxs $ generateArrayDeref r
-  let t1 = foldr (flip (.)) id (map (const (\(TArray t) -> t)) derefIdxs) t
+  forM_ derefIdxs $ generateArrayDeref Word r
+  let t1 = foldr (flip (.)) id (map (const deconstructArrayType) idxs) t
   r2 <- getFreeRegister
   generateInstrForExpr r2 e
   r3 <- getFreeRegister
@@ -235,11 +248,12 @@ generateAssignment (ArrElem i idxs) e = do
   tell [Store CAl (getWidth t1) r2 r True (Reg r3)]
 generateAssignment (PairElem p i) e = do
   r <- getRegById i
+  (TPair t1 t2) <- getTypeById i
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   case p of
-    Fst -> tell [Store CAl Word r1 r True (Imm 0)]
-    Snd -> tell [Store CAl Word r1 r True (Imm 4)]
+    Fst -> tell [Store CAl (getWidth t1) r1 r True (Imm 0)]
+    Snd -> tell [Store CAl (getWidth t2) r1 r True (Imm 4)]
 generateAssignment (BinApp Member (Ident i) ex) e = do
   (TPtr (TStruct s)) <- getTypeById i
   offset <- calcStructOffset s 0 ex
@@ -254,21 +268,28 @@ generateInstrForExpr r (Lit l)
   = generateLiteral r l
 generateInstrForExpr r (Ident id) = do
   r1 <- getRegById id
+  t1 <- getTypeById id
   case r1 of
     R (-1) -> do
-      tell [Load CAl Word r (Label id) True (Imm 0)]
-      tell [Load CAl Word r (Reg r) True (Imm 0)]
+      tell [Load CAl (getWidth t1) r (Label id) True (Imm 0)]
+      tell [Load CAl (getWidth t1) r (Reg r) True (Imm 0)]
     _      -> tell [Move CAl r (Reg r1)]
 generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
+  t1 <- getTypeById id
+  let t1' = foldr1 (flip (.)) (map (const deconstructArrayType) idxs) t1
   tell [Move CAl r (Reg r1)]
-  forM_ idxs $ generateArrayDeref r
+  let idxCount = length idxs
+  let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
+  forM_ derefIdxs $ generateArrayDeref Word r
+  generateArrayDeref (getWidth t1') r lastIdx
 generateInstrForExpr r (PairElem p i) = do
   r1 <- getRegById i
+  TPair t1 t2 <- getTypeById i
   tell [Move CAl r (Reg r1)]
   case p of
-    Fst -> generateAddressDerefImm r 0
-    Snd -> generateAddressDerefImm r 4
+    Fst -> generateAddressDerefImm (getWidth t1) r 0
+    Snd -> generateAddressDerefImm (getWidth t2) r 4
 generateInstrForExpr r (UnApp AddrOf (Ident i))
   = tell [Load CAl Word r (Label i) True (Imm 0)]
 generateInstrForExpr r (UnApp op (Ident i)) = do
