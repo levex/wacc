@@ -252,13 +252,32 @@ cond = try $ do
   return $ Cond e trueBranch falseBranch
 
 loop :: GenParser Char LocationData Statement
-loop = try $ do
-  keyword "while"
-  e <- expr
-  keyword "do"
-  body <- stmtSeq
-  keyword "done"
-  return $ Loop e body
+loop
+  = whileLoop <|> forLoop
+  where
+    forLoop = try $ do
+      keyword "for"
+      i <- getNextIdentifier
+      savePosition i
+      init <- varDef
+      semicolon
+      cond <- expr
+      semicolon
+      step <- expStmt
+      keyword "do"
+      body <- stmtSeq
+      keyword "done"
+      return $ Block [IdentifiedStatement init i,
+        IdentifiedStatement (Loop cond (Block [IdentifiedStatement body i,
+          IdentifiedStatement step i])) i]
+
+    whileLoop = try $ do
+      keyword "while"
+      e <- expr
+      keyword "do"
+      body <- stmtSeq
+      keyword "done"
+      return $ Loop e body
 
 builtin :: GenParser Char LocationData Statement
 builtin
