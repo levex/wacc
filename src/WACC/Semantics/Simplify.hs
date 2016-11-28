@@ -22,6 +22,18 @@ getBuiltinName f (Just t)
 getBuiltinName f Nothing
   = "__builtin_" ++ show f
 
+assignOpMap :: BinOp -> BinOp
+assignOpMap AddAssign       = Add
+assignOpMap SubAssign       = Sub
+assignOpMap MulAssign       = Mul
+assignOpMap DivAssign       = Div
+assignOpMap ModAssign       = Mod
+assignOpMap BwAndAssign     = BwAnd
+assignOpMap BwOrAssign      = BwOr
+assignOpMap BwXorAssign     = BwXor
+assignOpMap BwShiftLAssign  = BwShiftL
+assignOpMap BwShiftRAssign  = BwShiftR
+
 simplifyStmt :: Statement -> SemanticChecker Statement
 simplifyStmt (Builtin Exit e)
   = return $ ExpStmt (FunCall (getBuiltinName Exit Nothing) [e])
@@ -51,6 +63,10 @@ simplifyStmt (Loop e body)
 
 simplifyStmt s@(VarDef d _)
   = storeDecl d >> return s
+
+simplifyStmt (ExpStmt (BinApp op e1 e2))
+  | op `elem` assignmentOps
+    = return . ExpStmt . BinApp Assign e1 $ BinApp (assignOpMap op) e1 e2
 
 simplifyStmt s
   = return s
