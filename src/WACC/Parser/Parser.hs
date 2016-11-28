@@ -248,7 +248,7 @@ cond = try $ do
   keyword "then"
   trueBranch <- stmtSeq
   falseBranch <- option Noop (keyword "else" *> stmtSeq)
-  keyword "fi"
+  keyword "fi" <|> keyword "end"
   return $ Cond e trueBranch falseBranch
 
 loop :: GenParser Char LocationData Statement
@@ -266,7 +266,7 @@ loop
       step <- expStmt
       keyword "do"
       body <- stmtSeq
-      keyword "done"
+      keyword "done" <|> keyword "end"
       return $ Block [IdentifiedStatement init i,
         IdentifiedStatement (Loop cond (Block [IdentifiedStatement body i,
           IdentifiedStatement step i])) i]
@@ -276,7 +276,7 @@ loop
       e <- expr
       keyword "do"
       body <- stmtSeq
-      keyword "done"
+      keyword "done" <|> keyword "end"
       return $ Loop e body
 
 builtin :: GenParser Char LocationData Statement
