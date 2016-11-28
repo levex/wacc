@@ -48,43 +48,64 @@ builtins
     , ("println", PrintLn)]
 
 operations
-  = [ [ prefix  "len " (UnApp Len)
+  = [ [ postfix "++"   (UnApp PostInc)
+      , postfix "--"   (UnApp PostDec)]
+    , [ prefix  "len " (UnApp Len)
       , prefix  "ord " (UnApp Ord)
       , prefix  "chr " (UnApp Chr)
+      , prefix  "++"   (UnApp PreInc)
+      , prefix  "--"   (UnApp PreDec)
       , prefix  "-"    (UnApp Neg)
       , prefix  "!"    (UnApp Not)
       , prefix  "*"    (UnApp Deref)
+      , prefix  "&"    (UnApp AddrOf)
       , prefix  "~"    (UnApp BwNot)]
-    , [ binary  "."    (BinApp Member)   AssocLeft]
-    , [ binary  "*"    (BinApp Mul)      AssocLeft
-      , binary  "/"    (BinApp Div)      AssocLeft
-      , binary  "%"    (BinApp Mod)      AssocLeft]
-    , [ binary  "+"    (BinApp Add)      AssocLeft
-      , binary  "-"    (BinApp Sub)      AssocLeft]
-    , [ binary  "<<"   (BinApp BwShiftL) AssocLeft
-      , binary  ">>"   (BinApp BwShiftR) AssocLeft]
-    , [ binary  "<="   (BinApp Lte)      AssocLeft
-      , binary  ">="   (BinApp Gte)      AssocLeft
-      , binary  "<"    (BinApp Lt)       AssocLeft
-      , binary  ">"    (BinApp Gt)       AssocLeft]
-    , [ binary  "=="   (BinApp Eq)       AssocLeft
-      , binary  "!="   (BinApp NEq)      AssocLeft]
-    , [ binary  "&"    (BinApp BwAnd)    AssocLeft]
-    , [ binary  "^"    (BinApp BwXor)    AssocLeft]
-    , [ binary  "|"    (BinApp BwOr)     AssocLeft]
-    , [ binary  "&&"   (BinApp And)      AssocLeft]
-    , [ binary  "||"   (BinApp Or)       AssocLeft]
-    , [ binary  "="    (BinApp Assign)   AssocRight]]
+    , [ binary  "."    (BinApp Member)         AssocLeft]
+    , [ binary  "*"    (BinApp Mul)            AssocLeft
+      , binary  "/"    (BinApp Div)            AssocLeft
+      , binary  "%"    (BinApp Mod)            AssocLeft]
+    , [ binary  "+"    (BinApp Add)            AssocLeft
+      , binary  "-"    (BinApp Sub)            AssocLeft]
+    , [ binary  "<<"   (BinApp BwShiftL)       AssocLeft
+      , binary  ">>"   (BinApp BwShiftR)       AssocLeft]
+    , [ binary  "<="   (BinApp Lte)            AssocLeft
+      , binary  ">="   (BinApp Gte)            AssocLeft
+      , binary  "<"    (BinApp Lt)             AssocLeft
+      , binary  ">"    (BinApp Gt)             AssocLeft]
+    , [ binary  "=="   (BinApp Eq)             AssocLeft
+      , binary  "!="   (BinApp NEq)            AssocLeft]
+    , [ binary  "&"    (BinApp BwAnd)          AssocLeft]
+    , [ binary  "^"    (BinApp BwXor)          AssocLeft]
+    , [ binary  "|"    (BinApp BwOr)           AssocLeft]
+    , [ binary  "&&"   (BinApp And)            AssocLeft]
+    , [ binary  "||"   (BinApp Or)             AssocLeft]
+    , [ binary  "="    (BinApp Assign)         AssocRight
+      , binary  "+="   (BinApp AddAssign)      AssocRight
+      , binary  "-="   (BinApp SubAssign)      AssocRight
+      , binary  "*="   (BinApp MulAssign)      AssocRight
+      , binary  "/="   (BinApp DivAssign)      AssocRight
+      , binary  "%="   (BinApp ModAssign)      AssocRight
+      , binary  "&="   (BinApp BwAndAssign)    AssocRight
+      , binary  "|="   (BinApp BwOrAssign)     AssocRight
+      , binary  "^="   (BinApp BwXorAssign)    AssocRight
+      , binary  "<<="  (BinApp BwShiftLAssign) AssocRight
+      , binary  ">>="  (BinApp BwShiftRAssign) AssocRight]]
 
 -- Utility functions
+opChar
+  = oneOf ['+', '-', '*', '/', '%', '!', '~', '&', '|', '^', '<', '>', '=']
+
 opMap name ret
-  = try (wsstring name) >> return ret
+  = try (wsstring name <* notFollowedBy opChar) >> return ret
 
 binary name fun
   = Infix $ opMap name fun
 
 prefix name fun
   = Prefix $ opMap name fun
+
+postfix name fun
+  = Postfix $ opMap name fun
 
 ignore :: GenParser Char st a -> GenParser Char st ()
 ignore

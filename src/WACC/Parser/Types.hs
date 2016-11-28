@@ -40,13 +40,17 @@ data UnOp
   | Len
   | Ord
   | Chr
+  | PreInc
+  | PostInc
+  | PreDec
+  | PostDec
   | Deref
+  | AddrOf
   | BwNot
   deriving (Eq, Show)
 
 data BinOp
-  = Assign
-  | Add
+  = Add
   | Sub
   | Mul
   | Div
@@ -65,6 +69,17 @@ data BinOp
   | BwXor
   | BwShiftL
   | BwShiftR
+  | Assign
+  | AddAssign
+  | SubAssign
+  | MulAssign
+  | DivAssign
+  | ModAssign
+  | BwAndAssign
+  | BwOrAssign
+  | BwXorAssign
+  | BwShiftLAssign
+  | BwShiftRAssign
   deriving (Eq, Show)
 
 data Expr
