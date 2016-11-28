@@ -123,11 +123,11 @@ generateInstrForStatement (Loop e b) = do
   tell [Special $ ScopeEnd endLabel]
 generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs))
   = generateAssignment lhs rhs
-generateInstrForStatement (ExpStmt builtinCall@(FunCall id args)) = do
+generateInstrForStatement (ExpStmt funCall@(FunCall id args)) = do
   if "__builtin_Read_" `isPrefixOf` id then
-    generateAssignment (head args) builtinCall
+    generateAssignment (head args) funCall
   else
-    generateInstrForFunCall builtinCall
+    generateInstrForFunCall funCall
   when ("__builtin_" `isPrefixOf` id) $ saveBuiltinId id
 
 generateControl :: Control -> InstructionGenerator ()
