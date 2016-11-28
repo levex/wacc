@@ -215,6 +215,8 @@ generateInstrForExpr r (PairElem p i) = do
   case p of
     Fst -> generateAddressDerefImm r 0
     Snd -> generateAddressDerefImm r 4
+generateInstrForExpr r (UnApp AddrOf (Ident i))
+  = tell [Load CAl Word r (Label i) True (Imm 0)]
 generateInstrForExpr r (UnApp op e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
