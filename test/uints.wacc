@@ -1,0 +1,8 @@
+begin
+    int main() is
+        uint32 a = 1023;
+        uint16 b = 1023;
+        uint8 c = 1023;
+        return c
+    end
+end
