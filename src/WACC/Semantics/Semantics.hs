@@ -183,8 +183,8 @@ checkStmt (ExpStmt e)
 checkStmt (IdentifiedStatement stmt i)
   = checkStmt stmt `catchError` rethrowWithLocation i
 
-storeFuncs :: [Definition] -> SemanticChecker ()
-storeFuncs
+storeGlobals :: [Definition] -> SemanticChecker ()
+storeGlobals
   = mapM_ (storeDecl . getDecl)
 
 storeMembers :: [Declaration] -> Map.Map Identifier (Offset, Type) -> Map.Map Identifier (Offset, Type)
@@ -209,6 +209,6 @@ semanticCheck p = do
   mapM_ checkCodePathsReturn p
   mapM_ checkUnreachableCode p
   storeStructs p
-  storeFuncs p
+  storeGlobals p
   mapM_ checkDef p
   return p
