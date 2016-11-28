@@ -97,6 +97,9 @@ data Expr
 data Type
   = TChar
   | TInt
+  | TUInt8
+  | TUInt16
+  | TUInt32
   | TBool
   | TString
   | TArb

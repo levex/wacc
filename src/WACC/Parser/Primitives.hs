@@ -10,6 +10,9 @@ escapedCharacters
 
 primTypes
   = [ ("int",    TInt)
+    , ("uint8",  TUInt8)
+    , ("uint16", TUInt16)
+    , ("uint32", TUInt32)
     , ("bool",   TBool)
     , ("char",   TChar)
     , ("string", TString)
