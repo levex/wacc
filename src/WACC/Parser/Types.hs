@@ -151,6 +151,47 @@ type Program
 type AnnotatedProgram
   = (Program, LocationData)
 
+arithmOps :: [BinOp]
+arithmOps
+  = [ Add
+    , Sub
+    , Mul
+    , Div
+    , Mod
+    , Member
+    , BwAnd
+    , BwOr
+    , BwXor
+    , BwShiftL
+    , BwShiftR
+    ]
+
+booleanOps :: [BinOp]
+booleanOps
+  = [ And
+    , Or
+    , Gt
+    , Gte
+    , Lt
+    , Lte
+    , Eq
+    , NEq
+    ]
+
+assignmentOps :: [BinOp]
+assignmentOps
+  = [ AddAssign
+    , SubAssign
+    , MulAssign
+    , DivAssign
+    , ModAssign
+    , BwAndAssign
+    , BwOrAssign
+    , BwXorAssign
+    , BwShiftLAssign
+    , BwShiftRAssign
+    ]
+
 getVarDecl :: Statement -> Declaration
 getVarDecl (VarDef d _) = d
 

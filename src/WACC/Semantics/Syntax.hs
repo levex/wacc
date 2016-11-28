@@ -172,20 +172,7 @@ checkStmt (ExpStmt (UnApp op e))
     incs = [PreInc, PreDec, PostInc, PostDec]
 
 checkStmt (ExpStmt (BinApp op lhs rhs))
-  | op `elem` assigns = checkLhs lhs >> checkRhs rhs
-  where
-    assigns
-      = [ Assign
-        , AddAssign
-        , SubAssign
-        , MulAssign
-        , DivAssign
-        , ModAssign
-        , BwAndAssign
-        , BwOrAssign
-        , BwXorAssign
-        , BwShiftLAssign
-        , BwShiftRAssign ]
+  | op `elem` assignmentOps = checkLhs lhs >> checkRhs rhs
 
 checkStmt (ExpStmt (BinApp op e1 e2))
   = checkExpr e1 >> checkExpr e2
