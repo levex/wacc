@@ -145,6 +145,7 @@ data SpecialLink
   | SectionStart  String
   | VariableDecl  Identifier Type Register
   | StringLit     Identifier String
+  | GlobVarDef    Identifier Expr
   | LabelDecl     Identifier
   | ScopeBegin    Identifier
   | ScopeEnd      Identifier

@@ -3,6 +3,8 @@ module WACC.CodeGen.Strings where
 
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Data.Char
+import           Data.Bool
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           WACC.Parser.Types
@@ -14,10 +16,16 @@ emitString id str
                      "    ", ".word ", show . length $ str, "\n",
                      "    ", ".asciz ", str, "\n"]
 
-emitStringLiteral :: Instruction -> CodeGenerator String
-emitStringLiteral (Special (StringLit id str))
+emitLiteral :: Instruction -> CodeGenerator String
+emitLiteral (Special (StringLit id str))
   = emitString id (show str)
-emitStringLiteral _
+emitLiteral (Special (GlobVarDef id (Lit (INT i))))
+  = return $ concat ["  ", id, ": .word ", show i, "\n"]
+emitLiteral (Special (GlobVarDef id (Lit (BOOL b))))
+  = return $ concat ["  ", id, ": .word ", show (bool 0 1 b), "\n"]
+emitLiteral (Special (GlobVarDef id (Lit (CHAR c))))
+  = return $ concat ["  ", id, ": .word ", show (ord c), "\n"]
+emitLiteral _
   = return []
 
 emitBuiltinString :: Identifier -> CodeGenerator String
@@ -48,7 +56,7 @@ emitBuiltinString _
   = return []
 
 emitLiterals :: Code -> CodeGenerator String
-emitLiterals = liftM concat . mapM emitStringLiteral
+emitLiterals = liftM concat . mapM emitLiteral
 
 emitBuiltinStrings :: Set Identifier -> CodeGenerator String
 emitBuiltinStrings = liftM concat . mapM emitBuiltinString . Set.toList

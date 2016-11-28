@@ -30,6 +30,8 @@ getRegById i
   = gets scopeId >>= getRegById' i
   where
     getRegById' :: Identifier -> Integer -> InstructionGenerator Register
+    getRegById' i (-1)
+      = return $ R (-1)
     getRegById' i sId = do
       table <- gets regIdsTable
       case Map.lookup (i, sId) table of
@@ -41,6 +43,8 @@ getTypeById i
   = gets scopeId >>= getTypeById' i
   where
     getTypeById' :: Identifier -> Integer -> InstructionGenerator Type
+    getTypeById' i (-1)
+      = return TArb
     getTypeById' i sId = do
       table <- gets regIdsTable
       case Map.lookup (i, sId) table of
@@ -202,7 +206,17 @@ calcStructOffset s o (BinApp Member (Ident i) e) = do
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
 generateAssignment (Ident i) e = do
   r <- getRegById i
-  generateInstrForExpr r e
+  generateAssignment' i e r
+  where
+    generateAssignment' :: Identifier -> Expr -> Register -> InstructionGenerator ()
+    generateAssignment' i e (R (-1)) = do
+      r <- getFreeRegister
+      r1 <- getFreeRegister
+      generateInstrForExpr r e
+      tell [Load CAl Word r1 (Label i) True (Imm 0)]
+      tell [Store CAl Word r r1 True (Imm 0)]
+    generateAssignment' i e r
+      = generateInstrForExpr r e
 generateAssignment (ArrElem i idxs) e = do
   r <- getFreeRegister
   r1 <- getRegById i
@@ -231,12 +245,18 @@ generateAssignment (BinApp Member (Ident i) ex) e = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   tell [Store CAl Word r1 r True (Imm offset)]
+
+
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
 generateInstrForExpr r (Lit l)
   = generateLiteral r l
 generateInstrForExpr r (Ident id) = do
   r1 <- getRegById id
-  tell [Move CAl r (Reg r1)]
+  case r1 of
+    R (-1) -> do
+      tell [Load CAl Word r (Label id) True (Imm 0)]
+      tell [Load CAl Word r (Reg r) True (Imm 0)]
+    _      -> tell [Move CAl r (Reg r1)]
 generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
   tell [Move CAl r (Reg r1)]
@@ -355,7 +375,7 @@ generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
 generateDef (TypeDef _ _)
   = pure ()
 generateDef (GlobalDef (id, t) e)
-  = tell [Special $ LabelDecl id]
+  = tell [Special $ GlobVarDef id e]
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
