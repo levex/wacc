@@ -90,6 +90,7 @@ data Expr
   | UnApp UnOp Expr
   | BinApp BinOp Expr Expr
   | FunCall Identifier [Expr]
+  | SizeOf Type
   | NewPair Expr Expr
   | NewStruct Identifier
   deriving (Eq, Show)

@@ -107,6 +107,14 @@ getWidth TUInt32
 getWidth _
   = Word
 
+getTypeSize :: Type -> InstructionGenerator Int
+getTypeSize (TPtr (TStruct s)) = do
+  sd <- gets structDefs
+  return $ (maximum . (map fst) . Map.elems . fromJust) (lookup s sd) + 4
+getTypeSize _
+  = return 4
+
+
 generateInstrForStatement :: Statement -> InstructionGenerator ()
 generateInstrForStatement Noop = return ()
 generateInstrForStatement (Block xs) = scoped $ mapM_ generateInstrForStatement xs
@@ -346,6 +354,9 @@ generateInstrForExpr r (NewPair e1 e2) = do
 generateInstrForExpr r (NewStruct s) = do
   sd <- gets structDefs
   generateInstrForAlloc r $ ((maximum . map fst . Map.elems . fromJust) $ lookup s sd) + 4
+generateInstrForExpr r (SizeOf t) = do
+  typeSize <- getTypeSize t
+  tell [Load CAl Word r (Imm typeSize) True (Imm 0)]
 
 generateInstrForFunCall :: Expr -> InstructionGenerator ()
 generateInstrForFunCall (FunCall id args) = do

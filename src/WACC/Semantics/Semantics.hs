@@ -119,6 +119,8 @@ checkExpr (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
 checkExpr (NewStruct i)
   = valid
+checkExpr (SizeOf _)
+  = valid
 
 checkStmt :: Statement -> SemanticChecker ()
 checkStmt Noop

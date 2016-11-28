@@ -49,6 +49,9 @@ checkExpr (PairElem _ _)
 checkExpr (FunCall _ _)
   = invalid SyntaxError "function calls cannot occur in expressions"
 
+checkExpr (SizeOf _)
+  = valid
+
 checkLhs :: Expr -> SemanticChecker ()
 checkLhs (Ident _)
   = valid

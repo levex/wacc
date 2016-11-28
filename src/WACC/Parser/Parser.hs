@@ -155,8 +155,8 @@ expr
   = buildExpressionParser operations (wssurrounded term)
   where
     term
-      = parens expr <|> funCall <|> newPair <|> newStruct <|> val
-        <|> arrElement <|> pairElement <|> ident
+      = parens expr <|> funCall <|> newPair <|> newStruct <|> sizeOf
+        <|> val <|> arrElement <|> pairElement <|> ident
 
 val :: GenParser Char LocationData Expr
 val
@@ -187,8 +187,13 @@ newPair = try $ do
 
 newStruct :: GenParser Char LocationData Expr
 newStruct = try $ do
-  keyword "news"
+  keyword "new"
   NewStruct <$> identifier
+
+sizeOf :: GenParser Char LocationData Expr
+sizeOf = try $ do
+  keyword "sizeof"
+  SizeOf <$> parens decltype
 
 stmt :: GenParser Char LocationData Statement
 stmt

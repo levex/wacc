@@ -14,11 +14,11 @@ import           WACC.Semantics.Primitives
 -- FIXME: investigate whether Add/Sub/Mul/Div/Mod/And/Or take TChar's too.
 -- FIXME: Assign is one weird hack, also is return type good?
 unopType :: UnOp -> Expr -> SemanticChecker Type
-unopType Not e = pure TBool
-unopType Neg e = pure TInt
-unopType Len e = pure TInt
-unopType Ord e = pure TInt
-unopType Chr e = pure TChar
+unopType Not e    = pure TBool
+unopType Neg e    = pure TInt
+unopType Len e    = pure TInt
+unopType Ord e    = pure TInt
+unopType Chr e    = pure TChar
 unopType PreInc e   = getType e
 unopType PostInc e  = getType e
 unopType PreDec e   = getType e
@@ -197,6 +197,8 @@ getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
   = TPair <$> getType e1 <*> getType e2
 getType (NewStruct i)
   = identLookup i
+getType (SizeOf _)
+  = return TInt
 
 addSymbol :: Symbol -> SemanticChecker ()
 addSymbol s = do
