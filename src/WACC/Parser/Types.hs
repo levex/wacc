@@ -143,6 +143,7 @@ data Statement
 data Definition
   = FunDef Declaration Statement
   | TypeDef Identifier [Declaration]
+  | GlobalDef Declaration Expr
   deriving (Eq, Show)
 
 type Program
@@ -192,11 +193,12 @@ assignmentOps
     , BwShiftRAssign
     ]
 
-getVarDecl :: Statement -> Declaration
-getVarDecl (VarDef d _) = d
-
-getFunDecl :: Definition -> Declaration
-getFunDecl (FunDef d _) = d
+getDecl (FunDef d _)
+  = d
+getDecl (TypeDef i _)
+  = (i, TStruct i)
+getDecl (GlobalDef d _)
+  = d
 
 isFunDef :: Definition -> Bool
 isFunDef (FunDef _ _) = True

@@ -273,7 +273,7 @@ expStmt
 
 definition :: GenParser Char LocationData Definition
 definition
-  = funDef <|> structDef
+  = funDef <|> structDef <|> globalDef
   where
     funDef
       = try $ FunDef <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
@@ -281,6 +281,9 @@ definition
     structDef
       = try $ TypeDef <$> (keyword "struct" *> identifier <* keyword "is")
                       <*> (varDecl `sepBy` semicolon <* keyword "end")
+
+    globalDef
+      = try $ GlobalDef <$> varDecl <*> (whitespace *> char '=' *> expr)
 
 program :: GenParser Char LocationData AnnotatedProgram
 program = try $ do

@@ -183,12 +183,6 @@ checkStmt (ExpStmt e)
 checkStmt (IdentifiedStatement stmt i)
   = checkStmt stmt `catchError` rethrowWithLocation i
 
-getDecl :: Definition -> Declaration
-getDecl (FunDef d _)
-  = d
-getDecl (TypeDef i _)
-  = (i, TStruct i)
-
 storeFuncs :: [Definition] -> SemanticChecker ()
 storeFuncs
   = mapM_ (storeDecl . getDecl)
@@ -200,11 +194,11 @@ storeMembers [] m
   = m
 
 storeStruct :: Definition -> SemanticChecker ()
-storeStruct (FunDef _ _)
-  = valid
 storeStruct (TypeDef ident members) = do
   s@CheckerState{..} <- get
   put s{structDefs = (ident, (storeMembers members Map.empty)) : structDefs}
+storeStruct _
+  = valid
 
 storeStructs :: [Definition] -> SemanticChecker ()
 storeStructs

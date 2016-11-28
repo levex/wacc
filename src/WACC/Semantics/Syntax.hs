@@ -196,6 +196,9 @@ checkDef (FunDef (_, t) block)
 checkDef (TypeDef _ decls)
   = mapM_ (checkType . snd) decls
 
+checkDef (GlobalDef (_, t) e)
+  = checkType t >> checkExpr e
+
 syntaxCheck :: Program -> SemanticChecker Program
 syntaxCheck p
   = mapM_ checkDef p *> return p
