@@ -59,6 +59,9 @@ checkLhs (ArrElem _ exprs)
 checkLhs (PairElem _ _)
   = valid
 
+checkLhs (UnApp Deref e)
+  = valid
+
 checkLhs (BinApp Member (Ident i) e)
   = case e of
       Ident _                        -> valid
@@ -162,8 +165,30 @@ checkStmt (Builtin Read e)
 checkStmt (Builtin _ e)
   = checkExpr e
 
-checkStmt (ExpStmt (BinApp Assign lhs rhs))
-  = checkLhs lhs >> checkRhs rhs
+checkStmt (ExpStmt (UnApp op e))
+  | op `elem` incs = checkLhs e
+  | otherwise      = checkExpr e
+  where
+    incs = [PreInc, PreDec, PostInc, PostDec]
+
+checkStmt (ExpStmt (BinApp op lhs rhs))
+  | op `elem` assigns = checkLhs lhs >> checkRhs rhs
+  where
+    assigns
+      = [ Assign
+        , AddAssign
+        , SubAssign
+        , MulAssign
+        , DivAssign
+        , ModAssign
+        , BwAndAssign
+        , BwOrAssign
+        , BwXorAssign
+        , BwShiftLAssign
+        , BwShiftRAssign ]
+
+checkStmt (ExpStmt (BinApp op e1 e2))
+  = checkExpr e1 >> checkExpr e2
 
 checkStmt (IdentifiedStatement s i)
   = checkStmt s `catchError` rethrowWithLocation i

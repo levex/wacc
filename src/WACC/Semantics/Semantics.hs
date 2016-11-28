@@ -66,6 +66,8 @@ checkLhs (ArrElem _ exprs)
   = mapM_ checkExpr exprs
 checkLhs (PairElem _ _)
   = valid
+checkLhs (UnApp Deref e)
+  = valid
 checkLhs _
   = invalid SyntaxError "type error"
 

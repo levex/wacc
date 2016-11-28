@@ -13,28 +13,51 @@ import           WACC.Semantics.Primitives
 
 -- FIXME: investigate whether Add/Sub/Mul/Div/Mod/And/Or take TChar's too.
 -- FIXME: Assign is one weird hack, also is return type good?
-unopType :: UnOp -> Type
-unopType Not = TBool
-unopType Neg = TInt
-unopType Len = TInt
-unopType Ord = TInt
-unopType Chr = TChar
+unopType :: UnOp -> Expr -> SemanticChecker Type
+unopType Not e = pure TBool
+unopType Neg e = pure TInt
+unopType Len e = pure TInt
+unopType Ord e = pure TInt
+unopType Chr e = pure TChar
+unopType PreInc e   = getType e
+unopType PostInc e  = getType e
+unopType PreDec e   = getType e
+unopType PostDec e  = getType e
+unopType Deref e    = getType e
+unopType AddrOf e   = TPtr <$> getType e
+unopType BwNot e    = pure TInt
 
-binopType :: BinOp -> Type
-binopType Assign = TBool
-binopType Add    = TInt
-binopType Sub    = TInt
-binopType Mul    = TInt
-binopType Div    = TInt
-binopType Mod    = TInt
-binopType And    = TBool
-binopType Or     = TBool
-binopType Gt     = TBool
-binopType Gte    = TBool
-binopType Lt     = TBool
-binopType Lte    = TBool
-binopType Eq     = TBool
-binopType NEq    = TBool
+binopType :: BinOp -> Expr -> Expr -> SemanticChecker Type
+binopType Add    e1 e2 = pure TInt
+binopType Sub    e1 e2 = pure TInt
+binopType Mul    e1 e2 = pure TInt
+binopType Div    e1 e2 = pure TInt
+binopType Mod    e1 e2 = pure TInt
+binopType And    e1 e2 = pure TBool
+binopType Or     e1 e2 = pure TBool
+binopType Gt     e1 e2 = pure TBool
+binopType Gte    e1 e2 = pure TBool
+binopType Lt     e1 e2 = pure TBool
+binopType Lte    e1 e2 = pure TBool
+binopType Eq     e1 e2 = pure TBool
+binopType NEq    e1 e2 = pure TBool
+binopType Member e1 e2 = getType e2
+binopType BwAnd  e1 e2 = pure TInt
+binopType BwOr   e1 e2 = pure TInt
+binopType BwXor  e1 e2 = pure TInt
+binopType BwShiftL e1 e2  = pure TInt
+binopType BwShiftR e1 e2  = pure TInt
+binopType Assign          e1 e2 = getType e1
+binopType AddAssign       e1 e2 = getType e1
+binopType SubAssign       e1 e2 = getType e1
+binopType MulAssign       e1 e2 = getType e1
+binopType DivAssign       e1 e2 = getType e1
+binopType ModAssign       e1 e2 = getType e1
+binopType BwAndAssign     e1 e2 = getType e1
+binopType BwOrAssign      e1 e2 = getType e1
+binopType BwXorAssign     e1 e2 = getType e1
+binopType BwShiftLAssign  e1 e2 = getType e1
+binopType BwShiftRAssign  e1 e2 = getType e1
 
 checkUnopArgs :: UnOp -> Type -> SemanticChecker ()
 checkUnopArgs Not TBool         = valid
@@ -42,17 +65,33 @@ checkUnopArgs Neg TInt          = valid
 checkUnopArgs Len (TArray _)    = valid
 checkUnopArgs Ord TChar         = valid
 checkUnopArgs Chr TInt          = valid
+
+checkUnopArgs PreInc TInt       = valid
+checkUnopArgs PreInc (TPtr _)   = valid
+checkUnopArgs PostInc TInt      = valid
+checkUnopArgs PostInc (TPtr _)  = valid
+checkUnopArgs PreDec TInt       = valid
+checkUnopArgs PreDec (TPtr _)   = valid
+checkUnopArgs PostDec TInt      = valid
+checkUnopArgs PostDec (TPtr _)  = valid
+
+checkUnopArgs Deref (TPtr _)    = valid
+checkUnopArgs AddrOf _          = valid
+
+checkUnopArgs BwNot TInt        = valid
+
 checkUnopArgs _ _               = invalid SemanticError "type error"
 
 checkBinopArgs :: BinOp -> Type -> Type -> SemanticChecker ()
-checkBinopArgs (Assign) t1 t2  = equalTypes "type error" t1 t2
 checkBinopArgs Add TInt TInt   = valid
 checkBinopArgs Sub TInt TInt   = valid
 checkBinopArgs Mul TInt TInt   = valid
 checkBinopArgs Div TInt TInt   = valid
 checkBinopArgs Mod TInt TInt   = valid
+
 checkBinopArgs And TBool TBool = valid
 checkBinopArgs Or TBool TBool  = valid
+
 checkBinopArgs Gt TInt TInt    = valid
 checkBinopArgs Gt TChar TChar  = valid
 checkBinopArgs Gt _ _          = invalid SemanticError "type error"
@@ -67,7 +106,28 @@ checkBinopArgs Lte TChar TChar = valid
 checkBinopArgs Lte _ _         = invalid SemanticError "type error"
 checkBinopArgs Eq t1 t2        = equalTypes "type error" t1 t2
 checkBinopArgs NEq t1 t2       = equalTypes "type error" t1 t2
-checkBinopArgs _ _ _           = invalid SemanticError "type error"
+
+checkBinopArgs BwAnd TInt TInt    = valid
+checkBinopArgs BwOr TInt TInt     = valid
+checkBinopArgs BwXor TInt TInt    = valid
+checkBinopArgs BwShiftL TInt TInt = valid
+checkBinopArgs BwShiftR TInt TInt = valid
+
+checkBinopArgs Assign t1 t2         = equalTypes "type error" t1 t2
+checkBinopArgs AddAssign t1 t2      = equalTypes "type error" t1 t2
+checkBinopArgs SubAssign t1 t2      = equalTypes "type error" t1 t2
+checkBinopArgs MulAssign t1 t2      = equalTypes "type error" t1 t2
+checkBinopArgs DivAssign t1 t2      = equalTypes "type error" t1 t2
+checkBinopArgs ModAssign t1 t2      = equalTypes "type error" t1 t2
+checkBinopArgs BwAndAssign t1 t2    = equalTypes "type error" t1 t2
+checkBinopArgs BwOrAssign t1 t2     = equalTypes "type error" t1 t2
+checkBinopArgs BwXorAssign t1 t2    = equalTypes "type error" t1 t2
+checkBinopArgs BwShiftLAssign t1 t2 = equalTypes "type error" t1 t2
+checkBinopArgs BwShiftRAssign t1 t2 = equalTypes "type error" t1 t2
+
+checkBinopArgs Member _ _           = valid -- assume valid
+
+checkBinopArgs _ _ _                = invalid SemanticError "type error"
 
 getLiteralType :: Literal -> SemanticChecker Type
 getLiteralType (CHAR _)        = return TChar
@@ -123,16 +183,16 @@ getType (PairElem e id) = do
   where
     pairElem Fst f _ = f
     pairElem Snd _ s = s
-getType (UnApp op _)
-  = return $ unopType op
+getType (UnApp op e)
+  = unopType op e
 getType e@(BinApp Member (Ident i) e') = do
   unfolded <- unfoldStruct [] e
   t <- getType (Ident i)
   case t of
     TPtr (TStruct s) -> getMemberType s t $ tail unfolded
     _                -> invalid SemanticError $ i ++ " is not a structure"
-getType (BinApp op _ _)
-  = return $ binopType op
+getType (BinApp op e1 e2)
+  = binopType op e1 e2
 getType (FunCall id _) =
   identLookup id >>= getRetType
   where
