@@ -124,6 +124,11 @@ analyzeAccess r (Move _ rd _)
   | r == rd            = RWrite
   | otherwise          = RIgnore
 
+analyzeAccess r (Shift _ rd r1 _ (Reg r2))
+  | r == rd            = RWrite
+  | r == r1 || r == r2 = RRead
+  | otherwise          = RIgnore
+
 analyzeAccess r (Shift _ rd r1 _ _)
   | r == rd            = RWrite
   | r == r1            = RRead
@@ -199,6 +204,9 @@ replaceRegister rs (Move a rd (Reg r1))
 replaceRegister rs (Move a rd b)
   = Move a (replace' rs rd) b
 
+replaceRegister rs (Shift a r1 r2 b (Reg r3))
+  = Shift a (replace' rs r1) (replace' rs r2) b (Reg (replace' rs r3))
+
 replaceRegister rs (Shift a r1 r2 b c)
   = Shift a (replace' rs r1) (replace' rs r2) b c
 
@@ -254,6 +262,9 @@ collectRegisters (Move a rd (Reg r1))
 
 collectRegisters (Move a rd b)
   = [rd]
+
+collectRegisters (Shift a r1 r2 b (Reg r3))
+  = [r1, r2, r3]
 
 collectRegisters (Shift a r1 r2 b c)
   = [r1, r2]
