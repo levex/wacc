@@ -304,8 +304,8 @@ generateLiteral r (ARRAY exprs) = do
 generateLiteral r NULL
   = tell [Move CAl r (Imm 0)]
 
-generateFunction :: Definition -> InstructionGenerator ()
-generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
+generateDef :: Definition -> InstructionGenerator ()
+generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
   resetFreeRegisters
   tell [Special $ FunctionStart ident [] 0]
   forM_ (zip [0..] paramTs) $ \(i, (id, t)) -> do
@@ -313,9 +313,11 @@ generateFunction (FunDef (ident, TFun retT paramTs) stmt) = do
     tell [Load CAl Word r (Reg SP) True (Imm $ 8 + i * 4)]
     saveRegId r id t
   scoped $ generateInstrForStatement stmt
-generateFunction (TypeDef _ _)
+generateDef (TypeDef _ _)
   = pure ()
+generateDef (GlobalDef (id, t) e)
+  = tell [Special $ LabelDecl id]
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
-  = mapM (execWriterT . generateFunction)
+  = mapM (execWriterT . generateDef)
