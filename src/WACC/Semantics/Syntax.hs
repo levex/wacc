@@ -153,6 +153,9 @@ checkStmt (VarDef (_, t) e)
 checkStmt (Ctrl (Return e))
   = checkExpr e
 
+checkStmt (Ctrl _)
+  = valid
+
 checkStmt (Cond e trueBranch falseBranch)
   = checkExpr e >> checkStmt trueBranch >> checkStmt falseBranch
 
