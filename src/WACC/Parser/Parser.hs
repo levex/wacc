@@ -1,6 +1,7 @@
 module WACC.Parser.Parser where
 
 import           Control.Monad
+import           Data.Char
 import           Data.Int
 import           Data.List
 import           Data.Maybe
@@ -51,13 +52,17 @@ character :: GenParser Char LocationData Char
 character
   = nonEscape <|> escape
 
+number :: Integer -> GenParser Char LocationData Char -> GenParser Char LocationData Integer
+number base baseDigit = try $ do
+  digits <- many1 baseDigit
+  return $ foldl (\x d -> base*x + toInteger (digitToInt d)) 0 digits
+
 integer :: GenParser Char LocationData Integer
-integer = do
-  s <- option id sign
-  n <- many1 digit
-  return . s . read $ n
+integer
+  = hexadecimal <|> decimal
   where
-    sign = opMap "+" id <|> opMap "-" negate
+    decimal = number 10 digit
+    hexadecimal = try $ string "0x" *> number 16 hexDigit
 
 isKeyword :: String -> Bool
 isKeyword k
