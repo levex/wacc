@@ -23,6 +23,7 @@ data CodeGenState = CodeGenState
   , scopeId :: Integer
   , structDefs :: [(Identifier, Map Identifier (Offset, Type))]
   , usedBuiltins :: Set Identifier
+  , loopLabels :: [(String, String)]
   }
 
 newtype CodeGenerator a = CodeGenerator
@@ -52,8 +53,9 @@ codeGenState p = CodeGenState
   , lastLabelId = 0
   , regIdsTable = Map.empty
   , scopeId = 0
-  , usedBuiltins = Set.empty
   , structDefs = storeStructs p
+  , usedBuiltins = Set.empty
+  , loopLabels = []
   }
 
 type InstructionGenerator a

@@ -75,6 +75,14 @@ saveBuiltinId id
   = modify (\s@CodeGenState{..} ->
       s{usedBuiltins = Set.insert id usedBuiltins})
 
+pushLoopLabels :: (String, String) -> InstructionGenerator ()
+pushLoopLabels ls
+  = modify (\s@CodeGenState{..} -> s{loopLabels = ls:loopLabels})
+
+popLoopLabels :: InstructionGenerator ()
+popLoopLabels
+  = modify (\s@CodeGenState{..} -> s{loopLabels = tail loopLabels})
+
 getWidth :: Type -> MemAccessType
 getWidth (TArray TChar)
   = Byte
@@ -108,19 +116,39 @@ generateInstrForStatement (Cond e t f) = do
   tell [Special $ LabelDecl elseLabel]
   generateInstrForStatement f
   tell [Special $ LabelDecl afterCondLabel]
-generateInstrForStatement (Loop e b) = do
+generateInstrForStatement (Loop e (Block [body, incrementStep])) = do
   beginLabel <- generateLabel
+  incrementLabel <- generateLabel
   endLabel <- generateLabel
+  pushLoopLabels (incrementLabel, endLabel)
   r1 <- getFreeRegister
   tell [Special $ LabelDecl beginLabel]
   generateInstrForExpr r1 e
   tell [Compare CAl r1 (Imm 0)]
   tell [Branch CEq $ Label endLabel]
   tell [Special $ ScopeBegin endLabel]
-  generateInstrForStatement b
+  generateInstrForStatement body
+  tell [Special $ LabelDecl incrementLabel]
+  generateInstrForStatement incrementStep
   tell [Branch CAl $ Label beginLabel]
   tell [Special $ LabelDecl endLabel]
   tell [Special $ ScopeEnd endLabel]
+  popLoopLabels
+generateInstrForStatement (Loop e body) = do
+  beginLabel <- generateLabel
+  endLabel <- generateLabel
+  pushLoopLabels (beginLabel, endLabel)
+  r1 <- getFreeRegister
+  tell [Special $ LabelDecl beginLabel]
+  generateInstrForExpr r1 e
+  tell [Compare CAl r1 (Imm 0)]
+  tell [Branch CEq $ Label endLabel]
+  tell [Special $ ScopeBegin endLabel]
+  generateInstrForStatement body
+  tell [Branch CAl $ Label beginLabel]
+  tell [Special $ LabelDecl endLabel]
+  tell [Special $ ScopeEnd endLabel]
+  popLoopLabels
 generateInstrForStatement (ExpStmt (BinApp Assign lhs rhs))
   = generateAssignment lhs rhs
 generateInstrForStatement (ExpStmt funCall@(FunCall id args)) = do
@@ -137,6 +165,10 @@ generateControl (Return e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   tell [Ret (Reg r1) [] 0]
+generateControl Break
+  = snd . head <$> gets loopLabels >>= \l -> tell [Branch CAl $ Label l]
+generateControl Continue
+  = fst . head <$> gets loopLabels >>= \l -> tell [Branch CAl $ Label l]
 
 generateAddressDerefImm :: Register -> Int -> InstructionGenerator ()
 generateAddressDerefImm r offset
