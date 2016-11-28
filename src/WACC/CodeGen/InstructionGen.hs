@@ -217,6 +217,13 @@ generateInstrForExpr r (PairElem p i) = do
     Snd -> generateAddressDerefImm r 4
 generateInstrForExpr r (UnApp AddrOf (Ident i))
   = tell [Load CAl Word r (Label i) True (Imm 0)]
+generateInstrForExpr r (UnApp op (Ident i)) = do
+  r1 <- getRegById i
+  case op of
+    PreInc  -> tell [Op CAl AddOp r1 r1 (Imm 1), Move CAl r (Reg r1)]
+    PostInc -> tell [Move CAl r (Reg r1), Op CAl AddOp r1 r1 (Imm 1)]
+    PreDec  -> tell [Op CAl SubOp r1 r1 (Imm 1), Move CAl r (Reg r1)]
+    PostDec -> tell [Move CAl r (Reg r1), Op CAl SubOp r1 r1 (Imm 1)]
 generateInstrForExpr r (UnApp op e) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
