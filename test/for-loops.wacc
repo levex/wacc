@@ -1,0 +1,9 @@
+begin
+    int main() is
+        int s = 0 ;
+        for int i = 0; i < 10; i++ do
+            s = s + i
+        done ;
+        return s
+    end
+end
