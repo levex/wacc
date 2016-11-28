@@ -20,7 +20,7 @@ main = do
       contents <- readFile file
       putStrLn "Input file: "
       putStrLn ""
-      putStrLn $ contents
+      putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]
       putStrLn "\n----------------------------\n"
       case runWACCParser file contents of
         Left err -> (putStrLn $ show err) >> exitWith (ExitFailure 100)
