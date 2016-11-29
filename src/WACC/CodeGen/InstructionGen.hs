@@ -111,6 +111,16 @@ getTypeSize :: Type -> InstructionGenerator Int
 getTypeSize (TPtr (TStruct s)) = do
   sd <- gets structDefs
   return $ (maximum . (map fst) . Map.elems . fromJust) (lookup s sd) + 4
+getTypeSize TInt
+  = return 4
+getTypeSize TChar
+  = return 1
+getTypeSize TUint8
+  = return 1
+getTypeSize TUint16
+  = return 2
+getTypeSize TUint32
+  = return 4
 getTypeSize _
   = return 4
 
