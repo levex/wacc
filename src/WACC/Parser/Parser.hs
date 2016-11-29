@@ -225,7 +225,7 @@ inlineAsm :: GenParser Char LocationData Statement
 inlineAsm = try $ do
   keyword "begin inline"
   ss <- manyTill anyChar (try $ keyword "end")
-  return $ InlineAssembly [ss]
+  return $ InlineAssembly [ss, "\n"]
 
 block :: GenParser Char LocationData Statement
 block = try $ do
