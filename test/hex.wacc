@@ -1,0 +1,6 @@
+begin
+    int main() is
+        int x = 0x10 ;
+        return x
+    end
+end

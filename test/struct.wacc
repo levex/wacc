@@ -1,0 +1,18 @@
+begin
+    struct T is
+        int z
+    end
+
+    struct S is
+        int x ;
+        uint8 y ;
+        struct T *t
+    end
+
+    int main() is
+        struct S *s = 0x400000;
+        s.x = 10 ;
+        s.t.z = s.x ;
+        return s.t.z
+    end
+end
