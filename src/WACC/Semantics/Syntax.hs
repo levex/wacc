@@ -37,6 +37,9 @@ checkExpr (ArrElem _ exprs)
 checkExpr (UnApp Neg (Lit (INT i)))
   = checkLit (INT (-i))
 
+checkExpr (UnApp Deref lhs)
+  = checkExpr lhs
+
 checkExpr (UnApp _ e)
   = checkExpr e
 
