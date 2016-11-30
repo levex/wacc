@@ -63,19 +63,6 @@ checkDef _
   = valid
 
 
-checkLhs :: Expr -> SemanticChecker ()
-checkLhs (Ident _)
-  = valid
-checkLhs (ArrElem _ exprs)
-  = mapM_ checkExpr exprs
-checkLhs (PairElem _ _)
-  = valid
-checkLhs (UnApp Deref e)
-  = valid
-checkLhs _
-  = invalid SyntaxError "type error"
-
-
 checkExpr :: Expr -> SemanticChecker ()
 checkExpr (Lit lit)
   = valid
@@ -159,7 +146,6 @@ checkStmt (Builtin func ex) = do
   checkBuiltinArg func ex
   where
     checkBuiltinArg Read e = do
-      checkLhs e
       t <- getType e
       isIntChar t
       where
