@@ -108,18 +108,15 @@ getWidth _
   = Word
 
 getTypeSize :: Type -> InstructionGenerator Int
-getTypeSize (TPtr (TStruct s)) = do
-  sd <- gets structDefs
-  return $ (maximum . (map fst) . Map.elems . fromJust) (lookup s sd) + 4
 getTypeSize TInt
   = return 4
 getTypeSize TChar
   = return 1
-getTypeSize TUint8
+getTypeSize TUInt8
   = return 1
-getTypeSize TUint16
+getTypeSize TUInt16
   = return 2
-getTypeSize TUint32
+getTypeSize TUInt32
   = return 4
 getTypeSize _
   = return 4
