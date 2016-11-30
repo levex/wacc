@@ -28,8 +28,8 @@ unopType AddrOf e   = TPtr <$> getType e
 unopType BwNot e    = pure TInt
 
 binopType :: BinOp -> Expr -> Expr -> SemanticChecker Type
-binopType Add    e1 e2 = pure TInt
-binopType Sub    e1 e2 = pure TInt
+binopType Add    e1 e2 = getType e1
+binopType Sub    e1 e2 = getType e1
 binopType Mul    e1 e2 = pure TInt
 binopType Div    e1 e2 = pure TInt
 binopType Mod    e1 e2 = pure TInt
