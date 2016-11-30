@@ -3,6 +3,7 @@ module Main where
 import           System.FilePath
 import           System.Environment
 import           System.Exit
+import           System.Process
 
 import           WACC.Parser
 import           WACC.Semantics
@@ -17,7 +18,8 @@ main = do
 
   where
     main' [file] = do
-      contents <- readFile file
+      contents <- readProcess "cpp" [file] ""
+      --contents <- readFile file
       putStrLn "Input file: "
       putStrLn ""
       putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]

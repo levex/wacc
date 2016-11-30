@@ -50,6 +50,7 @@ executable wacc-exe
   build-depends:       base
                      , wacc
                      , filepath
+                     , process
   default-language:    Haskell2010
 
 test-suite wacc-test
