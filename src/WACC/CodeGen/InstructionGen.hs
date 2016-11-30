@@ -151,7 +151,7 @@ generateInstrForStatement (Cond e t f) = do
   tell [Special $ LabelDecl elseLabel]
   generateInstrForStatement f
   tell [Special $ LabelDecl afterCondLabel]
-generateInstrForStatement (Loop e (Block [body, incrementStep])) = do
+generateInstrForStatement (Loop e (Block [body@(Block _), incrementStep])) = do
   beginLabel <- generateLabel
   incrementLabel <- generateLabel
   endLabel <- generateLabel
