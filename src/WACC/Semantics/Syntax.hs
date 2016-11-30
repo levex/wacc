@@ -198,9 +198,6 @@ checkStmt (IdentifiedStatement s i)
 checkStmt (InlineAssembly _)
   = valid
 
-checkStmt (ExternDecl _)
-  = valid
-
 checkStmt s
   = invalid SyntaxError "invalid statement"
 
@@ -213,6 +210,9 @@ checkDef (TypeDef _ decls)
 
 checkDef (GlobalDef (_, t) e)
   = checkType t >> checkExpr e
+
+checkDef (ExternDef _)
+  = valid
 
 syntaxCheck :: Program -> SemanticChecker Program
 syntaxCheck p

@@ -137,8 +137,6 @@ generateInstrForStatement (VarDef (id, t) e) = do
 generateInstrForStatement (Ctrl c) = generateControl c
 generateInstrForStatement (InlineAssembly ss) =
   tell [PureAsm ss]
-generateInstrForStatement (ExternDecl id) =
-  tell [PureAsm [".globl ", id, "\n"]]
 generateInstrForStatement (Cond e t f) = do
   elseLabel <- generateLabel
   afterCondLabel <- generateLabel
@@ -440,6 +438,8 @@ generateDef (TypeDef id decls)
   = storeStruct id decls
 generateDef (GlobalDef (id, t) e)
   = tell [Special $ GlobVarDef id e]
+generateDef (ExternDef (id, t))
+  = tell [PureAsm [".globl ", id, "\n"]]
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions

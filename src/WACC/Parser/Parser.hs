@@ -195,7 +195,7 @@ sizeOf = try $ do
 stmt :: GenParser Char LocationData Statement
 stmt
   = inlineAsm <|> block <|> varDef <|> control <|> cond
-    <|> extern <|> loop <|> builtin <|> noop <|> expStmt
+    <|> loop <|> builtin <|> noop <|> expStmt
 
 idStmt :: GenParser Char LocationData Statement
 idStmt = do
@@ -211,12 +211,6 @@ stmtSeq
 noop :: GenParser Char LocationData Statement
 noop
   = try $ keyword "skip" *> return Noop
-
-extern :: GenParser Char LocationData Statement
-extern = try $ do
-  keyword "extern"
-  i <- identifier
-  return $ ExternDecl i
 
 inlineAsm :: GenParser Char LocationData Statement
 inlineAsm = try $ do
@@ -299,7 +293,7 @@ expStmt
 
 definition :: GenParser Char LocationData Definition
 definition
-  = funDef <|> structDef <|> globalDef
+  = externDef <|> funDef <|> structDef <|> globalDef
   where
     funDef
       = try $ FunDef <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
@@ -310,6 +304,9 @@ definition
 
     globalDef
       = try $ GlobalDef <$> varDecl <*> (whitespace *> char '=' *> expr)
+
+    externDef
+      = try $ ExternDef <$> (keyword "extern" *> (funDecl <|> varDecl) <* semicolon)
 
 program :: GenParser Char LocationData AnnotatedProgram
 program = try $ do

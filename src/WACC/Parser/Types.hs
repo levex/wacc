@@ -131,7 +131,6 @@ data Statement
   = Noop
   | Block [Statement]
   | InlineAssembly [String]
-  | ExternDecl Identifier
   | VarDef Declaration Expr
   | Ctrl Control
   | Cond Expr Statement Statement
@@ -145,6 +144,7 @@ data Definition
   = FunDef Declaration Statement
   | TypeDef Identifier [Declaration]
   | GlobalDef Declaration Expr
+  | ExternDef Declaration
   deriving (Eq, Show)
 
 type Program
@@ -199,6 +199,8 @@ getDecl (FunDef d _)
 getDecl (TypeDef i _)
   = (i, TStruct i)
 getDecl (GlobalDef d _)
+  = d
+getDecl (ExternDef d)
   = d
 
 isFunDef :: Definition -> Bool
