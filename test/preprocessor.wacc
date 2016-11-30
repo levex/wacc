@@ -1,0 +1,8 @@
+begin
+    #include "preprocessor.wach"
+
+    int main() is
+        call uart_write_char('a') ;
+        return 0
+    end
+end
