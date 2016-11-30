@@ -1,7 +1,10 @@
 all:
 	stack build
 
+install:
+	stack install
+
 clean:
 	stack clean
 
-.PHONY: all clean
+.PHONY: all install clean
