@@ -12,7 +12,8 @@ import           WACC.CodeGen.Types
 
 emitString :: Identifier -> String -> CodeGenerator String
 emitString id str
-  = return $ concat ["  ", id, ":\n",
+  = return $ concat [".balign 16\n",
+                     "  ", id, ":\n",
                      "    ", ".word ", show . length $ str, "\n",
                      "    ", ".asciz ", str, "\n"]
 

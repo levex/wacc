@@ -23,7 +23,6 @@ generateCode p
       liftM concat . sequence $
         [ emitSection ".data"
         , emitLiterals instructions
-        , return ".ltorg\n"
         , emitSection ".text"
         , emitAssembly instructions
         ]

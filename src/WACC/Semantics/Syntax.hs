@@ -53,7 +53,7 @@ checkExpr (PairElem _ _)
   = invalid SyntaxError "pair elements cannot occur in expressions"
 
 checkExpr (FunCall _ _)
-  = invalid SyntaxError "function calls cannot occur in expressions"
+  = valid -- invalid SyntaxError "function calls cannot occur in expressions"
 
 checkExpr (SizeOf _)
   = valid
