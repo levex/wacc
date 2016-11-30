@@ -10,7 +10,7 @@ import           WACC.Parser.Types
 data CheckerState = CheckerState
   { locationData :: LocationData,
     symbolTable :: SymbolTable,
-    structDefs :: [(Identifier, Map.Map Identifier (Offset, Type))] }
+    structDefs :: Map Identifier [Declaration] }
 
 data ErrorType
   = SyntaxError

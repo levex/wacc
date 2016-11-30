@@ -21,7 +21,7 @@ data CodeGenState = CodeGenState
   , lastLabelId :: Integer
   , regIdsTable :: Map (Identifier, Integer) (Register, Type)
   , scopeId :: Integer
-  , structDefs :: [(Identifier, Map Identifier (Offset, Type))]
+  , structDefs :: Map Identifier [Declaration]
   , usedBuiltins :: Set Identifier
   , loopLabels :: [(String, String)]
   }
@@ -31,29 +31,14 @@ newtype CodeGenerator a = CodeGenerator
       deriving (Functor, Applicative, Monad,
                 MonadState CodeGenState)
 
-storeMembers :: [Declaration] -> Offset -> Map.Map Identifier (Offset, Type) -> Map.Map Identifier (Offset, Type)
-storeMembers ((ident, t) : ds) o m
-  = storeMembers ds (o + 4) (Map.insert ident (o, t) m)
-storeMembers [] o m
-  = m
 
-storeStruct :: Definition -> (Identifier, Map.Map Identifier (Offset, Type))
-storeStruct (FunDef (i, _) _)
-  = (i, Map.empty)
-storeStruct (TypeDef ident members)
-  = (ident, storeMembers members 0 Map.empty)
-
-storeStructs :: Program -> [(Identifier, Map.Map Identifier (Offset, Type))]
-storeStructs p
-  = filter (not.null.snd) $ map storeStruct p
-
-codeGenState :: Program -> CodeGenState
-codeGenState p = CodeGenState
+codeGenState :: CodeGenState
+codeGenState = CodeGenState
   { lastRegister = 4
   , lastLabelId = 0
   , regIdsTable = Map.empty
   , scopeId = 0
-  , structDefs = storeStructs p
+  , structDefs = Map.empty
   , usedBuiltins = Set.empty
   , loopLabels = []
   }

@@ -41,7 +41,7 @@ binopType Lt     e1 e2 = pure TBool
 binopType Lte    e1 e2 = pure TBool
 binopType Eq     e1 e2 = pure TBool
 binopType NEq    e1 e2 = pure TBool
-binopType Member e1 e2 = getType e2
+binopType Member e1 e2 = getStructType e1 e2
 binopType BwAnd  e1 e2 = pure TInt
 binopType BwOr   e1 e2 = pure TInt
 binopType BwXor  e1 e2 = pure TInt
@@ -141,29 +141,17 @@ deconstructArrayType (TString)
 deconstructArrayType t
   = invalid SemanticError $ "Expected TArray, Found: " ++ show t
 
-
-unfoldStruct :: [Identifier] -> Expr -> SemanticChecker [Identifier]
-unfoldStruct idents (BinApp Member (Ident i) e)
-  = unfoldStruct (i : idents) e
-unfoldStruct idents (Ident i)
-  = pure $ reverse (i : idents)
-unfoldStruct _ _
-  = invalid SemanticError "invalid member reference"
-
-
-getMemberType :: Identifier -> Type -> [Identifier]  -> SemanticChecker Type
-getMemberType "__primMember" tp (i : ix)
-  = invalid SemanticError $ "member " ++ i ++ " not found"
-getMemberType sId tp (i : ix) = do
-  sd <- gets structDefs
-  case Map.lookup i $ fromJust $ lookup sId sd of
-    Just (o, t)  -> case t of
-                    TPtr (TStruct s) -> getMemberType s t ix
-                    _                -> getMemberType "__primMember" t ix
-    Nothing -> invalid SemanticError $ "member " ++ i ++ " not found"
-getMemberType sId t []
-  = pure t
-
+getStructType :: Expr -> Expr -> SemanticChecker Type
+getStructType e1 (Ident m) = do
+  (TPtr (TStruct i)) <- getType e1
+  structs <- gets structDefs
+  let members = fromJust $ Map.lookup i structs
+  case lookup m members of
+    Nothing -> invalid SemanticError $ "Struct " ++ show i ++
+      " does not contain member " ++ show m
+    Just t -> return t
+getStructType _ _
+  = invalid SemanticError $ "Invalid expression for accessing struct member"
 
 getType :: Expr -> SemanticChecker Type
 getType (Lit lit)
@@ -180,12 +168,6 @@ getType (PairElem e id) = do
     pairElem Snd _ s = s
 getType (UnApp op e)
   = unopType op e
-getType e@(BinApp Member (Ident i) e') = do
-  unfolded <- unfoldStruct [] e
-  t <- getType (Ident i)
-  case t of
-    TPtr (TStruct s) -> getMemberType s t $ tail unfolded
-    _                -> invalid SemanticError $ i ++ " is not a structure"
 getType (BinApp op e1 e2)
   = binopType op e1 e2
 getType (FunCall id _) =
@@ -195,8 +177,6 @@ getType (FunCall id _) =
     getRetType _ = invalid SemanticError "identifier is not a function"
 getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
   = TPair <$> getType e1 <*> getType e2
-getType (NewStruct i)
-  = identLookup i
 getType (SizeOf _)
   = return TInt
 

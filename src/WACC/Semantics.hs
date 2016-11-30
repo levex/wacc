@@ -1,5 +1,6 @@
 module WACC.Semantics where
 
+import qualified Data.Map as Map
 import           Control.Monad.Except
 import           Control.Monad.State
 import           WACC.Parser.Types
@@ -13,7 +14,7 @@ checkProgram (p, ld)
   = (evalState . runExceptT . runSemanticChecker) runCheck initialState
   where
     runCheck = syntaxCheck p >>= semanticCheck >>= simplify
-    initialState = (CheckerState ld (SymbolTable [] []) [])
+    initialState = (CheckerState ld (SymbolTable [] []) Map.empty)
 
 getExitCode :: CheckerError -> Int -> Int -> Int -> Int
 getExitCode (CheckerError SyntaxError _ _) ec _ _

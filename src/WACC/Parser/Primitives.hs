@@ -144,6 +144,9 @@ semicolon
 comma
   = wschar ','
 
+reservedOp name ret
+  = try (wsstring name) >> return ret
+
 reserved name ret
   = try (keyword name) >> return ret
 

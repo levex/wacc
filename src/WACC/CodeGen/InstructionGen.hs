@@ -87,6 +87,10 @@ popLoopLabels :: InstructionGenerator ()
 popLoopLabels
   = modify (\s@CodeGenState{..} -> s{loopLabels = tail loopLabels})
 
+storeStruct :: Identifier -> [Declaration] -> InstructionGenerator ()
+storeStruct id decls
+  = modify (\s@CodeGenState{..} -> s{structDefs = Map.insert id decls structDefs})
+
 deconstructArrayType :: Type -> Type
 deconstructArrayType (TArray t)
   = t
@@ -222,15 +226,27 @@ generateArrayDeref w r offset = do
   generateArrayIndex offsetR offset
   generateAddressDeref w r offsetR
 
-calcStructOffset :: Identifier -> Offset -> Expr -> InstructionGenerator Int
-calcStructOffset s o (Ident i) = do
-  sd <- gets structDefs
-  let (off, _) = (fromJust $ lookup s sd) Map.! i
-  return (o + off)
-calcStructOffset s o (BinApp Member (Ident i) e) = do
-  sd <- gets structDefs
-  let (off, (TPtr (TStruct struct))) = (fromJust $ lookup s sd) Map.! i
-  calcStructOffset struct (o + off) e
+getStructMemberInfo :: Identifier -> Identifier -> InstructionGenerator (Int, Type)
+getStructMemberInfo struct member = do
+  members <- fromJust . Map.lookup struct <$> gets structDefs
+  let preceding = map snd $ takeWhile (not . (== member) . fst) members
+  offset <- sum <$> mapM getTypeSize preceding
+  return $ (offset, fromJust (lookup member members))
+
+generateStructMemberDeref :: Register -> Expr -> InstructionGenerator Type
+generateStructMemberDeref r (BinApp Member (Ident i) (Ident m)) = do
+  r1 <- getRegById i
+  tell [Move CAl r (Reg r1)]
+  TPtr (TStruct s) <- getTypeById i
+  (offset, t) <- getStructMemberInfo s m
+  generateAddressDerefImm (getWidth t) r offset
+  return t
+generateStructMemberDeref r (BinApp Member e (Ident m)) = do
+  TPtr (TStruct s) <- generateStructMemberDeref r e
+  (offset, t) <- getStructMemberInfo s m
+  generateAddressDerefImm (getWidth t) r offset
+  return t
+
 
 generateAssignment :: Expr -> Expr -> InstructionGenerator ()
 generateAssignment (Ident i) e = do
@@ -269,13 +285,20 @@ generateAssignment (PairElem p i) e = do
   case p of
     Fst -> tell [Store CAl (getWidth t1) r1 r True (Imm 0)]
     Snd -> tell [Store CAl (getWidth t2) r1 r True (Imm 4)]
-generateAssignment (BinApp Member (Ident i) ex) e = do
-  (TPtr (TStruct s)) <- getTypeById i
-  offset <- calcStructOffset s 0 ex
+generateAssignment (BinApp Member (Ident i) (Ident m)) e = do
   r <- getRegById i
+  (TPtr (TStruct s)) <- getTypeById i
+  (offset, t) <- getStructMemberInfo s m
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
-  tell [Store CAl Word r1 r True (Imm offset)]
+  tell [Store CAl (getWidth t) r1 r True (Imm offset)]
+generateAssignment (BinApp Member e1 (Ident m)) e = do
+  r <- getFreeRegister
+  TPtr (TStruct s) <- generateStructMemberDeref r e1
+  (offset, t) <- getStructMemberInfo s m
+  r1 <- getFreeRegister
+  generateInstrForExpr r1 e
+  tell [Store CAl (getWidth t) r1 r True (Imm offset)]
 
 
 generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
@@ -323,6 +346,8 @@ generateInstrForExpr r (UnApp op e) = do
     Len -> tell [Load CAl Word r (Reg r1) True (Imm 0)]
     Deref -> tell [Load CAl Word r (Reg r1) True (Imm 0)]
     _   -> tell [Move CAl r (Reg r1)] -- Chr and Ord are noops in assembly
+generateInstrForExpr r e@(BinApp Member _ _)
+  = void $ generateStructMemberDeref r e
 generateInstrForExpr r (BinApp op e1 e2) = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e1
@@ -358,9 +383,6 @@ generateInstrForExpr r (NewPair e1 e2) = do
   r2 <- getFreeRegister
   generateInstrForExpr r2 e2
   tell [Store CAl Word r2 r True (Imm 4)]
-generateInstrForExpr r (NewStruct s) = do
-  sd <- gets structDefs
-  generateInstrForAlloc r $ ((maximum . map fst . Map.elems . fromJust) $ lookup s sd) + 4
 generateInstrForExpr r (SizeOf t) = do
   typeSize <- getTypeSize t
   tell [Load CAl Word r (Imm typeSize) True (Imm 0)]
@@ -414,8 +436,8 @@ generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
     saveRegId r id t
   scoped $ generateInstrForStatement stmt
   when (retT == TArb) $ tell [Ret Nothing [] 0]
-generateDef (TypeDef _ _)
-  = pure ()
+generateDef (TypeDef id decls)
+  = storeStruct id decls
 generateDef (GlobalDef (id, t) e)
   = tell [Special $ GlobVarDef id e]
 

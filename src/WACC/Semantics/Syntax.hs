@@ -40,6 +40,12 @@ checkExpr (UnApp Neg (Lit (INT i)))
 checkExpr (UnApp _ e)
   = checkExpr e
 
+checkExpr (BinApp Member lhs (Ident i))
+  = checkLhs lhs
+
+checkExpr (BinApp Member _ _)
+  = invalid SyntaxError "accessing invalid member of struct"
+
 checkExpr (BinApp _ e1 e2)
   = checkExpr e1 >> checkExpr e2
 
@@ -65,11 +71,8 @@ checkLhs (PairElem _ _)
 checkLhs (UnApp Deref e)
   = valid
 
-checkLhs (BinApp Member (Ident i) e)
-  = case e of
-      Ident _                        -> valid
-      (BinApp Member (Ident j) expr) -> checkLhs (BinApp Member (Ident j) expr)
-      _                              -> invalid SyntaxError "error in member access"
+checkLhs e@(BinApp Member _ _)
+  = checkExpr e
 
 checkLhs _
   = invalid SyntaxError $ "lhs of an assignment must be an identifier,"
@@ -87,9 +90,6 @@ checkRhs (FunCall ident args)
 
 checkRhs (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
-
-checkRhs (NewStruct ident)
-  = valid
 
 checkRhs e
   = checkExpr e
@@ -128,7 +128,7 @@ checkType (TPtr (TArray _))
 checkType (TPtr TArb)
   = valid
 
-checkType (TPtr (TStruct t))
+checkType (TPtr (TStruct _))
   = valid
 
 checkType (TPtr t)
@@ -142,6 +142,9 @@ checkType (TFun retT decls)
 
 checkType TArb
   = invalid SyntaxError "invalid void type"
+
+checkType (TStruct _)
+  = invalid SyntaxError "cannot have a struct on the stack"
 
 checkType _
   = valid

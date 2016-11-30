@@ -112,8 +112,10 @@ literal
 
 
 decltype :: GenParser Char LocationData Type
-decltype
-  = structType <|> arrType <|> pairType <|> primType
+decltype = do
+  t <- structType <|> arrType <|> primType
+  qualifiers <- many ptrQualifier
+  return $ foldr (flip (.)) id qualifiers t
   where
     primType
       = choice (map (uncurry reserved) primTypes)
@@ -124,10 +126,10 @@ decltype
       return $ foldr1 (flip (.)) qualifiers t
 
     arrQualifier
-      = reserved "[]" TArray
+      = reservedOp "[]" TArray
 
     ptrQualifier
-      = reserved "*" TPtr
+      = reservedOp "*" TPtr
 
     pairType = try $ do
       keyword "pair"
@@ -135,7 +137,7 @@ decltype
       return $ TPair t1 t2
 
     structType
-      = try $ (TPtr . TStruct) <$> (keyword "struct" *> identifier)
+      = try $ TStruct <$> (keyword "struct" *> identifier)
 
 varDecl :: GenParser Char LocationData Declaration
 varDecl = try $ do
@@ -155,7 +157,7 @@ expr
   = buildExpressionParser operations (wssurrounded term)
   where
     term
-      = parens expr <|> funCall <|> newPair <|> newStruct <|> sizeOf
+      = parens expr <|> funCall <|> newPair <|> sizeOf
         <|> val <|> arrElement <|> pairElement <|> ident
 
 val :: GenParser Char LocationData Expr
@@ -184,11 +186,6 @@ newPair = try $ do
   keyword "newpair"
   (e1, e2) <- pair expr
   return $ NewPair e1 e2
-
-newStruct :: GenParser Char LocationData Expr
-newStruct = try $ do
-  keyword "new"
-  NewStruct <$> identifier
 
 sizeOf :: GenParser Char LocationData Expr
 sizeOf = try $ do

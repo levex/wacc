@@ -92,7 +92,6 @@ data Expr
   | FunCall Identifier [Expr]
   | SizeOf Type
   | NewPair Expr Expr
-  | NewStruct Identifier
   deriving (Eq, Show)
 
 data Type
@@ -113,8 +112,6 @@ data Type
 
 type Declaration
   = (Identifier, Type)
-
-type Offset = Int
 
 data BuiltinFunc
   = Read

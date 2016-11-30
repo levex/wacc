@@ -94,7 +94,7 @@ checkExpr (UnApp unop expr) = do
   checkExpr expr
   a <- getType expr
   checkUnopArgs unop a
-checkExpr e@(BinApp Member (Ident i) e2)
+checkExpr e@(BinApp Member _ _)
   = getType e >> valid
 checkExpr (BinApp binop e1 e2) = do
   checkExpr e1
@@ -117,8 +117,6 @@ checkExpr (FunCall ident args) = do
         else invalid SemanticError "invalid number of arguments"
 checkExpr (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
-checkExpr (NewStruct i)
-  = valid
 checkExpr (SizeOf _)
   = valid
 
@@ -127,16 +125,10 @@ checkStmt Noop
   = valid
 checkStmt (Block idStmts)
   = scoped $ mapM_ checkStmt idStmts
-checkStmt (VarDef decl@(i, TPtr (TStruct s)) expr) = do
+checkStmt (VarDef decl@(_, declT) expr) = do
   checkExpr expr
   t <- getType expr
-  let structType = TStruct s
-  equalTypes ("type Mismatch " ++ show (structType) ++ " vs " ++ show t) structType t
-  storeDecl decl
-checkStmt (VarDef decl expr) = do
-  checkExpr expr
-  t <- getType expr
-  equalTypes ("type Mismatch " ++ show (snd decl) ++ " vs " ++ show t) (snd decl) t
+  equalTypes ("type Mismatch " ++ show (snd decl) ++ " vs " ++ show t) declT t
   storeDecl decl
 checkStmt (Ctrl Break)
   = valid
@@ -196,16 +188,10 @@ storeGlobals :: [Definition] -> SemanticChecker ()
 storeGlobals
   = mapM_ (storeDecl . getDecl)
 
-storeMembers :: [Declaration] -> Map.Map Identifier (Offset, Type) -> Map.Map Identifier (Offset, Type)
-storeMembers ((ident, t) : ds) m
-  = storeMembers ds (Map.insert ident (0, t) m)
-storeMembers [] m
-  = m
-
 storeStruct :: Definition -> SemanticChecker ()
 storeStruct (TypeDef ident members) = do
   s@CheckerState{..} <- get
-  put s{structDefs = (ident, (storeMembers members Map.empty)) : structDefs}
+  put s{structDefs = Map.insert ident members structDefs}
 storeStruct _
   = valid
 
