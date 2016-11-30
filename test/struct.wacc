@@ -12,6 +12,7 @@ begin
     int main() is
         struct S *s = 0x400000;
         s.x = 10 ;
+        s.y = 10 ;
         s.t.z = s.x ;
         return s.t.z
     end
