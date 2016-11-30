@@ -111,19 +111,19 @@ getWidth TUInt32
 getWidth _
   = Word
 
-getTypeSize :: Type -> InstructionGenerator Int
+getTypeSize :: Type -> Int
 getTypeSize TInt
-  = return 4
+  = 4
 getTypeSize TChar
-  = return 1
+  = 1
 getTypeSize TUInt8
-  = return 1
+  = 1
 getTypeSize TUInt16
-  = return 2
+  = 2
 getTypeSize TUInt32
-  = return 4
+  = 4
 getTypeSize _
-  = return 4
+  = 4
 
 
 generateInstrForStatement :: Statement -> InstructionGenerator ()
@@ -191,7 +191,7 @@ generateInstrForStatement (ExpStmt funCall@(FunCall id args)) = do
     generateInstrForFunCall funCall
   when ("__builtin_" `isPrefixOf` id) $ saveBuiltinId id
 generateInstrForStatement (ExpStmt e)
-  = generateInstrForExpr r0 e
+  = void $ generateInstrForExpr r0 e
 
 generateControl :: Control -> InstructionGenerator ()
 generateControl (Return (Just e)) = do
@@ -228,7 +228,7 @@ getStructMemberInfo :: Identifier -> Identifier -> InstructionGenerator (Int, Ty
 getStructMemberInfo struct member = do
   members <- fromJust . Map.lookup struct <$> gets structDefs
   let preceding = map snd $ takeWhile (not . (== member) . fst) members
-  offset <- sum <$> mapM getTypeSize preceding
+  let offset = sum $ map getTypeSize preceding
   return $ (offset, fromJust (lookup member members))
 
 generateStructMemberDeref :: Register -> Expr -> InstructionGenerator Type
@@ -243,6 +243,12 @@ generateStructMemberDeref r (BinApp Member e (Ident m)) = do
   TPtr (TStruct s) <- generateStructMemberDeref r e
   (offset, t) <- getStructMemberInfo s m
   generateAddressDerefImm (getWidth t) r offset
+  return t
+
+generatePointerDeref :: Register -> Expr -> InstructionGenerator Type
+generatePointerDeref r (UnApp Deref e) = do
+  TPtr t <- generateInstrForExpr r e
+  generateAddressDerefImm (getWidth t) r 0
   return t
 
 
@@ -260,7 +266,7 @@ generateAssignment (Ident i) e = do
       tell [Load CAl Word r1 (Label i) True (Imm 0)]
       tell [Store CAl (getWidth t) r r1 True (Imm 0)]
     generateAssignment' i e r
-      = generateInstrForExpr r e
+      = void $ generateInstrForExpr r e
 generateAssignment (ArrElem i idxs) e = do
   r <- getFreeRegister
   r1 <- getRegById i
@@ -297,9 +303,20 @@ generateAssignment (BinApp Member e1 (Ident m)) e = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   tell [Store CAl (getWidth t) r1 r True (Imm offset)]
+generateAssignment (UnApp Deref (Ident i)) e = do
+  r <- getRegById i
+  r1 <- getFreeRegister
+  generateInstrForExpr r1 e
+  TPtr t <- getTypeById i
+  tell [Store CAl (getWidth t) r1 r True (Imm 0)]
+generateAssignment (UnApp Deref e1) e = do
+  r <- getFreeRegister
+  TPtr t <- generateInstrForExpr r e1
+  r1 <- getFreeRegister
+  generateInstrForExpr r1 e
+  tell [Store CAl (getWidth t) r1 r True (Imm 0)]
 
-
-generateInstrForExpr :: Register -> Expr -> InstructionGenerator ()
+generateInstrForExpr :: Register -> Expr -> InstructionGenerator Type
 generateInstrForExpr r (Lit l)
   = generateLiteral r l
 generateInstrForExpr r (Ident id) = do
@@ -310,6 +327,7 @@ generateInstrForExpr r (Ident id) = do
       tell [Load CAl (getWidth t1) r (Label id) True (Imm 0)]
       tell [Load CAl (getWidth t1) r (Reg r) True (Imm 0)]
     _      -> tell [Move CAl r (Reg r1)]
+  return t1
 generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
   t1 <- getTypeById id
@@ -319,71 +337,84 @@ generateInstrForExpr r (ArrElem id idxs) = do
   let (derefIdxs, [lastIdx]) = splitAt (idxCount - 1) idxs
   forM_ derefIdxs $ generateArrayDeref Word r
   generateArrayDeref (getWidth t1') r lastIdx
+  return t1
 generateInstrForExpr r (PairElem p i) = do
   r1 <- getRegById i
   TPair t1 t2 <- getTypeById i
   tell [Move CAl r (Reg r1)]
   case p of
-    Fst -> generateAddressDerefImm (getWidth t1) r 0
-    Snd -> generateAddressDerefImm (getWidth t2) r 4
+    Fst -> generateAddressDerefImm (getWidth t1) r 0 >> return t1
+    Snd -> generateAddressDerefImm (getWidth t2) r 4 >> return t2
 generateInstrForExpr r (UnApp AddrOf (Ident i))
-  = tell [Load CAl Word r (Label i) True (Imm 0)]
+  = tell [Load CAl Word r (Label i) True (Imm 0)] >> TPtr <$> getTypeById i
+generateInstrForExpr r e@(UnApp Deref _)
+  = generatePointerDeref r e
 generateInstrForExpr r (UnApp op (Ident i)) = do
   r1 <- getRegById i
+  t1 <- getTypeById i
+  let increment = case t1 of
+                    TPtr t -> getTypeSize t
+                    _      -> 1
   case op of
-    PreInc  -> tell [Op CAl AddOp r1 r1 (Imm 1), Move CAl r (Reg r1)]
-    PostInc -> tell [Move CAl r (Reg r1), Op CAl AddOp r1 r1 (Imm 1)]
-    PreDec  -> tell [Op CAl SubOp r1 r1 (Imm 1), Move CAl r (Reg r1)]
-    PostDec -> tell [Move CAl r (Reg r1), Op CAl SubOp r1 r1 (Imm 1)]
+    PreInc  -> tell [Op CAl AddOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
+    PostInc -> tell [Move CAl r (Reg r1), Op CAl AddOp r1 r1 (Imm increment)]
+    PreDec  -> tell [Op CAl SubOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
+    PostDec -> tell [Move CAl r (Reg r1), Op CAl SubOp r1 r1 (Imm increment)]
+  return t1
 generateInstrForExpr r (UnApp op e) = do
   r1 <- getFreeRegister
-  generateInstrForExpr r1 e
+  t1 <- generateInstrForExpr r1 e
   case op of
-    Not -> tell [Op CAl XorOp r r1 (Imm 1)]
-    Neg -> tell [Op CAl RSubOp r r1 (Imm 0)]
-    Len -> tell [Load CAl Word r (Reg r1) True (Imm 0)]
-    Deref -> tell [Load CAl Word r (Reg r1) True (Imm 0)]
-    _   -> tell [Move CAl r (Reg r1)] -- Chr and Ord are noops in assembly
+    Not -> tell [Op CAl XorOp r r1 (Imm 1)] >> return TBool
+    Neg -> tell [Op CAl RSubOp r r1 (Imm 0)] >> return TInt
+    Len -> tell [Load CAl Word r (Reg r1) True (Imm 0)] >> return TInt
+    Chr -> tell [Move CAl r (Reg r1)] >> return TChar -- Chr and Ord are noops in assembly
+    Ord -> tell [Move CAl r (Reg r1)] >> return TInt  -- Chr and Ord are noops in assembly
 generateInstrForExpr r e@(BinApp Member _ _)
-  = void $ generateStructMemberDeref r e
+  = generateStructMemberDeref r e
 generateInstrForExpr r (BinApp op e1 e2) = do
   r1 <- getFreeRegister
-  generateInstrForExpr r1 e1
+  t1 <- generateInstrForExpr r1 e1
   r2 <- getFreeRegister
-  generateInstrForExpr r2 e2
+  t2 <- generateInstrForExpr r2 e2
+  case t1 of
+    TPtr t -> if op `notElem` [Add, Sub] then
+        fail "invalid pointer arithmetic operation"
+      else
+        tell [Op CAl MulOp r2 r2 (Imm $ getTypeSize t)]
   case op of
-    Add -> tell [Op CAl AddOp r r1 (Reg r2)]
-    Sub -> tell [Op CAl SubOp r r1 (Reg r2)]
-    Mul -> tell [Op CAl MulOp r r1 (Reg r2)]
-    Div -> tell [Op CAl DivOp r r1 (Reg r2)]
-    Mod -> tell [Op CAl ModOp r r1 (Reg r2)]
-    And -> tell [Op CAl AndOp r r1 (Reg r2)]
-    Or  -> tell [Op CAl OrOp r r1 (Reg r2)]
-    Gt  -> tell [Compare CAl r1 (Reg r2), Move CGt r (Imm 1), Move CLe r (Imm 0)]
-    Gte -> tell [Compare CAl r1 (Reg r2), Move CGe r (Imm 1), Move CLt r (Imm 0)]
-    Lt  -> tell [Compare CAl r1 (Reg r2), Move CLt r (Imm 1), Move CGe r (Imm 0)]
-    Lte -> tell [Compare CAl r1 (Reg r2), Move CLe r (Imm 1), Move CGt r (Imm 0)]
-    Eq  -> tell [Compare CAl r1 (Reg r2), Move CEq r (Imm 1), Move CNe r (Imm 0)]
-    NEq -> tell [Compare CAl r1 (Reg r2), Move CNe r (Imm 1), Move CEq r (Imm 0)]
-    BwAnd     -> tell [Op CAl AndOp r r1 (Reg r2)]
-    BwOr      -> tell [Op CAl OrOp r r1 (Reg r2)]
-    BwXor     -> tell [Op CAl XorOp r r1 (Reg r2)]
-    BwShiftL  -> tell [Shift CAl r r1 LSL (Reg r2)]
-    BwShiftR  -> tell [Shift CAl r r1 LSR (Reg r2)]
+    Add -> tell [Op CAl AddOp r r1 (Reg r2)] >> return t1
+    Sub -> tell [Op CAl SubOp r r1 (Reg r2)] >> return t1
+    Mul -> tell [Op CAl MulOp r r1 (Reg r2)] >> return t1
+    Div -> tell [Op CAl DivOp r r1 (Reg r2)] >> return t1
+    Mod -> tell [Op CAl ModOp r r1 (Reg r2)] >> return t1
+    And -> tell [Op CAl AndOp r r1 (Reg r2)] >> return TBool
+    Or  -> tell [Op CAl OrOp r r1 (Reg r2)] >> return TBool
+    Gt  -> tell [Compare CAl r1 (Reg r2), Move CGt r (Imm 1), Move CLe r (Imm 0)] >> return TBool
+    Gte -> tell [Compare CAl r1 (Reg r2), Move CGe r (Imm 1), Move CLt r (Imm 0)] >> return TBool
+    Lt  -> tell [Compare CAl r1 (Reg r2), Move CLt r (Imm 1), Move CGe r (Imm 0)] >> return TBool
+    Lte -> tell [Compare CAl r1 (Reg r2), Move CLe r (Imm 1), Move CGt r (Imm 0)] >> return TBool
+    Eq  -> tell [Compare CAl r1 (Reg r2), Move CEq r (Imm 1), Move CNe r (Imm 0)] >> return TBool
+    NEq -> tell [Compare CAl r1 (Reg r2), Move CNe r (Imm 1), Move CEq r (Imm 0)] >> return TBool
+    BwAnd     -> tell [Op CAl AndOp r r1 (Reg r2)] >> return t1
+    BwOr      -> tell [Op CAl OrOp r r1 (Reg r2)] >> return t1
+    BwXor     -> tell [Op CAl XorOp r r1 (Reg r2)] >> return t1
+    BwShiftL  -> tell [Shift CAl r r1 LSL (Reg r2)] >> return t1
+    BwShiftR  -> tell [Shift CAl r r1 LSR (Reg r2)] >> return t1
 generateInstrForExpr r fc@(FunCall _ _) = do
   generateInstrForFunCall fc
   tell [Move CAl r (Reg r0)]
-generateInstrForExpr r (NewPair e1 e2) = do
-  generateInstrForAlloc r 8
-  r1 <- getFreeRegister
-  generateInstrForExpr r1 e1
-  tell [Store CAl Word r1 r True (Imm 0)]
-  r2 <- getFreeRegister
-  generateInstrForExpr r2 e2
-  tell [Store CAl Word r2 r True (Imm 4)]
-generateInstrForExpr r (SizeOf t) = do
-  typeSize <- getTypeSize t
-  tell [Load CAl Word r (Imm typeSize) True (Imm 0)]
+  return TArb
+--generateInstrForExpr r (NewPair e1 e2) = do
+--  generateInstrForAlloc r 8
+--  r1 <- getFreeRegister
+--  generateInstrForExpr r1 e1
+--  tell [Store CAl Word r1 r True (Imm 0)]
+--  r2 <- getFreeRegister
+--  generateInstrForExpr r2 e2
+--  tell [Store CAl Word r2 r True (Imm 4)]
+generateInstrForExpr r (SizeOf t)
+  = tell [Load CAl Word r (Imm $ getTypeSize t) True (Imm 0)] >> return TInt
 
 generateInstrForFunCall :: Expr -> InstructionGenerator ()
 generateInstrForFunCall (FunCall id args) = do
@@ -402,16 +433,17 @@ generateInstrForAlloc r size = do
     [Lit (INT (fromIntegral size))])
   tell [Move CAl r (Reg r0)]
 
-generateLiteral :: Register -> Literal -> InstructionGenerator ()
+generateLiteral :: Register -> Literal -> InstructionGenerator Type
 generateLiteral r (INT i)
-  = tell [Load CAl Word r (Imm $ fromInteger i) True (Imm 0)]
+  = tell [Load CAl Word r (Imm $ fromInteger i) True (Imm 0)] >> return TInt
 generateLiteral r (CHAR c)
-  = tell [Move CAl r (Imm $ ord c)]
+  = tell [Move CAl r (Imm $ ord c)] >> return TChar
 generateLiteral r (BOOL b)
-  = tell [Move CAl r (Imm $ bool 0 1 b)]
+  = tell [Move CAl r (Imm $ bool 0 1 b)] >> return TBool
 generateLiteral r (STR s) = do
   l <- generateLabel
   tell [Special $ StringLit l s, Load CAl Word r (Label l) True (Imm 0)]
+  return TString
 generateLiteral r (ARRAY exprs) = do
   let arrLen = length exprs
   generateInstrForAlloc r ((arrLen + 1) * 4)
@@ -421,8 +453,9 @@ generateLiteral r (ARRAY exprs) = do
     r2 <- getFreeRegister
     generateInstrForExpr r2 e
     tell [Store CAl Word r2 r True (Imm (i * 4))]
+  return $ TArray TArb
 generateLiteral r NULL
-  = tell [Move CAl r (Imm 0)]
+  = tell [Move CAl r (Imm 0)] >> return (TPtr TArb)
 
 generateDef :: Definition -> InstructionGenerator ()
 generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
