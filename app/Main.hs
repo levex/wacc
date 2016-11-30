@@ -13,31 +13,41 @@ import           WACC.CodeGen
 -- FIXME: this needs rewriting to use >>=
 main :: IO ()
 main = do
-  args <- getArgs
-  main' args
+  (file, options) <- processArgs [] <$> getArgs
+  main' file options
 
   where
-    main' [file] = do
-      contents <- readProcess "cpp" [file] ""
+    main' "" _ = putStrLn "Usage: ./wacc [-I include_path] <filename>"
+    main' file options = do
+      let opts = [o ++ v | (o, v) <- options]
+      contents <- readProcess "cpp" (opts ++ [file]) ""
       --contents <- readFile file
-      putStrLn "Input file: "
-      putStrLn ""
-      putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]
-      putStrLn "\n----------------------------\n"
+      --putStrLn "Input file: "
+      --putStrLn ""
+      --putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]
+      --putStrLn "\n----------------------------\n"
       case runWACCParser file contents of
         Left err -> (putStrLn $ show err) >> exitWith (ExitFailure 100)
         Right p  -> case checkProgram p of
           Left err -> (putStrLn $ show err) >> exitWith (compilationError err)
           Right p  -> do
-            putStrLn $ "AST: "
-            putStrLn ""
-            print p
-            putStrLn "\n----------------------------\n"
+            --putStrLn $ "AST: "
+            --putStrLn ""
+            --print p
+            --putStrLn "\n----------------------------\n"
             let code = generateCode (optimizeProgram p)
-            putStrLn code
+            --putStrLn code
             writeFile (replaceExtension file ".s") code
             exitSuccess
-    main' _ = putStrLn "Usage: ./wacc <filename>"
+
+    processArgs options ("-I":includePath:args)
+      = processArgs (("-I", includePath):options) args
+    processArgs options (_:_:args)
+      = processArgs options args
+    processArgs options [f]
+      = (f, options)
+    processArgs options []
+      = ("", options)
 
     compilationError err
       = ExitFailure (getExitCode err 100 200 200)
