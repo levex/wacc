@@ -96,7 +96,7 @@ operations
 
 -- Utility functions
 opMap name ret
-  = try (wssurrounded (string name <* notFollowedBy (char '='))) >> return ret
+  = try (wssurrounded (string name <* notFollowedBy (oneOf "&|="))) >> return ret
 
 binary name fun
   = Infix $ opMap name fun
