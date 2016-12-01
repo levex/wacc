@@ -26,7 +26,6 @@ main = do
       let includePaths = filter (isPrefixOf "-I") options
       contents <- readProcess "cpp" (includePaths ++ [file]) ""
       unless ("-q" `elem` options) $ do
-        contents <- readFile file
         putStrLn "Input file: "
         putStrLn ""
         putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]
