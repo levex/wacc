@@ -380,8 +380,9 @@ generateInstrForExpr r (BinApp op e1 e2) = do
   case t1 of
     TPtr t -> if op `notElem` [Add, Sub] then
         fail "invalid pointer arithmetic operation"
-      else
-        tell [Op CAl MulOp r2 r2 (Imm $ getTypeSize t)]
+      else do
+        r3 <- getFreeRegister
+        tell [Move CAl r3 (Imm 1), Op CAl MulOp r2 r2 (Reg r3)]
   case op of
     Add -> tell [Op CAl AddOp r r1 (Reg r2)] >> return t1
     Sub -> tell [Op CAl SubOp r r1 (Reg r2)] >> return t1
