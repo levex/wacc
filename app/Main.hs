@@ -37,7 +37,7 @@ main = do
             --putStrLn "\n----------------------------\n"
             let code = generateCode (optimizeProgram p)
             --putStrLn code
-            writeFile (replaceExtension file ".s") code
+            writeFile (replaceExtension file ".S") code
             exitSuccess
 
     processArgs options ("-I":includePath:args)
