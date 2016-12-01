@@ -159,11 +159,11 @@ generateInstrForStatement (Loop e (Block [body@(Block _), incrementStep])) = do
   endLabel <- generateLabel
   pushLoopLabels (incrementLabel, endLabel)
   r1 <- getFreeRegister
+  tell [Special $ ScopeBegin endLabel]
   tell [Special $ LabelDecl beginLabel]
   generateInstrForExpr r1 e
   tell [Compare CAl r1 (Imm 0)]
   tell [Branch CEq $ Label endLabel]
-  tell [Special $ ScopeBegin endLabel]
   generateInstrForStatement body
   tell [Special $ LabelDecl incrementLabel]
   generateInstrForStatement incrementStep
@@ -176,11 +176,11 @@ generateInstrForStatement (Loop e body) = do
   endLabel <- generateLabel
   pushLoopLabels (beginLabel, endLabel)
   r1 <- getFreeRegister
+  tell [Special $ ScopeBegin endLabel]
   tell [Special $ LabelDecl beginLabel]
   generateInstrForExpr r1 e
   tell [Compare CAl r1 (Imm 0)]
   tell [Branch CEq $ Label endLabel]
-  tell [Special $ ScopeBegin endLabel]
   generateInstrForStatement body
   tell [Branch CAl $ Label beginLabel]
   tell [Special $ LabelDecl endLabel]
