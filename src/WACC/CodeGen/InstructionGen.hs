@@ -474,7 +474,7 @@ generateDef (TypeDef id decls)
 generateDef (GlobalDef (id, t) e)
   = tell [Special $ GlobVarDef id e]
 generateDef (ExternDef (id, t))
-  = tell [PureAsm [".globl ", id, "\n"]]
+  = skip -- tell [PureAsm [".globl ", id, "\n"]]
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
