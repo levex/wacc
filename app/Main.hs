@@ -1,5 +1,8 @@
 module Main where
 
+import           Data.List
+import           Control.Monad
+
 import           System.FilePath
 import           System.Environment
 import           System.Exit
@@ -13,41 +16,35 @@ import           WACC.CodeGen
 -- FIXME: this needs rewriting to use >>=
 main :: IO ()
 main = do
-  (file, options) <- processArgs [] <$> getArgs
+  args <- getArgs
+  let (options, [file]) = splitAt (length args - 1) args
   main' file options
 
   where
-    main' "" _ = putStrLn "Usage: ./wacc [-I include_path] <filename>"
+    main' "" _ = putStrLn "Usage: ./wacc [-Iinclude_path] [-q] <filename>"
     main' file options = do
-      let opts = [o ++ v | (o, v) <- options]
-      contents <- readProcess "cpp" (opts ++ [file]) ""
-      --contents <- readFile file
-      --putStrLn "Input file: "
-      --putStrLn ""
-      --putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]
-      --putStrLn "\n----------------------------\n"
+      let includePaths = filter (isPrefixOf "-I") options
+      contents <- readProcess "cpp" (includePaths ++ [file]) ""
+      unless ("-q" `elem` options) $ do
+        contents <- readFile file
+        putStrLn "Input file: "
+        putStrLn ""
+        putStrLn $ concat $ zipWith (\str c -> show c ++ "\t" ++ str ++ "\n") (lines contents) [1..]
+        putStrLn "\n----------------------------\n"
       case runWACCParser file contents of
         Left err -> (putStrLn $ show err) >> exitWith (ExitFailure 100)
         Right p  -> case checkProgram p of
           Left err -> (putStrLn $ show err) >> exitWith (compilationError err)
           Right p  -> do
-            --putStrLn $ "AST: "
-            --putStrLn ""
-            --print p
-            --putStrLn "\n----------------------------\n"
             let code = generateCode (optimizeProgram p)
-            --putStrLn code
+            unless ("-q" `elem` options) $ do
+              putStrLn $ "AST: "
+              putStrLn ""
+              print p
+              putStrLn "\n----------------------------\n"
+              putStrLn code
             writeFile (replaceExtension file ".S") code
             exitSuccess
-
-    processArgs options ("-I":includePath:args)
-      = processArgs (("-I", includePath):options) args
-    processArgs options (_:_:args)
-      = processArgs options args
-    processArgs options [f]
-      = (f, options)
-    processArgs options []
-      = ("", options)
 
     compilationError err
       = ExitFailure (getExitCode err 100 200 200)
