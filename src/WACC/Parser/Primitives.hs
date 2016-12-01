@@ -95,11 +95,8 @@ operations
       , binary  ">>="  (BinApp BwShiftRAssign) AssocRight]]
 
 -- Utility functions
-opChar
-  = oneOf ['+', '-', '*', '/', '%', '!', '~', '&', '|', '^', '<', '>', '=']
-
 opMap name ret
-  = try (wsstring name <* notFollowedBy opChar) >> return ret
+  = try (wssurrounded (string name <* notFollowedBy (char '='))) >> return ret
 
 binary name fun
   = Infix $ opMap name fun
