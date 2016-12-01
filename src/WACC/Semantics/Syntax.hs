@@ -11,13 +11,13 @@ import           WACC.Semantics.Types
 import           WACC.Semantics.Primitives
 
 checkLit :: Literal -> SemanticChecker ()
-checkLit (INT i)
-  | inRange i = valid
-  | otherwise = invalid SyntaxError "integer out of range"
-  where
-    inRange i
-      = i >= fromIntegral (minBound :: Int32)
-        && i <= fromIntegral (maxBound :: Int32)
+--checkLit (INT i)
+--  | inRange i = valid
+--  | otherwise = invalid SyntaxError "integer out of range"
+--  where
+--    inRange i
+--      = i >= fromIntegral (minBound :: Int32)
+--        && i <= fromIntegral (maxBound :: Int32)
 
 checkLit _
   = valid
