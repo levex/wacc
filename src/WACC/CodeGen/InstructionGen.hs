@@ -378,12 +378,14 @@ generateInstrForExpr r (BinApp op e1 e2) = do
   r2 <- getFreeRegister
   t2 <- generateInstrForExpr r2 e2
   case t1 of
-    TPtr t -> if op `notElem` [Add, Sub] then
-        fail "invalid pointer arithmetic operation"
-      else do
+    TPtr t -> if op `elem` [Add, Sub] then do
         r3 <- getFreeRegister
         tell [Move CAl r3 (Imm 1), Op CAl MulOp r2 r2 (Reg r3)]
-    _      -> return ()
+      else if op `elem` [Gt, Gte, Lt, Lte, Eq, NEq] then
+        skip
+      else
+        fail $ "invalid pointer arithmetic operation\n" ++ show t1 ++ "\n" ++ show op
+    _      -> skip
   case op of
     Add -> tell [Op CAl AddOp r r1 (Reg r2)] >> return t1
     Sub -> tell [Op CAl SubOp r r1 (Reg r2)] >> return t1
