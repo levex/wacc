@@ -14,7 +14,7 @@ emitString :: Identifier -> String -> CodeGenerator String
 emitString id str
   = return $ concat [".balign 16\n",
                      "  ", id, ":\n",
-                     "    ", ".word ", show . length $ str, "\n",
+--                     "    ", ".word ", show . length $ str, "\n",
                      "    ", ".asciz ", str, "\n"]
 
 emitLiteral :: Instruction -> CodeGenerator String
