@@ -295,7 +295,7 @@ definition
 
     structDef
       = try $ TypeDef <$> (keyword "struct" *> identifier <* keyword "is")
-                      <*> (varDecl `sepBy` semicolon <* keyword "end")
+                      <*> (many (varDecl <* semicolon) <* keyword "end")
 
     globalDef
       = try $ GlobalDef <$> varDecl <*> (whitespace *> char '=' *> expr)
