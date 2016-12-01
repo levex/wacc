@@ -253,13 +253,15 @@ loop
   where
     forLoop = try $ do
       keyword "for"
+      wschar '('
       i <- getNextIdentifier
       savePosition i
-      init <- varDef
+      init <- VarDef <$> varDecl <*> (wschar '=' *> expr)
       semicolon
       cond <- expr
       semicolon
-      step <- expStmt
+      step <- ExpStmt <$> expr
+      wschar ')'
       keyword "do"
       body <- Block <$> many idStmt
       keyword "done" <|> keyword "end"
