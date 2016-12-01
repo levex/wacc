@@ -90,6 +90,9 @@ instance Emit Instruction where
           Imm i  -> [show rt, ", #", show i, "\n"]
           Reg rn -> [show rt, ", ", show rn, "\n"]
 
+  emit (MoveN c rt rn)
+    = [genCond c "mvn", " ", show rt, ", ", show rn, "\n"]
+
   emit (Shift c rt rn st op)
     = [genCond c (map toLower (show st)), " ", show rt, ", ", show rn, ", "] ++
         case op of
@@ -128,7 +131,7 @@ instance Emit Instruction where
         Imm 0  -> [show rt, ", [", show rn, "]\n"]
         Imm i  -> [show rt, ", [", show rn, ", #", show i, "]\n"]
 
-  emit (Op c ModOp rt rn op1) = concatMap emit
+  emit (Op c (ModOp True) rt rn op1) = concatMap emit
       [ Push c [r0, r1]
       , Move c r0 (Reg rn) -- FIXME: see DivOp and unify these
       , Move c r1 op1
@@ -136,11 +139,27 @@ instance Emit Instruction where
       , Move c rt (Reg r1)
       , Pop c [r0, r1]]
 
-  emit (Op c DivOp rt rn op1) = concatMap emit
+  emit (Op c (ModOp False) rt rn op1) = concatMap emit
+      [ Push c [r0, r1]
+      , Move c r0 (Reg rn) -- FIXME: see DivOp and unify these
+      , Move c r1 op1
+      , BranchLink c (Label "__aeabi_uidivmod")
+      , Move c rt (Reg r1)
+      , Pop c [r0, r1]]
+
+  emit (Op c (DivOp True) rt rn op1) = concatMap emit
       [ Push c [r0, r1]
       , Move c r0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
       , Move c r1 op1
       , BranchLink c (Label "__aeabi_idiv")
+      , Move c rt (Reg r0)
+      , Pop c [r0, r1]]
+
+  emit (Op c (DivOp False) rt rn op1) = concatMap emit
+      [ Push c [r0, r1]
+      , Move c r0 (Reg rn) -- FIXME: proper regsave and div-by-zero check
+      , Move c r1 op1
+      , BranchLink c (Label "__aeabi_uidiv")
       , Move c rt (Reg r0)
       , Pop c [r0, r1]]
 

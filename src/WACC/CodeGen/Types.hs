@@ -105,8 +105,8 @@ data Operation
   | SubOp
   | RSubOp
   | MulOp
-  | DivOp
-  | ModOp
+  | DivOp Bool
+  | ModOp Bool
   | AndOp
   | OrOp
   | XorOp
@@ -142,6 +142,7 @@ data Instruction
   | Load Condition MemAccessType Register Operand Bool Operand -- Rt, Rn (+/-) Rm/imm
   | Store Condition MemAccessType Register Register Bool Operand
   | Move Condition Register Operand
+  | MoveN Condition Register Register
   | Shift Condition Register Register ShiftType Operand
   | Push Condition [Register]
   | Pop Condition [Register]

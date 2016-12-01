@@ -366,10 +366,11 @@ generateInstrForExpr r (UnApp op e) = do
   t1 <- generateInstrForExpr r1 e
   case op of
     Not -> tell [Op CAl XorOp r r1 (Imm 1)] >> return TBool
-    Neg -> tell [Op CAl RSubOp r r1 (Imm 0)] >> return TInt
+    Neg -> tell [Op CAl RSubOp r r1 (Imm 0)] >> return t1
     Len -> tell [Load CAl Word r (Reg r1) True (Imm 0)] >> return TInt
     Chr -> tell [Move CAl r (Reg r1)] >> return TChar -- Chr and Ord are noops in assembly
     Ord -> tell [Move CAl r (Reg r1)] >> return TInt  -- Chr and Ord are noops in assembly
+    BwNot -> tell [MoveN CAl r r1] >> return t1
 generateInstrForExpr r e@(BinApp Member _ _)
   = generateStructMemberDeref r e
 generateInstrForExpr r (BinApp op e1 e2) = do
@@ -386,12 +387,13 @@ generateInstrForExpr r (BinApp op e1 e2) = do
       else
         fail $ "invalid pointer arithmetic operation\n" ++ show t1 ++ "\n" ++ show op
     _      -> skip
+  let signedness = t1 == TInt || t2 == TInt
   case op of
     Add -> tell [Op CAl AddOp r r1 (Reg r2)] >> return t1
     Sub -> tell [Op CAl SubOp r r1 (Reg r2)] >> return t1
     Mul -> tell [Op CAl MulOp r r1 (Reg r2)] >> return t1
-    Div -> tell [Op CAl DivOp r r1 (Reg r2)] >> return t1
-    Mod -> tell [Op CAl ModOp r r1 (Reg r2)] >> return t1
+    Div -> tell [Op CAl (DivOp signedness) r r1 (Reg r2)] >> return t1
+    Mod -> tell [Op CAl (ModOp signedness) r r1 (Reg r2)] >> return t1
     And -> tell [Op CAl AndOp r r1 (Reg r2)] >> return TBool
     Or  -> tell [Op CAl OrOp r r1 (Reg r2)] >> return TBool
     Gt  -> tell [Compare CAl r1 (Reg r2), Move CGt r (Imm 1), Move CLe r (Imm 0)] >> return TBool
@@ -438,8 +440,9 @@ generateInstrForAlloc r size = do
   tell [Move CAl r (Reg r0)]
 
 generateLiteral :: Register -> Literal -> InstructionGenerator Type
-generateLiteral r (INT i)
-  = tell [Load CAl Word r (Imm $ fromInteger i) True (Imm 0)] >> return TInt
+generateLiteral r (INT i) = do
+  tell [Load CAl Word r (Imm $ fromInteger i) True (Imm 0)]
+  if i < 0 then return TInt else return TUInt32
 generateLiteral r (CHAR c)
   = tell [Move CAl r (Imm $ ord c)] >> return TChar
 generateLiteral r (BOOL b)
@@ -474,9 +477,11 @@ generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
 generateDef (TypeDef id decls)
   = storeStruct id decls
 generateDef (GlobalDef (id, t) e)
-  = tell [Special $ GlobVarDef id e]
+  = saveRegId (R $ -1) id t >> tell [Special $ GlobVarDef id e]
+generateDef (ExternDef (id, TFun _ _))
+  = skip
 generateDef (ExternDef (id, t))
-  = skip -- tell [PureAsm [".globl ", id, "\n"]]
+  = saveRegId (R $ -1) id t -- tell [PureAsm [".globl ", id, "\n"]]
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
