@@ -204,13 +204,9 @@ idStmt = do
   s <- stmt
   return $ IdentifiedStatement s i
 
-stmtSeq :: GenParser Char LocationData Statement
-stmtSeq
-  = try $ Block <$> idStmt `sepBy` semicolon
-
 noop :: GenParser Char LocationData Statement
 noop
-  = try $ keyword "skip" *> return Noop
+  = try $ reserved "skip" Noop <* semicolon
 
 inlineAsm :: GenParser Char LocationData Statement
 inlineAsm = try $ do
@@ -221,34 +217,34 @@ inlineAsm = try $ do
 block :: GenParser Char LocationData Statement
 block = try $ do
   keyword "begin"
-  stmts <- idStmt `sepBy` semicolon
+  stmts <- many idStmt
   keyword "end"
   return $ Block stmts
 
 varDef :: GenParser Char LocationData Statement
 varDef
-  = try $ VarDef <$> varDecl <*> (whitespace *> char '=' *> expr)
+  = try $ VarDef <$> varDecl <*> (whitespace *> char '=' *> expr <* semicolon)
 
 control :: GenParser Char LocationData Statement
 control
   = Ctrl <$> (ret <|> break <|> cont)
   where
     ret
-      = reserved "return" Return <*> optionMaybe expr
+      = reserved "return" Return <*> optionMaybe expr <* semicolon
 
     break
-      = reserved "break" Break
+      = reserved "break" Break <* semicolon
 
     cont
-      = reserved "continue" Continue
+      = reserved "continue" Continue <* semicolon
 
 cond :: GenParser Char LocationData Statement
 cond = try $ do
   keyword "if"
   e <- expr
   keyword "then"
-  trueBranch <- stmtSeq
-  falseBranch <- option Noop (keyword "else" *> stmtSeq)
+  trueBranch <- Block <$> many idStmt
+  falseBranch <- option Noop (try $ keyword "else" *> (Block <$> many idStmt))
   keyword "fi" <|> keyword "end"
   return $ Cond e trueBranch falseBranch
 
@@ -266,7 +262,7 @@ loop
       semicolon
       step <- expStmt
       keyword "do"
-      body <- stmtSeq
+      body <- Block <$> many idStmt
       keyword "done" <|> keyword "end"
       return $ Block [IdentifiedStatement init i,
         IdentifiedStatement (Loop cond (Block [IdentifiedStatement body i,
@@ -276,27 +272,27 @@ loop
       keyword "while"
       e <- expr
       keyword "do"
-      body <- stmtSeq
+      body <- Block <$> many idStmt
       keyword "done" <|> keyword "end"
       return $ Loop e body
 
 builtin :: GenParser Char LocationData Statement
 builtin
-  = Builtin <$> builtinFunc <*> expr
+  = Builtin <$> builtinFunc <*> expr <* semicolon
   where
     builtinFunc
       =  try $ choice (map (uncurry reserved) builtins)
 
 expStmt :: GenParser Char LocationData Statement
 expStmt
-  = try $ ExpStmt <$> expr
+  = try $ ExpStmt <$> expr <* semicolon
 
 definition :: GenParser Char LocationData Definition
 definition
   = externDef <|> funDef <|> structDef <|> globalDef
   where
     funDef
-      = try $ FunDef <$> funDecl <*> (keyword "is" *> stmtSeq <* keyword "end")
+      = try $ FunDef <$> funDecl <*> (keyword "is" *> (Block <$> many idStmt) <* keyword "end")
 
     structDef
       = try $ TypeDef <$> (keyword "struct" *> identifier <* keyword "is")
