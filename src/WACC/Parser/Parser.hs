@@ -177,9 +177,8 @@ pairElement
                    <*> identifier
 
 funCall :: GenParser Char LocationData Expr
-funCall = try $ do
-  keyword "call"
-  FunCall <$> identifier <*> (whitespace *> parens (expr `sepBy` comma))
+funCall
+  = try $ FunCall <$> identifier <*> (whitespace *> parens (expr `sepBy` comma))
 
 newPair :: GenParser Char LocationData Expr
 newPair = try $ do
