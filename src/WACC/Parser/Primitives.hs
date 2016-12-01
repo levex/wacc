@@ -97,6 +97,7 @@ operations
 -- Utility functions
 opChar
   = oneOf ['+', '-', '*', '/', '%', '!', '~', '&', '|', '^', '<', '>', '=']
+
 opMap name ret
   = try (wssurrounded (string name <* notFollowedBy opChar)) >> return ret
 
