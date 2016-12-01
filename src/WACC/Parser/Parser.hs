@@ -300,7 +300,7 @@ definition
                       <*> (many (varDecl <* semicolon) <* keyword "end")
 
     globalDef
-      = try $ GlobalDef <$> varDecl <*> (whitespace *> char '=' *> expr)
+      = try $ GlobalDef <$> varDecl <*> (whitespace *> char '=' *> expr <* semicolon)
 
     externDef
       = try $ ExternDef <$> (keyword "extern" *> (funDecl <|> varDecl) <* semicolon)
