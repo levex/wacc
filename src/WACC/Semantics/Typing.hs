@@ -256,8 +256,8 @@ equalTypes s (TArray t1) (TArray t2) = do
   t1 <- deconstructArrayType (TArray t1)
   t2 <- deconstructArrayType (TArray t2)
   equalTypes s t1 t2
-equalTypes _ (TString) (TArray TChar) = valid
-equalTypes _ (TArray TChar) (TString) = valid
+equalTypes _ (TString) (TPtr TChar) = valid
+equalTypes _ (TPtr TChar) (TString) = valid
 equalTypes errMsg (TPair t11 t12) (TPair t21 t22)
   = equalTypes errMsg t11 t21 >> equalTypes errMsg t12 t22
 equalTypes errMsg (TPtr t1) (TPtr t2)

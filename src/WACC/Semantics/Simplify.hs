@@ -61,6 +61,9 @@ simplifyStmt (Cond e trueBranch falseBranch)
 simplifyStmt (Loop e body)
   = Loop e <$> simplifyStmt body
 
+simplifyStmt (VarDef (id, TString) e)
+  = storeDecl (id, TPtr TChar) >> (return $ VarDef (id, TPtr TChar) e)
+
 simplifyStmt s@(VarDef d _)
   = storeDecl d >> return s
 
