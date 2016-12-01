@@ -108,6 +108,8 @@ getWidth TUInt16
   = HalfWord
 getWidth TUInt32
   = Word
+getWidth TArb
+  = Byte
 getWidth _
   = Word
 
@@ -122,6 +124,8 @@ getTypeSize TUInt16
   = 2
 getTypeSize TUInt32
   = 4
+getTypeSize TArb
+  = 1
 getTypeSize _
   = 4
 
@@ -381,7 +385,7 @@ generateInstrForExpr r (BinApp op e1 e2) = do
   case t1 of
     TPtr t -> if op `elem` [Add, Sub] then do
         r3 <- getFreeRegister
-        tell [Move CAl r3 (Imm 1), Op CAl MulOp r2 r2 (Reg r3)]
+        tell [Move CAl r3 (Imm $ getTypeSize t), Op CAl MulOp r2 r2 (Reg r3)]
       else if op `elem` [Gt, Gte, Lt, Lte, Eq, NEq] then
         skip
       else
