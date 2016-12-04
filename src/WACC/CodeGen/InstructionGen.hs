@@ -113,21 +113,24 @@ getWidth TArb
 getWidth _
   = Word
 
-getTypeSize :: Type -> Int
+getTypeSize :: Type -> InstructionGenerator Int
 getTypeSize TInt
-  = 4
+  = pure 4
 getTypeSize TChar
-  = 1
+  = pure 1
 getTypeSize TUInt8
-  = 1
+  = pure 1
 getTypeSize TUInt16
-  = 2
+  = pure 2
 getTypeSize TUInt32
-  = 4
+  = pure 4
 getTypeSize TArb
-  = 1
+  = pure 1
+getTypeSize (TStruct id) = do
+  members <- fromJust . Map.lookup id <$> gets structDefs
+  sum <$> mapM (getTypeSize . snd) members
 getTypeSize _
-  = 4
+  = pure 4
 
 
 generateInstrForStatement :: Statement -> InstructionGenerator ()
@@ -232,7 +235,7 @@ getStructMemberInfo :: Identifier -> Identifier -> InstructionGenerator (Int, Ty
 getStructMemberInfo struct member = do
   members <- fromJust . Map.lookup struct <$> gets structDefs
   let preceding = map snd $ takeWhile (not . (== member) . fst) members
-  let offset = sum $ map getTypeSize preceding
+  offset <- sum <$> mapM getTypeSize preceding
   return $ (offset, fromJust (lookup member members))
 
 generateStructMemberDeref :: Register -> Expr -> InstructionGenerator Type
@@ -359,9 +362,9 @@ generateInstrForExpr r e@(UnApp Deref _)
 generateInstrForExpr r (UnApp op (Ident i)) = do
   r1 <- getRegById i
   t1 <- getTypeById i
-  let increment = case t1 of
-                    TPtr t -> getTypeSize t
-                    _      -> 1
+  increment <- case t1 of
+                 TPtr t -> getTypeSize t
+                 _      -> pure 1
   case op of
     PreInc  -> tell [Op CAl AddOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
     PostInc -> tell [Move CAl r (Reg r1), Op CAl AddOp r1 r1 (Imm increment)]
@@ -388,7 +391,8 @@ generateInstrForExpr r (BinApp op e1 e2) = do
   case t1 of
     TPtr t -> if op `elem` [Add, Sub, BwAnd, BwOr, BwXor] then do
         r3 <- getFreeRegister
-        tell [Move CAl r3 (Imm $ getTypeSize t), Op CAl MulOp r2 r2 (Reg r3)]
+        s <- getTypeSize t
+        tell [Move CAl r3 (Imm s), Op CAl MulOp r2 r2 (Reg r3)]
       else if op `elem` [Gt, Gte, Lt, Lte, Eq, NEq] then
         skip
       else
@@ -426,8 +430,9 @@ generateInstrForExpr r fc@(FunCall _ _) = do
 --  r2 <- getFreeRegister
 --  generateInstrForExpr r2 e2
 --  tell [Store CAl Word r2 r True (Imm 4)]
-generateInstrForExpr r (SizeOf t)
-  = tell [Load CAl Word r (Imm $ getTypeSize t) True (Imm 0)] >> return TInt
+generateInstrForExpr r (SizeOf t) = do
+  s <- getTypeSize t
+  tell [Load CAl Word r (Imm s) True (Imm 0)] >> return TInt
 
 generateInstrForFunCall :: Expr -> InstructionGenerator ()
 generateInstrForFunCall (FunCall id args) = do
