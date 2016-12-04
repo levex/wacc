@@ -238,7 +238,10 @@ getStructMemberInfo struct member = do
 generateStructMemberDeref :: Register -> Expr -> InstructionGenerator Type
 generateStructMemberDeref r (BinApp Member (Ident i) (Ident m)) = do
   r1 <- getRegById i
-  tell [Move CAl r (Reg r1)]
+  t1 <- getTypeById i
+  case r1 of
+    R (-1) -> tell [Load CAl (getWidth t1) r (Label i) True (Imm 0)]
+    _ -> tell [Move CAl r (Reg r1)]
   TPtr (TStruct s) <- getTypeById i
   (offset, t) <- getStructMemberInfo s m
   generateAddressDerefImm (getWidth t) r offset
@@ -264,11 +267,11 @@ generateAssignment (Ident i) e = do
     generateAssignment' :: Identifier -> Expr -> Register -> InstructionGenerator ()
     generateAssignment' i e (R (-1)) = do
       r <- getFreeRegister
-      r1 <- getFreeRegister
       generateInstrForExpr r e
+      r' <- getFreeRegister
       t <- getTypeById i
-      tell [Load CAl Word r1 (Label i) True (Imm 0)]
-      tell [Store CAl (getWidth t) r r1 True (Imm 0)]
+      tell [Load CAl Word r' (Label i) True (Imm 0)]
+      tell [Store CAl (getWidth t) r r' True (Imm 0)]
     generateAssignment' i e r
       = void $ generateInstrForExpr r e
 generateAssignment (ArrElem i idxs) e = do
