@@ -386,7 +386,7 @@ generateInstrForExpr r (BinApp op e1 e2) = do
   r2 <- getFreeRegister
   t2 <- generateInstrForExpr r2 e2
   case t1 of
-    TPtr t -> if op `elem` [Add, Sub] then do
+    TPtr t -> if op `elem` [Add, Sub, BwAnd, BwOr, BwXor] then do
         r3 <- getFreeRegister
         tell [Move CAl r3 (Imm $ getTypeSize t), Op CAl MulOp r2 r2 (Reg r3)]
       else if op `elem` [Gt, Gte, Lt, Lte, Eq, NEq] then
