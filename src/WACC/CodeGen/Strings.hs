@@ -26,7 +26,7 @@ emitLiteral (Special (GlobVarDef id (Lit (BOOL b))))
   = return $ concat ["  ", id, ": .word ", show (bool 0 1 b), "\n"]
 emitLiteral (Special (GlobVarDef id (Lit (CHAR c))))
   = return $ concat ["  ", id, ": .word ", show (ord c), "\n"]
-emitLiteral (Special (GlobVarDef id (Ident "NULL")))
+emitLiteral (Special (GlobVarDef id (Lit  NULL)))
   = return $ concat ["  ", ".globl ", id, "\n",
                      "  ", id, ": .word 0\n"]
 emitLiteral _
