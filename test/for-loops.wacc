@@ -1,9 +1,18 @@
 begin
     int main() is
-        int s = 0 ;
-        for int i = 0; i < 10; i++ do
-            s = s + i
-        done ;
-        return s
+        int s = 0;
+        for (int i = 0; i < 10; i++) do
+            s = s + i;
+        end
+        int j = 0;
+        for (j = 0; j < 10; j++) do
+            s += j;
+        end
+
+        for (skip; j < 15; j++) do
+            s += j;
+        end
+
+        return s;
     end
 end
