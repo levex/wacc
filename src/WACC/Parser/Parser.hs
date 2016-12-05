@@ -266,8 +266,7 @@ loop
       wschar '('
       i <- getNextIdentifier
       savePosition i
-      init <- VarDef <$> varDecl <*> (wschar '=' *> expr)
-      semicolon
+      init <- varDef <|> expStmt <|> noop
       cond <- expr
       semicolon
       step <- ExpStmt <$> expr
