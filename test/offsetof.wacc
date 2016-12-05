@@ -1,0 +1,29 @@
+begin
+
+struct test is
+    int x;
+    bool y;
+    uint8 z;
+    uint8 a;
+    uint8 b;
+    uint8 c;
+    uint16 d;
+    uint16 e;
+    struct test *t;
+end
+
+int main() is
+    int a = 0;
+    a = offsetof(struct test, x);
+    a = offsetof(struct test, y);
+    a = offsetof(struct test, z);
+    a = offsetof(struct test, a);
+    a = offsetof(struct test, b);
+    a = offsetof(struct test, c);
+    a = offsetof(struct test, d);
+    a = offsetof(struct test, e);
+    a = offsetof(struct test, t);
+    return a;
+end
+
+end
