@@ -157,7 +157,7 @@ expr
   = buildExpressionParser operations (wssurrounded term)
   where
     term
-      = parens expr <|> funCall <|> newPair <|> sizeOf
+      = parens expr <|> funCall <|> newPair <|> sizeOf <|> offsetOf
         <|> val <|> arrElement <|> pairElement <|> ident
 
 val :: GenParser Char LocationData Expr
@@ -189,7 +189,17 @@ newPair = try $ do
 sizeOf :: GenParser Char LocationData Expr
 sizeOf = try $ do
   keyword "sizeof"
-  SizeOf <$> parens decltype
+  SizeOf <$> parens (wssurrounded decltype)
+
+offsetOf :: GenParser Char LocationData Expr
+offsetOf = try $ do
+  keyword "offsetof"
+  wschar '('
+  s <- decltype
+  comma
+  m <- identifier
+  wschar ')'
+  return $ OffsetOf s m
 
 stmt :: GenParser Char LocationData Statement
 stmt

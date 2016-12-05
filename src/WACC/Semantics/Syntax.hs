@@ -58,6 +58,9 @@ checkExpr (FunCall _ _)
 checkExpr (SizeOf _)
   = valid
 
+checkExpr (OffsetOf (TStruct _) _)
+  = valid
+
 checkLhs :: Expr -> SemanticChecker ()
 checkLhs (Ident _)
   = valid

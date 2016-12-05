@@ -91,6 +91,7 @@ data Expr
   | BinApp BinOp Expr Expr
   | FunCall Identifier [Expr]
   | SizeOf Type
+  | OffsetOf Type Identifier
   | NewPair Expr Expr
   deriving (Eq, Show)
 

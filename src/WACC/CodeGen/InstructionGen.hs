@@ -432,7 +432,12 @@ generateInstrForExpr r fc@(FunCall _ _) = do
 --  tell [Store CAl Word r2 r True (Imm 4)]
 generateInstrForExpr r (SizeOf t) = do
   s <- getTypeSize t
-  tell [Load CAl Word r (Imm s) True (Imm 0)] >> return TInt
+  tell [Load CAl Word r (Imm s) True (Imm 0)]
+  return TInt
+generateInstrForExpr r (OffsetOf (TStruct s) m) = do
+  (offset, _) <- getStructMemberInfo s m
+  tell [Load CAl Word r (Imm offset) True (Imm 0)]
+  return TInt
 
 generateInstrForFunCall :: Expr -> InstructionGenerator ()
 generateInstrForFunCall (FunCall id args) = do

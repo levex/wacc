@@ -179,6 +179,8 @@ getType (NewPair e1 e2)    -- FIXME: pair<T1,T2>
   = TPair <$> getType e1 <*> getType e2
 getType (SizeOf _)
   = return TInt
+getType (OffsetOf _ _)
+  = return TInt
 
 addSymbol :: Symbol -> SemanticChecker ()
 addSymbol s = do

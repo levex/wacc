@@ -106,6 +106,8 @@ checkExpr (NewPair e1 e2)
   = checkExpr e1 >> checkExpr e2
 checkExpr (SizeOf _)
   = valid
+checkExpr (OffsetOf _ _)
+  = valid
 
 checkStmt :: Statement -> SemanticChecker ()
 checkStmt Noop
