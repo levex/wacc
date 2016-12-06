@@ -195,7 +195,7 @@ addSymbol s = do
       if notDefined s ss then
         put st{symbolTable = (SymbolTable (s:ss) [])}
       else
-        invalid SemanticError "identifier already defined"
+        invalid SemanticError ("identifier " ++ show s ++ " already defined")
     addToScope s (SymbolTable ss [c]) = do
       locs <- gets locationData
       structs <- gets structDefs
