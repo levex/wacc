@@ -263,7 +263,7 @@ equalTypes _ (TPtr TChar) (TString) = valid
 equalTypes errMsg (TPair t11 t12) (TPair t21 t22)
   = equalTypes errMsg t11 t21 >> equalTypes errMsg t12 t22
 equalTypes errMsg (TPtr t1) (TPtr t2)
-  = equalTypes errMsg t1 t2
+  = valid -- equalTypes errMsg t1 t2 -- YES DANIEL, I WANT TO DO THIS
 equalTypes errMsg t1 t2
   | t1 == TArb || t2 == TArb      = valid
   | isIntType t1 && isIntType t2  = valid
