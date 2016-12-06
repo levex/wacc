@@ -275,7 +275,7 @@ generateAssignment (Ident i) e = do
       generateInstrForExpr r e
       r' <- getFreeRegister
       t <- getTypeById i
-      tell [Load CAl Word r' (Label i) True (Imm 0)]
+      tell [Load CAl (getWidth t) r' (Label i) True (Imm 0)]
       tell [Store CAl (getWidth t) r r' True (Imm 0)]
     generateAssignment' i e r
       = void $ generateInstrForExpr r e
