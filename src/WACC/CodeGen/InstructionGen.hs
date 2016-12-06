@@ -243,7 +243,9 @@ generateStructMemberDeref r (BinApp Member (Ident i) (Ident m)) = do
   r1 <- getRegById i
   t1 <- getTypeById i
   case r1 of
-    R (-1) -> tell [Load CAl (getWidth t1) r (Label i) True (Imm 0)]
+    R (-1) -> tell [ Load CAl (getWidth t1) r (Label i) True (Imm 0)
+                   , Load CAl (getWidth t1) r (Reg r) True (Imm 0)
+                   ]
     _ -> tell [Move CAl r (Reg r1)]
   TPtr (TStruct s) <- getTypeById i
   (offset, t) <- getStructMemberInfo s m
