@@ -30,6 +30,8 @@ emitLiteral (Special (GlobVarDef id (Lit (CHAR c))))
 emitLiteral (Special (GlobVarDef id (Lit  NULL)))
   = return $ concat ["  ", ".globl ", id, "\n",
                      "  ", id, ": .word 0\n"]
+emitLiteral (Special (GlobVarDef id (Lit (STR str))))
+  = emitString id (show str)
 emitLiteral _
   = return []
 
