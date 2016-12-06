@@ -21,7 +21,8 @@ emitLiteral :: Instruction -> CodeGenerator String
 emitLiteral (Special (StringLit id str))
   = emitString id (show str)
 emitLiteral (Special (GlobVarDef id (Lit (INT i))))
-  = return $ concat ["  ", id, ": .word ", show i, "\n"]
+  = return $ concat ["  ", ".balign 16 \n.globl ", id, "\n",
+                     "  ", id, ": .word ", show i, "\n"]
 emitLiteral (Special (GlobVarDef id (Lit (BOOL b))))
   = return $ concat ["  ", id, ": .word ", show (bool 0 1 b), "\n"]
 emitLiteral (Special (GlobVarDef id (Lit (CHAR c))))
