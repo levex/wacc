@@ -86,6 +86,7 @@ data Register
   | SP
   | LR
   | PC
+  | None
   deriving (Eq, Ord)
 
 instance Show Register where

@@ -31,7 +31,7 @@ getRegById i
   where
     getRegById' :: Identifier -> Integer -> InstructionGenerator Register
     getRegById' i (-1)
-      = return $ R (-1)
+      = return None
     getRegById' i sId = do
       table <- gets regIdsTable
       case Map.lookup (i, sId) table of
@@ -243,10 +243,10 @@ generateStructMemberDeref r (BinApp Member (Ident i) (Ident m)) = do
   r1 <- getRegById i
   t1 <- getTypeById i
   case r1 of
-    R (-1) -> tell [ Load CAl (getWidth t1) r (Label i) True (Imm 0)
+    None -> tell [ Load CAl (getWidth t1) r (Label i) True (Imm 0)
                    , Load CAl (getWidth t1) r (Reg r) True (Imm 0)
                    ]
-    _ -> tell [Move CAl r (Reg r1)]
+    _    -> tell [Move CAl r (Reg r1)]
   TPtr (TStruct s) <- getTypeById i
   (offset, t) <- getStructMemberInfo s m
   generateAddressDerefImm (getWidth t) r offset
@@ -270,7 +270,7 @@ generateAssignment (Ident i) e = do
   generateAssignment' i e r
   where
     generateAssignment' :: Identifier -> Expr -> Register -> InstructionGenerator ()
-    generateAssignment' i e (R (-1)) = do
+    generateAssignment' i e None = do
       r <- getFreeRegister
       generateInstrForExpr r e
       r' <- getFreeRegister
@@ -335,10 +335,10 @@ generateInstrForExpr r (Ident id) = do
   r1 <- getRegById id
   t1 <- getTypeById id
   case r1 of
-    R (-1) -> do
+    None -> do
       tell [Load CAl (getWidth t1) r (Label id) True (Imm 0)]
       tell [Load CAl (getWidth t1) r (Reg r) True (Imm 0)]
-    _      -> tell [Move CAl r (Reg r1)]
+    _    -> tell [Move CAl r (Reg r1)]
   return t1
 generateInstrForExpr r (ArrElem id idxs) = do
   r1 <- getRegById id
@@ -368,7 +368,7 @@ generateInstrForExpr r (UnApp op (Ident i)) = do
                  TPtr t -> getTypeSize t
                  _      -> pure 1
   case r1 of
-    (R (-1)) -> case op of
+    None -> case op of
         PreInc  -> tell [ Load CAl (getWidth t1) r1 (Label i) True (Imm 0)
                         , Op CAl AddOp r1 r1 (Imm increment)
                         , Move CAl r (Reg r1)
@@ -514,11 +514,11 @@ generateDef (FunDef (ident, TFun retT paramTs) stmt) = do
 generateDef (TypeDef id decls)
   = storeStruct id decls
 generateDef (GlobalDef (id, t) e)
-  = saveRegId (R $ -1) id t >> tell [Special $ GlobVarDef id e]
+  = saveRegId None id t >> tell [Special $ GlobVarDef id e]
 generateDef (ExternDef (id, TFun _ _))
   = skip
 generateDef (ExternDef (id, t))
-  = saveRegId (R $ -1) id t -- tell [PureAsm [".globl ", id, "\n"]]
+  = saveRegId None id t -- tell [PureAsm [".globl ", id, "\n"]]
 
 generateInstructions :: Program -> CodeGenerator [[Instruction]]
 generateInstructions
