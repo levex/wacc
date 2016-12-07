@@ -367,11 +367,29 @@ generateInstrForExpr r (UnApp op (Ident i)) = do
   increment <- case t1 of
                  TPtr t -> getTypeSize t
                  _      -> pure 1
-  case op of
-    PreInc  -> tell [Op CAl AddOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
-    PostInc -> tell [Move CAl r (Reg r1), Op CAl AddOp r1 r1 (Imm increment)]
-    PreDec  -> tell [Op CAl SubOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
-    PostDec -> tell [Move CAl r (Reg r1), Op CAl SubOp r1 r1 (Imm increment)]
+  case r1 of
+    (R (-1)) -> case op of
+        PreInc  -> tell [ Load CAl (getWidth t1) r1 (Label i) True (Imm 0)
+                        , Op CAl AddOp r1 r1 (Imm increment)
+                        , Move CAl r (Reg r1)
+                        ]
+        PostInc -> tell [ Load CAl (getWidth t1) r1 (Label i) True (Imm 0)
+                        , Move CAl r (Reg r1)
+                        , Op CAl AddOp r1 r1 (Imm increment)
+                        ]
+        PreDec  -> tell [ Load CAl (getWidth t1) r1 (Label i) True (Imm 0)
+                        , Op CAl SubOp r1 r1 (Imm increment)
+                        , Move CAl r (Reg r1)
+                        ]
+        PostDec -> tell [ Load CAl (getWidth t1) r1 (Label i) True (Imm 0)
+                        , Move CAl r (Reg r1)
+                        , Op CAl SubOp r1 r1 (Imm increment)
+                        ]
+    _ -> case op of
+        PreInc  -> tell [Op CAl AddOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
+        PostInc -> tell [Move CAl r (Reg r1), Op CAl AddOp r1 r1 (Imm increment)]
+        PreDec  -> tell [Op CAl SubOp r1 r1 (Imm increment), Move CAl r (Reg r1)]
+        PostDec -> tell [Move CAl r (Reg r1), Op CAl SubOp r1 r1 (Imm increment)]
   return t1
 generateInstrForExpr r (UnApp op e) = do
   r1 <- getFreeRegister
