@@ -243,9 +243,8 @@ generateStructMemberDeref r (BinApp Member (Ident i) (Ident m)) = do
   r1 <- getRegById i
   t1 <- getTypeById i
   case r1 of
-    None -> tell [ Load CAl (getWidth t1) r (Label i) True (Imm 0)
-                   , Load CAl (getWidth t1) r (Reg r) True (Imm 0)
-                   ]
+    None -> tell [Load CAl (getWidth t1) r (Label i) True (Imm 0),
+                  Load CAl (getWidth t1) r (Reg r) True (Imm 0)]
     _    -> tell [Move CAl r (Reg r1)]
   TPtr (TStruct s) <- getTypeById i
   (offset, t) <- getStructMemberInfo s m
@@ -307,7 +306,12 @@ generateAssignment (BinApp Member (Ident i) (Ident m)) e = do
   (offset, t) <- getStructMemberInfo s m
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
-  tell [Store CAl (getWidth t) r1 r True (Imm offset)]
+  case r of
+    None -> do
+      r' <- getFreeRegister
+      tell [Load CAl Word r' (Label i) True (Imm 0),
+            Store CAl (getWidth t) r1 r' True (Imm offset)]
+    _    -> tell [Store CAl (getWidth t) r1 r True (Imm offset)]
 generateAssignment (BinApp Member e1 (Ident m)) e = do
   r <- getFreeRegister
   TPtr (TStruct s) <- generateStructMemberDeref r e1
@@ -320,7 +324,12 @@ generateAssignment (UnApp Deref (Ident i)) e = do
   r1 <- getFreeRegister
   generateInstrForExpr r1 e
   TPtr t <- getTypeById i
-  tell [Store CAl (getWidth t) r1 r True (Imm 0)]
+  case r of
+    None -> do
+      r' <- getFreeRegister
+      tell [Load CAl Word r' (Label i) True (Imm 0),
+            Store CAl (getWidth t) r1 r' True (Imm 0)]
+    _    -> tell [Store CAl (getWidth t) r1 r True (Imm 0)]
 generateAssignment (UnApp Deref e1) e = do
   r <- getFreeRegister
   TPtr t <- generateInstrForExpr r e1
