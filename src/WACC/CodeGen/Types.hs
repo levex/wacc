@@ -94,6 +94,7 @@ instance Show Register where
   show SP     = "sp"
   show LR     = "lr"
   show PC     = "pc"
+  show None   = "none"
 
 data Operand
   = Imm Int
